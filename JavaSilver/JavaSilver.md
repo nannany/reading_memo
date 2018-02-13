@@ -104,4 +104,39 @@ int,shortの桁あふれ
 
 * `int a = 1+1L;`のように、intで表現できる範囲を超えてなくても、`int a = 1+(int)1L;`とキャストが必要。
 * 関係演算子`<` `<=` `>` `>=` は数値以外の比較はできない。`true<false` とかできそうだけどできない。
+* switch文の条件式に戻せる値は、
+ * int型以下の整数型とそのラッパークラス
+ * 文字と文字列
+ * 列挙型
+* switch文のcase値の条件は、
+ * 条件式が戻す値と同じ型か互換性のある型であること
+ * 定数または、コンパイル時に値を決めることができること(つまりfinalついてい)
+ * nullでないこと
+* コンスタントプールなる領域がメモリにあり、`String a = "const";` のようにaが宣言された場合、文字列リテラル"const"はコンスタントプールに保持される。次に`String b = "const";`のようなコードがあった場合には、コンスタントプールを走査し、"const"が存在しているので、そのメモリ番地を、bは保持することになる。
+
+```
+package tryAny;
+
+public class ConstantPool {
+    public static void main(String[] args) {
+	String a1 = "constpool1";
+	String b1 = "constpool1";
+	System.out.println(a1 == b1);
+
+	String a2 = new String("constpool2");
+	String b2 = "constpool2";
+	System.out.println(a2 == b2);
+    }
+}
+```
+https://qiita.com/liguofeng29/items/16d6dbec471bc5269f0e
+は分かりやすかった。
+
+
+おいおいこの辺も読んでみたい(が、難しそう)。
+https://dev.classmethod.jp/server-side/java/classfile-reading/
+
+* 中括弧({}のこと)を使わないif文についての問題もあったが、これは問う意味あるのか？
+
+# 4. 配列の作成と使用
 * 
