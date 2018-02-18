@@ -139,7 +139,7 @@ https://dev.classmethod.jp/server-side/java/classfile-reading/
 * 中括弧({}のこと)を使わないif文についての問題もあったが、これは問う意味あるのか？
 
 # 4. 配列の作成と使用
-* 配列の初期化方法について、以下のパターンはコンパイルエラーになる。
+* 配列の初期化方法について、以下のパターンはコンパイルエラーになる。**IDEが教えてくれることをわざわざ細かく覚えるひつようがあるだろうか。**
  * 配列の要素数を指定し、かつ、初期化演算子{}を用いるとコンパイルエラーになる。
 ```
 int[] array = new int[2]{ 2, 3}; // コンパイルエラー
@@ -155,3 +155,43 @@ d = {2,3}; // コンパイルエラー
 ```
 
 # 5.ループ構造の使用
+* for文の初期化文は複数変数宣言できるが、同じ型でないといけない。
+* for文の条件文は複数記述できない。
+
+```
+package tryAny;
+
+public class For {
+    public static void main(String[] args) {
+	// 初期化文複数
+	for (int i = 0, j = 1; i < j; i++) {
+	    System.out.println(i);
+	}
+	
+	// 更新文複数
+	for (int i = 0; i < 4; i++, tmp(), tmp2()) {
+	    System.out.println(i);
+	}
+    }
+
+    private static void tmp() {
+	System.out.println("tmp");
+    }
+
+    private static void tmp2() {
+	System.out.println("tmp2");
+    }
+}
+```
+
+* ラベルは以下につけられる。(**コードブロックとループ分岐以外どうやって使うのか検討がつかない。。。**)
+ * コードブロック
+ * ループ、分岐
+ * 式
+ * 代入
+ * return文
+ * tryブロック
+ * throw文
+
+# ６．メソッドのカプセル化の操作
+
