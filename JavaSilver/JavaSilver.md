@@ -194,4 +194,75 @@ public class For {
  * throw文
 
 # ６．メソッドのカプセル化の操作
+* static なメソッドは、staticで修飾されたものしかアクセスできない。なぜなら、staticでないものは、その時点でヒープ領域に存在していない可能性があるから。
+* オーバーロードの条件となるのは、引数の違いだけで、**戻り値、アクセス修飾子の違いは関係ない**。
+
+```
+package tryAny;
+
+public class Overload {
+    public static void main(String[] args) {
+	System.out.println(ret(1, 2)); // 3
+	System.out.println(ret(1.0, 2));// 0
+	System.out.println(ret(1, 2.0));// 2
+
+    }
+
+    private static String ret(int a, int b) {
+	return Integer.toString(a + b);
+    }
+
+    public static int ret(int a, double b) {
+	return a * (int) b;
+    }
+
+    protected static int ret(double a, int b) {
+	return (int) a / b;
+    }
+}
+```
+
+* コンストラクタにおける処理の前に実行する命令を、**初期化ブロック**に書くことができる。
+
+```
+package tryAny;
+
+public class InitializeBlock {
+    public static void main(String[] args) {
+	InitTest i1 = new InitTest(); // JavaSilver
+	InitTest i2 = new InitTest(" is dead");// JavaSilver is dead
+	InitTest i3 = new InitTest(100, new String[] { "dummy", "point" });// JavaSilver100point
+    }
+
+}
+
+class InitTest {
+    {
+	System.out.print("JavaSilver");
+    }
+
+    InitTest() {
+	System.out.println();
+    }
+
+    InitTest(String str) {
+	System.out.println(str);
+    }
+
+    InitTest(int a, String... str) {
+	System.out.println(a + str[1]);
+    }
+}
+```
+
+* コンストラクタ内で、thisを用いてオーバーロードされた別のコンストラクタを呼び出す場合には**最初に記述しなければならない**。
+
+* アクセス修飾子の説明は以下。protected,なし,あたりは忘れがち。
+| 修飾子 | 説明 |
+| -- | -- |
+| public | 全てのクラスからアクセス可能 |
+| protected | 同じパッケージに属するか、継承しているサブクラスからのみアクセス可能 |
+| なし | 同じパッケージに属するクラスのみからアクセス可能 |
+| private | クラス内のみからアクセス可能 |
+
 
