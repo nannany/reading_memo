@@ -265,4 +265,87 @@ class InitTest {
 | なし | 同じパッケージに属するクラスのみからアクセス可能 |
 | private | クラス内のみからアクセス可能 |
 
+# 7.継承の操作
+* インターフェースで規定するメソッドはすべてpublicと解釈される。
+* オーバーライドに関して、戻り値は元と同じか、そのサブクラスであればよい(共辺戻り値)。
 
+```
+package tryAny;
+
+public class Extends {
+    public static void main(String[] args) {
+	Tmp tmp = new Tmp2();
+	System.out.println(tmp.ret(1));
+    }
+}
+
+abstract class Tmp {
+    abstract Object ret(int i);
+}
+
+class Tmp2 extends Tmp {
+    @Override
+    Integer ret(int i) {
+	return i;
+    }
+
+}
+```
+
+* インスタンスが持つメソッドが呼び出されたときに、どれが使われるかを定義した表を**メソッドディスパッチテーブル**という。これは、インスタンスの生成時に作られ、JVMが管理する。
+* オーバーライドしたメソッドはアクセス制御を緩くすることはできるが、厳しくすることはできない。
+* スーパークラスの変数を明示的にダウンキャストすれば、実態のインスタンスがどうあれ、コンパイルは通すことができる。
+
+```
+package tryAny;
+
+public class Cast2 {
+    public static void main(String[] args) {
+	A a = new A();
+	B b = (B) a; // コンパイルは通るが、実行時ClassCastException発生
+    }
+
+}
+
+class A {
+
+}
+
+class B extends A {
+
+}
+```
+
+# 8.例外の処理
+* catch節、finally節の双方にreturn文があった場合、finallyのほうが優先される。
+
+```
+package tryAny;
+
+public class Exception {
+    public static void main(String[] args) {
+	int ret = test();
+	System.out.println(ret); // 20
+    }
+
+    private static int test() {
+	try {
+	    int[] tmp = {};
+	    int a = tmp[0];
+	} catch (RuntimeException e) {
+	    return 10;
+	} finally {
+	    return 20;
+	}
+    }
+
+}
+```
+
+* 例外クラスの関係は以下のよう。
+![](error.bmp)
+
+* staticイニシャライザ内で例外が発生したら、 ExceptionInitializerErrorをJVMが発生させる。
+
+
+# 9.Java APIの主要なクラスの操作
