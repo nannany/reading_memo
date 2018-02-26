@@ -258,6 +258,7 @@ class InitTest {
 * コンストラクタ内で、thisを用いてオーバーロードされた別のコンストラクタを呼び出す場合には**最初に記述しなければならない**。
 
 * アクセス修飾子の説明は以下。protected,なし,あたりは忘れがち。
+
 | 修飾子 | 説明 |
 | -- | -- |
 | public | 全てのクラスからアクセス可能 |
@@ -343,9 +344,79 @@ public class Exception {
 ```
 
 * 例外クラスの関係は以下のよう。
+
 ![](error.bmp)
 
 * staticイニシャライザ内で例外が発生したら、 ExceptionInitializerErrorをJVMが発生させる。
 
 
 # 9.Java APIの主要なクラスの操作
+* immutableなオブジェクトを定義する方法
+  * すべてのフィールドをprivateで修飾する
+  * オブジェクト内部状態を変更可能なメソッドを提供しない
+  * クラスをfinalで宣言し、メソッドがオーバーライドされないようにする（サブクラスからの変更を防ぐ）
+  * 内部に可変オブジェクトを保持している場合、そのオブジェクトを外部に提供しない
+* Stringのtrimメソッドが除去する空白は、文字コードで「\u0000~\u0020」
+* 定義済み文字クラスは以下のよう。
+
+![](defined_regex.bmp)
+
+* StringBuilder のappendメソッドでは、char配列を引数に取ることもできる。
+
+```
+package tryAny;
+
+public class StringTest {
+    public static void main(String[] args) {
+	String tmp = null;
+	System.out.println(tmp + "a"); // nulla
+	try {
+	    System.out.println(tmp.concat("a"));// ヌルぽが出る
+	} catch (NullPointerException e) {
+	    System.out.println("ヌルぽ発生");
+	}
+
+	StringBuilder sb = new StringBuilder();
+	System.out.println(sb.capacity());// 16
+
+	char[] char1 = { 'a', 'b', 'c', 'd' };
+	System.out.println(sb.append(char1));// abcd
+    }
+}
+
+```
+
+* メソッドが一つだけのインターフェースを関数型インターフェースという。
+* ラムダ式において処理が1つだけで、中括弧を省略した場合には、returnはかけない。
+
+```
+package tryAny;
+
+public class Lambda2 {
+    public static void main(String[] args) {
+	Algo plus = (int x, int y) -> {
+	    return x + y;
+	};
+
+	// ラムダ式の処理が一つしかなく、中括弧を省略した場合には、returnは省略せねばならない。
+	Algo minus = (int x, int y) -> x - y;
+
+	System.out.println(execCalc(plus, 2, 1));
+	System.out.println(execCalc(minus, 2, 1));
+    }
+
+    static int execCalc(Algo algo, int x, int y) {
+	return algo.calc(x, y);
+    }
+
+    @FunctionalInterface
+    interface Algo {
+	int calc(int x, int y);
+    }
+}
+```
+
+* ラムダ式内でローカル変数を参照することはできるが、書き換えることはできない。
+* LocalDateクラスはimmutableオブジェクトである。
+* 日付の差はPeriodクラスを、時刻の差はDurationクラスを用いて計算できる。
+* スレッドセーフなリストを扱いたい場合はVectorクラスを用いる。
