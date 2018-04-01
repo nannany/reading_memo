@@ -23,3 +23,7 @@
 * Lombokの@NoArgsConstructorでデフォルトコンストラクタ作成できる。
 * Lombokの@AllArgsConstructorで全引数をもつコンストラクタ作成できる。
 
+# 3章
+* RESTウェブサービスのエンドポイントとなるControllerクラスには「@RestController」を付与する。
+* サービスへのアクセスパスを「@RequestMapping」で設定。
+* 
