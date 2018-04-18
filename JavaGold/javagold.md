@@ -59,4 +59,95 @@ public class DiamondExtends implements B, C {
 }
 ```
 
+* 入れ子クラスというものがある。（これとの対比で、普通のクラスのことをトップレベルクラスという）
+  * staticメンバークラス、内部クラス
+  * 外側のクラスのことをエンクロージングクラスという。エンクロージングクラスは必ずしもトップレベルクラスではない。
 
+* 入れ子クラスの使い道は、パーフェクトJavaによると以下のよう
+  * エンクロージングクラス内部だけでオブジェクトを使う場合
+  * ネストしたクラスの実装をエンクロージングクラス内に隠ぺいしたい場合
+
+```java
+package tryAny.inner;
+
+public class InnerTest {
+    class InnerA {
+	void innerMethod() {
+	    System.out.println("I am inner.");
+	}
+    }
+
+    private void execInner() {
+	InnerA ia = new InnerA();
+	ia.innerMethod();
+    }
+
+    public static void main(String[] args) {
+	InnerTest it = new InnerTest();
+	it.execInner();
+    }
+}
+```
+
+```java
+package tryAny.inner;
+
+public class Other {
+    public static void main(String[] args) {
+	InnerTest.InnerA ia = new InnerTest().new InnerA();
+	ia.innerMethod();
+    }
+}
+```
+
+* 匿名クラスが使われる場面は、**インターフェース型の引数をとるように宣言された、他のクラスのメソッドを利用する**場合が多い
+
+```java
+package tryAny.anonymous;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
+public class AnonymousTest {
+    public static void main(String[] args) {
+	Data d1 = new Data(3, "aaa");
+	Data d2 = new Data(1, "bbb");
+	Data d3 = new Data(2, "ccc");
+
+	List<Data> list = new ArrayList<Data>();
+	list.add(d1);
+	list.add(d2);
+	list.add(d3);
+
+	list.stream().forEach(System.out::println);// 3,1,2の順で表示
+
+	list.sort(new Comparator<Data>() {
+	    public int compare(Data data1, Data data2) {
+		if (data1.num > data2.num) {
+		    return 1;
+		} else {
+		    return -1;
+		}
+	    }
+	});
+
+	list.stream().forEach(System.out::println);// 1,2,3の順で表示
+    }
+
+    static class Data {
+	int num;
+	String value;
+
+	Data(int num, String value) {
+	    this.num = num;
+	    this.value = value;
+	}
+
+	@Override
+	public String toString() {
+	    return num + ":" + value;
+	}
+    }
+}
+```
