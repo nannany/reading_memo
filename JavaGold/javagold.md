@@ -589,4 +589,222 @@ public class ExceptionTest2 {
 }
 ```
 
-* 
+* try-with-resources文を用いることでオープンしたリソースを自動的にクローズすることができる。
+
+```java
+package tryAny.exception;
+
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+
+public class ExceptionTest3 {
+    public static void main(String[] args) {
+	try (FileReader in = new FileReader("src/main/java/tryAny/stream/sample.txt");
+		FileWriter out = new FileWriter("src/main/java/tryAny/exception/sample.txt");
+		AutoCloseTest act = new AutoCloseTest();
+		/** AutoCloseTest2 act2 = new AutoCloseTest2(); ←AutoClosableを実装していないのでダメ**/ ) {
+	    // AutoCloseTest のcloseが実行される。
+	} catch (IOException e) {
+
+	}
+    }
+}
+
+class AutoCloseTest implements AutoCloseable {
+    @Override
+    public void close() {
+	System.out.println("AutoCloseTest is closed.");
+    }
+}
+
+class AutoCloseTest2 {
+    public void close() {
+	System.out.println("AutoCloseTest is closed.");
+    }
+}
+```
+
+* assert文がfalseになると、AssertionErrorが発生する（コマンドライン引数に-eaを入れておく）。
+* assert文は開発中のプログラムのための機能であり、実運用時は無効にすべきもの。
+
+```java
+package tryAny.exception;
+
+public class ExceptionTest4 {
+    public static void main(String[] args) {
+	int x = 1;
+
+	assert (x == 2) : "Error Message出すで！";
+	/**
+	 * VM引数に-eaを入れてやると、以下のエラーが出る。
+	 *
+	 * Exception in thread "main" java.lang.AssertionError: Error Message出すで！
+	 * at tryAny.exception.ExceptionTest4.main(ExceptionTest4.java:7)
+	 *
+	 */
+    }
+}
+```
+
+# 6章 日付/時刻API
+* now()メソッドで現在時が、ofメソッドで指定した時間を保持するクラスが取れる。
+
+```java
+package tryAny.dateTime;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.Month;
+
+public class DateTest1 {
+    public static void main(String[] args) {
+	LocalDateTime now = LocalDateTime.now();
+	LocalDate ld = LocalDate.of(2018, Month.JANUARY, 1);
+
+	System.out.println(now + " " + ld);
+    }
+}
+```
+
+* TemporalUnitクラスのメソッドで、簡単な日付計算を施して、Temporalを実装したクラスや期間の長さを計算することができる。
+
+```java
+package tryAny.dateTime;
+
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+
+public class DateTest2 {
+    public static void main(String[] args) {
+	LocalDate ld1 = LocalDate.now();
+	LocalDate ld2 = ChronoUnit.YEARS.addTo(ld1, -1);
+	long l = ChronoUnit.DAYS.between(ld1, ld2);
+
+	System.out.println(ld1);// 今
+	System.out.println(ld2);// 今から一年前
+	System.out.println(l);// 閏年等考慮しなければ-365
+    }
+}
+```
+
+* 期間を表すクラスとして、DurationクラスとPeriodクラスがある。どちらもTemporalAmountインタフェースを実装している。
+  * Durationは時間ベースの期間を表す。
+  * Periodは日付ベースの期間を表す。
+
+```java
+package tryAny.dateTime;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.Period;
+import java.time.temporal.ChronoUnit;
+
+public class DateTest3 {
+    public static void main(String[] args) {
+	LocalDateTime ldt1 = LocalDateTime.now();
+	LocalDateTime ldt2 = ChronoUnit.DAYS.addTo(ldt1, 31);
+
+	Duration d = Duration.between(ldt1, ldt2);
+	Period p = Period.between(ldt1.toLocalDate(), ldt2.toLocalDate());
+
+	System.out.println(d + " " + p);// PT744H P1M
+    }
+}
+```
+
+* 日付、時刻の表示形式は定義済みのものを使うことも、自分で作成することもできる。
+
+```java
+package tryAny.dateTime;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+
+public class DateTest4 {
+    public static void main(String[] args) {
+	DateTimeFormatter dtf1 = DateTimeFormatter.BASIC_ISO_DATE;
+	DateTimeFormatter dtf2 = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM);
+
+	System.out.println(dtf1.format(LocalDate.now()));
+	System.out.println(dtf2.format(LocalDateTime.now()));
+
+	// オリジナルなフォーマットを作成
+	DateTimeFormatter dtf3 = DateTimeFormatter.ofPattern("yyyy★MM★dd");
+	System.out.println(dtf3.format(LocalDate.now()));
+    }
+}
+```
+
+# 7章 Java/IO
+* ファイルを扱うクラスとして、FileとPathがあるが、JavaSE7以降ではPathの使用が推奨されている。
+* 入出力の流れは、入力or出力、テキストorバイナリ、を掛け合わせた4通りがあり、それぞれ以下のような抽象クラスがある。
+  * 入力、テキスト：Reader
+  * 入力、バイナリ：InputStream
+  * 出力、テキスト：Writer
+  * 出力、バイナリ：OutputStream
+* java.ioパッケージ内のクラス設計は、Decoratorパターンで作りこまれている。
+* PrintStreamとPrintWriterはほとんど一緒。これらはプリミティブ型の値をそのまま出力できるようになっている。
+
+```java
+package tryAny.io;
+
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+
+public class IOTest1 {
+    public static void main(String[] args) {
+	try (PrintWriter pw = new PrintWriter("out.txt")) {
+	    pw.println("Hello world");
+	    // BufferedWriterではboolean、doubleといったプリミティブ型をそのまま出力させることはできない。
+	    pw.println(true);
+	    pw.println(0.4);
+	} catch (FileNotFoundException e) {
+	    System.out.println(e);
+	}
+    }
+}
+```
+
+* Consoleクラスを用いることで標準入力の読み込みができる。Consoleインスタンスを取得するには、Systemクラスのconsole()メソッドを呼ぶ必要がある。
+* 直列化が必要であるクラスはSerializableを実装している必要がある。Serializableインターフェース自体は何の機能もなく、これを実装したクラスは直列化が可能である、という責任を負うという理解。
+<http://d.hatena.ne.jp/daisuke-m/20100414/1271228333>
+* ObjectOutputStreamクラス、ObjectInputStreamクラスを用いて実際にシリアライズ、デシリアライズを行うことができる。
+
+```java
+package tryAny.io;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
+public class IOTest3 {
+    public static void main(String[] args) throws IOException {
+	// シリアライズしたデータを格納。
+	try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("iotest3.ser"))) {
+	    String test = "iotest3";
+	    oos.writeObject(test);// これでiotest3.serができる。
+	    oos.writeInt(111);
+	} catch (IOException e) {
+	    throw new IOException(e);
+	}
+
+	// シリアライズしたデータを取得してメモリに展開。
+	try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("iotest3.ser"))) {
+	    System.out.println(ois.readObject());
+	    System.out.println(ois.readInt());
+	} catch (ClassNotFoundException | IOException e) {
+	    throw new IOException(e);
+	}
+    }
+}
+```
+
+* static変数、transient修飾子の付与された変数はシリアライズ対象外となる。
+
+* JavaSE7でファイルを扱うクラスがFileからPathになったことにより、プラットフォームのファイルシステム固有の仕組みを透過的に使用できるようになった。
+
