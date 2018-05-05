@@ -807,4 +807,151 @@ public class IOTest3 {
 * static変数、transient修飾子の付与された変数はシリアライズ対象外となる。
 
 * JavaSE7でファイルを扱うクラスがFileからPathになったことにより、プラットフォームのファイルシステム固有の仕組みを透過的に使用できるようになった。
+* Filesクラスのデフォルトの挙動は以下。これらの挙動は引数にオプションを指定することによって変更できる。
+  * コピー先ファイルが存在する場合は例外がスローされる。
+  * コピー元ファイルの属性は引き継がれない。
+  * ディレクトリのコピーの場合、ディレクトリ内のファイルはコピーされない。
+  * シンボリックリンクをコピーした場合、リンク先のみコピーされ、リンク自体はコピーされない。
+* ファイル属性を扱うクラスはjava.nio.file.attributeパッケージにあり、以下の3つがある。
+  * BasicFileAttributes:Windows,Linux問わず共通のファイル属性
+  * DosFileAttributes:Windows系のファイル属性
+  * PosixFileAttributes:Linux系のファイル属性
+* ファイル属性のセットを表すインターフェースとしてAttributeViewがある。（**ファイル属性のセットってどういうこと??**）
+* ファイルやディレクトリの単一の属性を得るときは、Files.getAttributeが使える。
 
+```java
+package tryAny.io;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.FileTime;
+
+public class IOTest5 {
+    public static void main(String[] args) throws IOException {
+	Path p = Paths.get("out.txt");
+
+	// 作成日時
+	System.out.println((FileTime) Files.getAttribute(p, "creationTime"));
+
+	// サイズ
+	System.out.println((long) Files.getAttribute(p, "size"));
+
+	// シンボリックリンクか否か
+	System.out.println((boolean) Files.getAttribute(p, "isSymbolicLink"));
+    }
+}
+```
+
+* walkFileTreeメソッドを使うとディレクトリ階層の再帰的トラバース処理が比較的容易に行える。
+* Files.walkメソッドの用いると深さ優先探索でトラバース処理が行える。
+
+```java
+package tryAny.io;
+
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+
+public class IOTest6 {
+    public static void main(String[] args) throws IOException {
+	Path p = Paths.get("src");
+
+	// ファイルが現れたら標準出力するようにする。
+	Files.walkFileTree(p, new SimpleFileVisitor<Path>() {
+	    @Override
+	    public FileVisitResult visitFile(Path path, BasicFileAttributes bfa) throws IOException {
+		System.out.println(path);
+		return FileVisitResult.CONTINUE;
+	    }
+	});
+
+	// ディレクトリのみ出力するようにする。
+	Files.walk(p).filter(path -> {
+	    try {
+		return (boolean) Files.getAttribute(path, "isDirectory");
+	    } catch (IOException e) {
+		System.out.println(e);
+		return false;
+	    }
+	}).forEach(System.out::println);
+    }
+}
+```
+
+# 8章 並行性
+* 並行処理ユーティリティはjava.util.concurrent.atomicとjava.util.concurrent.locksで提供される。ここで提供される仕組み、機能は以下。
+  * スレッドプール：あらかじめスレッドを生成してためておくことで、スレッド生成のオーバーヘッドをなくすための仕組み。Executorフレームワークがこの機能を提供
+  * 並行コレクション：パフォーマンスと並行性にうまく折り合いをつけたコレクション
+  * アトミック変数：処理の原子性を担保してくれる、つまり、とある機能を実行したか、しないかの二択以外の状況はあり得ないことを保障してくれる仕組みを持った変数のこと。インクリメント処理であれば、①値の読み込み→②値変更→③値書き込み、という処理であるが、①～③の流れについて、完了or手つかずのいずれかであるということが保証される。（①と②の間で他の処理が対象の変数に対して書き込みを行う、といったことを考慮している）
+  * カウンティング・セマフォ：**セマフォ**とは、プロセスやスレッド間における同期や割込み制御に用いられる仕組みである。セマフォには**バイナリ・セマフォ**と**カウンティング・セマフォ**がある。バイナリ・セマフォはリソースに対するアクセス制御の種類が「可能」「不可能」のみであるのに対し、カウンティング・セマフォはアクセス可能なリソース数を任意に設定することができる。
+
+* アトミック変数を使用するとアトミックな操作が保証される。
+
+```java
+package tryAny.concurrentUtility;
+
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class ConcurrentTest5 {
+    public static void main(String[] args) throws InterruptedException, ExecutionException {
+
+	ExecutorService es = Executors.newFixedThreadPool(8);
+	MyAtomCounter mac = new MyAtomCounter();
+
+	Future<?> ret1 = es.submit(new MyAtomWorker(mac));
+	Future<?> ret2 = es.submit(new MyAtomWorker(mac));
+
+	ret1.get();
+	ret2.get();
+	es.shutdown();
+
+	// 確実に200000になる。
+	mac.show();
+
+    }
+}
+
+class MyAtomCounter {
+    private AtomicInteger count = new AtomicInteger();
+
+    public void increment() {
+	count.incrementAndGet();
+    }
+
+    public void show() {
+	System.out.println("AtomicIntegerの場合：" + count);
+    }
+}
+
+class MyAtomWorker implements Runnable {
+    private static final int NUM_LOOP = 100000;
+    private final MyAtomCounter counter;
+
+    MyAtomWorker(MyAtomCounter counter) {
+	this.counter = counter;
+    }
+
+    @Override
+    public void run() {
+	for (int i = 0; i < NUM_LOOP; i++) {
+	    counter.increment();
+	}
+    }
+}
+```
+
+* **ConcurrentHashMap**クラスはMapがアトミック操作できるようになったもの。ロックする単位はマップ全体ではなくもっと細かいものとなっており、実行性能の劣化は小さいが、size()やisEmpty()が正確でないことがある。また、このクラスが返すIteratorの設計方針は**弱い整合性**であり、並行アクセス時の要素変更を許容しているため、ConcurrentModificationExceptionは発生しない。
+* **CopyOnWriteArrayList**クラスは、リストの要素に変更がはいるようなメソッドが呼ばれる際には、元のリストのコピーが生成される。リスト要素変更中にほかのスレッドからリストの読み取り要求が来た場合には、作成したコピーの値を返すため、ConcurrentModificationExceptionは発生しない。コピーを作成するという仕組み上、リストのサイズが大きい場合は性能が悪くなる。
+* CyclicBarrierクラスを用いることで複数スレッド間で協調を取ることができる。
+* Threadクラスでは「タスクの実行をJVMに依頼する」部分と「タスクをどのように実行するか」という部分が蜜結合となっており、スレッドの生成と管理をプログラムで制御することが難しかった。JavaSE8からはExecutorクラスがそれらの問題を解決する形で登場した。
+* 
