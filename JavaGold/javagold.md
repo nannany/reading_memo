@@ -954,4 +954,97 @@ class MyAtomWorker implements Runnable {
 * **CopyOnWriteArrayList**クラスは、リストの要素に変更がはいるようなメソッドが呼ばれる際には、元のリストのコピーが生成される。リスト要素変更中にほかのスレッドからリストの読み取り要求が来た場合には、作成したコピーの値を返すため、ConcurrentModificationExceptionは発生しない。コピーを作成するという仕組み上、リストのサイズが大きい場合は性能が悪くなる。
 * CyclicBarrierクラスを用いることで複数スレッド間で協調を取ることができる。
 * Threadクラスでは「タスクの実行をJVMに依頼する」部分と「タスクをどのように実行するか」という部分が蜜結合となっており、スレッドの生成と管理をプログラムで制御することが難しかった。JavaSE8からはExecutorクラスがそれらの問題を解決する形で登場した。
-* 
+* Executorフレームワークによって、タスクのライフサイクルの管理、スレッドプール、タスクの遅延開始・周期的実行の機能等が提供されるようになった。
+* ScheduledThreadPoolExecutor クラスを使用することで、タスクの遅延開始・周期的実行ができる。
+
+```java
+package tryAny.concurrentUtility;
+
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
+// １秒ごとにランダム値を生成し続ける。
+public class ConcurrentTest6 {
+    public static void main(String[] args) {
+	ScheduledThreadPoolExecutor stpe = new ScheduledThreadPoolExecutor(1);
+
+	ScheduledFuture<?> sf = stpe.scheduleAtFixedRate(new Runnable() {
+	    @Override
+	    public void run() {
+		System.out.println(Math.random());
+	    }
+	}, 1000, 1000, TimeUnit.MILLISECONDS);
+
+	while (true) {
+	    if (sf.isCancelled() || sf.isDone()) {
+		stpe.shutdown();
+		break;
+	    }
+	}
+    }
+}
+```
+
+* Executorインターフェース導入の目的は**タスクの実行者**と**タスクの実行方法**の分離であり、タスクの実行者部分はExecutorインターフェースが受け持ち、タスクの実行方法部分はExecutorServiceとScheduledExecutorServiceが受け持つ（Executorを実装した具象クラス）。
+* Futureオブジェクトは非同期タスクの実行結果を表すオブジェクト。
+* Executorの状態は以下の3つがある。
+  * Active：新規タスクの受付可能な状態。
+  * ShuttingDown：新規タスクの受付はしないが、キューにたまったタスクの実行を行っている状態。
+  * Shutdown：新規タスクの受付はせず、キューにもタスクがない状態。
+* **Fork/Joinフレームワーク**なるものを用いて、タスクを細分化し、複数のスレッドで処理を効率的に行うことができる。そこで使用されているアルゴリズムは**Work-stealing**というもの。細分化されて振り分けられたタスクが早めに完了したスレッドは、まだタスクをすべて終えていないスレッドのキューの一番上にあるタスクをぶんどる、というようなアルゴリズム。
+* Fork/JoinフレームワークにおけるタスクはForkJoinTask抽象クラスで表され、タスクの実行方法部分はForkJoinPool実装クラスが受け持つ。
+* ForkJoinTaskを継承したクラスは**RecursiveAction**クラスと**RecursiveTask**があり、RecursiveActionのほうは戻り値がなく、RecursiveTaskのほうは戻り値がある。
+* ForkJoinPoolのタスク実行メソッドは以下の3つ。
+  * execute:非同期実行で戻り値なし
+  * submit：非同期実行で戻り値あり
+  * invoke:同期実行
+
+```java
+package tryAny.concurrentUtility;
+
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RecursiveAction;
+
+public class ConcurrentTest7 {
+    public static void main(String[] args) throws InterruptedException {
+	ForkJoinPool jfp = new ForkJoinPool();
+	jfp.execute(new MyAction());
+	System.out.println("①");
+	Thread.sleep(3000);
+	System.out.println("②");
+	/**
+	 * ①</br>
+	 * ③</br>
+	 * ②
+	 */
+
+	jfp.invoke(new MyAction());
+	System.out.println("①");
+	Thread.sleep(3000);
+	System.out.println("②");
+	/**
+	 * ③</br>
+	 * ①</br>
+	 * ②
+	 */
+    }
+}
+
+class MyAction extends RecursiveAction {
+    @Override
+    protected void compute() {
+	try {
+	    Thread.sleep(2000);
+	} catch (InterruptedException e) {
+	    e.printStackTrace();
+	}
+
+	System.out.println("③");
+    }
+}
+```
+
+# 9章 JDBCによるデータベース・アプリケーション
+
+
