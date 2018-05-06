@@ -1,3 +1,5 @@
+JavaGoldで学んだことをJavaSE8Gold問題集に沿って記述する。
+
 # 1章 Javaのクラス設計
 
 * equalsメソッドはデフォでは以下のよう。
@@ -8,7 +10,6 @@
 ```
 
 * ObjectsのhashCodeメソッドは、検索パフォーマンスの向上のためにある。
-* セマンティクスとは何か？
 * final 修飾子の持つ意味はクラス、変数、メソッドで異なる
   * クラス：継承不可
   * 変数：再代入不可。つまり定数
@@ -20,7 +21,6 @@
   * private static フィールドで自身のインスタンスを生成
   * コンストラクタをprivateで宣言
   * フィールドにセットしてあるインスタンスを返すメソッドをpublic staticで用意する
-* 不変クラス＝immutable class
 * ひし形継承について。インターフェースの多重継承によって、メソッドがかぶってしまった場合、距離が同じ場合はコンパイルエラーとなるが、一番距離が近いものが一意に決まるならば、その一番近いものが採用される。
 
 ```java
@@ -1047,7 +1047,47 @@ class MyAction extends RecursiveAction {
 
 # 9章 JDBCによるデータベース・アプリケーション
 
-* 
+* **JDBC API**はJDKに標準であり、**JDBCドライバ**は使用DB毎に変わる。
+* DBへの接続URLの書式は、プロトコル:DB製品名//接続詳細。jdbc:mysql://localhost:3306/dbname こんな感じ。
+* DriverManagerクラスのgetConnectionメソッドでConnectionオブジェクトを得て、ConnectionオブジェクトのcreateStatementメソッドでStatementオブジェクトを得る。
+* Statementオブジェクトには以下の3つのSQL実行のためのメソッドがある。
+  * execute:CRUD全部実行可能。戻り値は、セレクトで値が取れた場合true、それ以外はfalse。
+  * executeQuery:SELECTのみ実行可能。戻り値はResultSet。
+  * executeUpdate:INSERT、UPDATE、DELETEが実行可能。戻り値は更新行数としてint。
+
+```java
+package tryAny.jdbc;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+public class JdbcTest1 {
+    public static void main(String[] args) {
+	try (Connection c = DriverManager.getConnection("jdbc:mysql://localhost:3306/test", "test", "test");
+		Statement stmt = c.createStatement()) {
+	    ResultSet rs = stmt.executeQuery("SELECT * FROM personal;");
+	    if (rs.absolute(4)) {
+		System.out.println(rs.getString(2));
+	    }
+
+	    if (stmt.execute("SELECT * from personal")) {
+		ResultSet rs2 = stmt.getResultSet();
+		if (rs2.next()) {
+		    System.out.println(rs2.getInt(1));
+		}
+	    }
+
+	    System.out.println(stmt.executeUpdate("insert into personal values(6,'ccc','dddd')"));
+	} catch (SQLException e) {
+	    e.printStackTrace();
+	}
+
+    }
+}
+```
 
 
 # 10章 ローカライズ
@@ -1097,4 +1137,23 @@ public class LocaleTest1 {
 }
 ```
 
+* ResourceBundleの仕組みを利用すると、Localeによって使用するプロパティファイルを切り替えることができる。
 
+```java
+package tryAny.locale;
+
+import java.util.Locale;
+import java.util.ResourceBundle;
+
+public class LocaleTest2 {
+    public static void main(String[] args) {
+	// test_ja_JP.properties に fruit=banana
+	ResourceBundle rb1 = ResourceBundle.getBundle("test");
+	System.out.println(rb1.getString("fruit"));// banana
+
+	// test_en_US.properties に fruit=apple
+	ResourceBundle rb2 = ResourceBundle.getBundle("test", Locale.US);
+	System.out.println(rb2.getString("fruit"));// apple
+    }
+}
+```
