@@ -27,4 +27,10 @@
 * 弱参照？→以下が分かりやすい。弱参照は他からの参照（弱参照以外の参照）がなくなると、GCの対象となる。
 <http://www.ne.jp/asahi/hishidama/home/tech/java/weak.html>
 
-# 8.
+# 8.finalizerとcleanerの使用は避けるべし
+* これらの短所は、どのように動くかの予想がつきにくいことにある。
+* finalizerはパフォーマンスに深刻な悪影響を与える。
+* finalizerの使用はセキュリティに悪影響を与える。以下に詳しく乗っていたが、正直よくわからん。。
+<https://www.ibm.com/developerworks/jp/java/library/j-fv/index.html>
+* これらの使用の代わりに、AutoClosableの実装とtry-with-resourcesを用いていく。
+
