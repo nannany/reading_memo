@@ -298,7 +298,12 @@ class PhoneNum implements Comparable<PhoneNum> {
   * mixinとは単独で動作することを意図しないコード（再利用したいコード）を予め定義しておき、必要に応じてクラスに混ぜ込む（Javaで言うとimplementsする）ことによって、処理の再利用を促す仕組みの事である。
 <https://ja.wikipedia.org/wiki/Mixin>
 <http://equj65.net/tech/java8mixin/>
-* 
+* non-primitive interface method ってなんだ？
+* interfaceの利点と抽象クラスの利点を伏せ持つ、骨格実装クラス（skeletal implementation class）がある。骨格実装クラスは、AbstractInterfaceと呼ばれているもので、CollectionsFWのAbstractCollectionやAbstractSetなどがそれにあたる。（本来ならこれらはSkeletalCollection,SkeletalSetと呼ばれるべきだが、慣習的にこう呼ばれている）
+* 骨格実装クラスはimplementsしたインターフェースが提供しているメソッドの一部をオーバーライドし、残りのメソッドを骨格実装クラスを継承するクラスでのオーバーライドにゆだねるように作られる。この骨格実装クラスがないと、実装者は直接インターフェースをimplementsして、提供される全てのメソッドをオーバーライドしないといけないが、骨格実装クラスを挟むことによって、実装者がオーバーライドすべきメソッドが減る（誤ったオーバーライドがなされる危険性も減る）。**これが利点という理解でOKなのか？**
+
+# 21.後々のことを考えてインターフェースは設計せよ
+
 
 # 6章.ENUMとアノテーション
 
