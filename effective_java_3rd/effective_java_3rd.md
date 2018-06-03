@@ -303,7 +303,41 @@ class PhoneNum implements Comparable<PhoneNum> {
 * 骨格実装クラスはimplementsしたインターフェースが提供しているメソッドの一部をオーバーライドし、残りのメソッドを骨格実装クラスを継承するクラスでのオーバーライドにゆだねるように作られる。この骨格実装クラスがないと、実装者は直接インターフェースをimplementsして、提供される全てのメソッドをオーバーライドしないといけないが、骨格実装クラスを挟むことによって、実装者がオーバーライドすべきメソッドが減る（誤ったオーバーライドがなされる危険性も減る）。**これが利点という理解でOKなのか？**
 
 # 21.後々のことを考えてインターフェースは設計せよ
+* 現存するインターフェースにメソッドを追加することにはリスクがある。
+  * 例として、Collection に removeIf がデフォルトメソッドとして追加されたが、 Collection を implements している Apatche Commonsライブラリの SynchronizedCollection でこの removeIf を呼び出した際には、同期されないメソッドとして呼び出され、SynchronizedCollection 使用における約束事が破られてしまう。Javaライブラリではこれと同様のことを防ぐため、Collections.synchronizedCollection において removeIfメソッドをオーバーライドしている。
 
+# 22.インターフェースは型定義のためだけに用いよ
+* 定数定義だけするようなインターフェース（constant interface）を作るべきでない。java.io.ObjectStreamConstants がやっているがマネするべきでない。以下理由。
+  * そのうち定数が必要なくなった時でも、バイナリ互換性の維持のために implements し続けなければならない。（**バイナリ互換性??**）
+  * 定数インターフェースを implements したら名前空間が汚染される。
+* 定数定義の別の合理的な方法は以下。
+  * 定数定義する値が現存するクラスと密接に結びついているとしたら、そこに加える。
+  * 定数定義する値が列挙するのがベストなものであればEnumを使う。
+  * それ以外だと、ユーティリティクラスを使う。
+
+```java
+// Constant utility class
+public interface PhysicalConstants {
+    static final double AVOGADROS_NUMBER = 6.02214199e23;
+    static final double BOLTZMANN_CONSTANT = 1.3806503e-23;
+    static final double ELECTRON_MASS = 9.10938188e-31;
+}
+```
+
+  * ユーティリティクラスからたくさん定数を理由する場合はstatic importを使う。
+
+```java
+// Use of static import to avoid qualifying constants
+import static com.effectivejava.science.PhysicalConstants.*;
+ public class Test {
+    double  atoms(double mols) {
+        return AVOGADROS_NUMBER * mols;
+    }
+    ...
+    // Many more uses of PhysicalConstants justify static import
+```
+
+# 23.
 
 # 6章.ENUMとアノテーション
 
