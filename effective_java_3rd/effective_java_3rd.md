@@ -196,79 +196,22 @@
 
 * 性能を気にする場合は、hashCodeで計算された値をキャッシュしておく。
 
-
-
-
-
-
-
 # 12.常にtoStringをオーバーライドせよ
-
-
 
 * Thread.javaのtoStringは以下のよう。
 
-
-
-
-
-
-
 ```java
-
-
-
     public String toString() {
-
-
-
         ThreadGroup group = getThreadGroup();
-
-
-
         if (group != null) {
-
-
-
             return "Thread[" + getName() + "," + getPriority() + "," +
-
-
-
                            group.getName() + "]";
-
-
-
         } else {
-
-
-
             return "Thread[" + getName() + "," + getPriority() + "," +
-
-
-
                             "" + "]";
-
-
-
         }
-
-
-
     }
-
-
-
-
-
-
-
 ```
-
-
-
-
-
-
 
 # 13.cloneをオーバーライドするときは注意せよ
 
@@ -305,194 +248,48 @@
 * 複数キーでのソートを考える場合、Comparatorのコンストラクションメソッドを使うことを考慮に入れる。1つずつ比較して、if文で分けていくよりもこちらのほうが性能が良いらしい。
 
 
-
-
-
-
-
 ```java
-
-
-
 package tryAny.effectiveJava;
 
-
-
-
-
-
-
 import static java.util.Comparator.*;
-
-
-
-
-
-
-
 import java.util.Comparator;
-
-
-
 import java.util.stream.Stream;
 
-
-
-
-
-
-
 public class CompareTest {
-
-
-
     public static void main(String[] args) {
-
-
-
-
-
-
-
 	Stream<PhoneNum> s = Stream.of(new PhoneNum(111, 222, 333), new PhoneNum(111, 222, 222),
-
-
-
 		new PhoneNum(111, 333, 111), new PhoneNum(000, 999, 1));
-
-
-
-
-
-
-
 	s.sorted().forEach(System.out::println);
-
-
-
     }
-
-
-
 }
-
-
-
-
-
-
 
 class PhoneNum implements Comparable<PhoneNum> {
-
-
-
     int areaCode;
-
-
-
     int prefix;
-
-
-
     int lineNum;
 
-
-
-
-
-
-
     public PhoneNum(int areaCode, int prefix, int lineNum) {
-
-
-
 	this.areaCode = areaCode;
-
-
-
 	this.prefix = prefix;
-
-
-
 	this.lineNum = lineNum;
-
-
-
     }
-
-
-
-
-
-
 
     private static final Comparator<PhoneNum> COMPARATOR = comparingInt((PhoneNum pn) -> pn.areaCode)
-
-
-
 	    .thenComparingInt(pn -> pn.prefix).thenComparingInt(pn -> pn.lineNum);
 
-
-
-
-
-
-
     @Override
-
-
-
     public int compareTo(PhoneNum pn) {
-
-
-
 	return COMPARATOR.compare(this, pn);
-
-
-
     }
-
-
-
-
-
-
-
+    
     @Override
-
-
-
     public String toString() {
-
-
-
 	StringBuilder sb = new StringBuilder();
-
-
-
 	sb.append("areaCode:").append(areaCode).append(",prefix:").append(prefix).append(",lineNum:").append(lineNum);
-
-
-
 	return sb.toString();
-
-
-
     }
-
-
-
 }
-
-
-
 ```
-
-
-
-
-
-
 
 # 4章.クラスとインターフェース
 
@@ -648,11 +445,7 @@ public interface PhysicalConstants {
 
 ```
 
-
-
-  * ユーティリティクラスからたくさん定数を理由する場合はstatic importを使う。
-
-
+  *   * ユーティリティクラスからたくさん定数を利用する場合はstatic importを使う。
 
 ```java
 
@@ -674,47 +467,19 @@ import static com.effectivejava.science.PhysicalConstants.*;
 
 ```
 
-
-
 # 23.
-
-
 
 # 6章.ENUMとアノテーション
 
-
-
 # 34.intの定数の代わりにenumを使うべし
 
-
-
 * enumをいつ使えばよいか？→コンパイル時に明らかになっている定数のセットが必要な時はいつでも！
-
-
-
 * constant-specific methodは馴染みがなくてしっくりこなかった。。以下の説明が分かりやすかった。
-
-
 
 <http://d.hatena.ne.jp/hageyahhoo/20091115/1258258461>
 
-
-
-
-
-
-
 # 35.ordinalよりもインスタンスフィールドの値を使うべし
-
-
-
 * そもそもordinalメソッドはEnumSetやEnumMap用に使われるものであって、大半のプログラマは使わないものである。
-
-
-
-
-
-
 
 # 36.bitフィールドの替わりにEnumSetを用いるべし
 
@@ -736,63 +501,36 @@ import static com.effectivejava.science.PhysicalConstants.*;
 # 58.従来のforループより、for-eachのループを選択すべき
 
 * 従来のfor文のほうが記述すべきことが多くて、ミスが発生する確率が上がる。
-
 * 入れ子のイテレーションがあるときもfor-eachが使える。
 
 
 
 ```java
-
 package tryAny.effectiveJava;
 
-
-
 import java.util.Arrays;
-
 import java.util.Collection;
 
-
-
 public class NestedFor {
-
     enum Suit {
-
-	CLUB, DIAMOND, HEART, SPADE
-
+        CLUB, DIAMOND, HEART, SPADE
     };
-
-
 
     enum Rank {
-
-	ACE, DEUCE, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, JACK, QUEEN, KING
-
+        ACE, DEUCE, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, JACK, QUEEN, KING
     };
 
-
-
     public static void main(String[] args) {
+        Collection<Suit> suits = Arrays.asList(Suit.values());
+        Collection<Rank> ranks = Arrays.asList(Rank.values());
 
-	Collection<Suit> suits = Arrays.asList(Suit.values());
-
-	Collection<Rank> ranks = Arrays.asList(Rank.values());
-
-
-
-	for (Suit suit : suits) {
-
-	    for (Rank rank : ranks) {
-
-		System.out.println("柄" + suit + "：数" + rank);
-
-	    }
-
-	}
-
+        for (Suit suit : suits) {
+            for (Rank rank : ranks) {
+                System.out.println("柄" + suit + "：数" + rank);
+            }
+        }
     }
-
 }
-
 ```
 
 
@@ -816,94 +554,49 @@ public class NestedFor {
 
 
 ```java
-
 package tryAny.effectiveJava;
 
-
-
 import java.util.Random;
-
 import java.util.concurrent.ThreadLocalRandom;
-
-
 
 import org.apache.commons.lang3.time.StopWatch;
 
-
-
 public class RandomTest {
-
     public static void main(String[] args) {
+        int n = 2 * (Integer.MAX_VALUE / 3);
+        int low1 = 0;
+        StopWatch sw1 = new StopWatch();
+        sw1.start();
+        for (int i = 0; i < 1000000; i++) {
+            if (random(n) < n / 2) {
+                low1++;
+            }
+        }
+        sw1.stop();
 
-	int n = 2 * (Integer.MAX_VALUE / 3);
+        System.out.println(low1); // 500000位になると思いきやならない。666666位になる。
+        System.out.println(sw1.getTime());
 
-	int low1 = 0;
-
-	StopWatch sw1 = new StopWatch();
-
-	sw1.start();
-
-	for (int i = 0; i < 1000000; i++) {
-
-	    if (random(n) < n / 2) {
-
-		low1++;
-
-	    }
-
-	}
-
-	sw1.stop();
-
-
-
-	System.out.println(low1); // 500000位になると思いきやならない。666666位になる。
-
-	System.out.println(sw1.getTime());
-
-
-
-	int low2 = 0;
-
-	StopWatch sw2 = new StopWatch();
-
-	sw2.start();
-
-	for (int i = 0; i < 1000000; i++) {
-
-	    if (tlr.nextInt(n) < n / 2) {
-
-		low2++;
-
-	    }
-
-	}
-
-	sw2.stop();
-
-	System.out.println(low2);// 500000位になる。
-
-	System.out.println(sw2.getTime());// 速度はあまり変わらない
-
+        int low2 = 0;
+        StopWatch sw2 = new StopWatch();
+        sw2.start();
+        for (int i = 0; i < 1000000; i++) {
+            if (tlr.nextInt(n) < n / 2) {
+                low2++;
+            }
+        }
+        sw2.stop();
+        System.out.println(low2);// 500000位になる。
+        System.out.println(sw2.getTime());// 速度はあまり変わらない
     }
-
-
 
     static Random rnd = new Random();
 
-
-
     static int random(int n) {
-
-	return Math.abs(rnd.nextInt()) % n;
-
+        return Math.abs(rnd.nextInt()) % n;
     }
 
-
-
     static ThreadLocalRandom tlr = ThreadLocalRandom.current();
-
-
 
 }
 
