@@ -1,162 +1,46 @@
 # effective java 3rd
 
-
-
-
-
-
-
 # 2章.オブジェクトの生成、削除
-
-
 
 # 1.コンストラクタの代わりにstaticなファクトリメソッドの作成を考慮すべし
 
-
-
-
-
-
-
 # 2.コンストラクタの引数が膨大になるときはbuilderを使うべし
 
-
-
 * telescoping constructor と JavaBeansパターンなるものと対比させている。
-
-
-
 * インスタンス生成において、パラメータが片手で数えられるよりも多くなるような場合にはbuilderパターンでのインスタンス生成を考えたほうが良い。
-
-
-
 * JavaBeansパターンとするときの欠点の説明がよく分からなかった。複数回の呼び出しがあるから不整合が起きうる、みたいな話だが具体的にどういうこと？
-
-
-
-
-
-
 
 # 3.シングルトンなクラス設計をするにおいては、コンストラクタをprivateにするか、ENUMを用いる手法とせよ
 
-
-
 * ENUM型使ったシングルトンみたことないが。。
-
-
-
-
-
-
 
 # 4.インスタンス化を抑制したいクラスには、privateコンストラクタを作成せよ
 
-
-
 * utilityクラス等はインスタンス生成を抑制したいので、その時に使う模様。
 
-
-
-
-
-
-
 # 5.リソースのハードコーディングを行うより、Dependency Injectionを行うべし
-
-
-
 * 大きな規模になった場合には、フレームワークのDIの仕組みを使うべき。
-
-
-
 * Factoryパターンを使う。
-
-
-
 * この項目は第2版にはなかったよう。
 
-
-
-
-
-
-
 # 6.不必要なオブジェクト生成は避けるべし
-
-
-
 * defensive copyが必要な場合はその限りでない。defensive copyってなんだ？
 
-
-
-
-
-
-
 # 7.使わなくなった参照は廃棄すべし
-
-
-
 * 廃棄しないとメモリリークが起きる。
-
-
-
 * キャッシュやコールバックを持つクラスで起こりがちな問題らしい。
-
-
-
 * 弱参照？→以下が分かりやすい。弱参照は他からの参照（弱参照以外の参照）がなくなると、GCの対象となる。
-
-
-
 <http://www.ne.jp/asahi/hishidama/home/tech/java/weak.html>
 
-
-
-
-
-
-
 # 8.finalizerとcleanerの使用は避けるべし
-
-
-
 * これらの短所は、どのように動くかの予想がつきにくいことにある。
-
-
-
 * finalizerはパフォーマンスに深刻な悪影響を与える。
-
-
-
 * finalizerの使用はセキュリティに悪影響を与える。以下に詳しく乗っていたが、正直よくわからん。。
-
-
-
 <https://www.ibm.com/developerworks/jp/java/library/j-fv/index.html>
-
-
-
 * これらの使用の代わりに、AutoClosableの実装とtry-with-resourcesを用いていく。
 
-
-
-
-
-
-
 # 9.try-finallyよりもtry-with-resourcesを使うべし
-
-
-
 * try-finallyでtry句とfinally句で同時に例外発生した場合、try句のほうがかき消されてしまう。
-
-
-
-
-
-
 
 # 3章.全オブジェクト共通のメソッド
 
@@ -486,7 +370,109 @@ import static com.effectivejava.science.PhysicalConstants.*;
 # 8章.メソッド
 
 # 49.引数のバリデーションチェックをすべし
-* 
+* 引数のバリデーションチェックをすることなく、誤った引数の値が先の処理にわたった場合、直接的な原因が分かりにくいエラーが出たり、最悪の場合、エラーにはならないが、誤った処理がなされることがある。
+* 引数の制限はJavadocに書くべき。
+* Nullチェックに際して、Java7からは Objects.requireNonNull でできるようになった。
+* rangeのチェックに際しては、Java9からは Objects の checkFromIndexSize, checkFromToIndex, checkIndex が使えるようになった。（closed rangeには使えない）
+* 外に公開しない、ヘルパーメソッドにおける引数チェックではアサーションを用いるべき。通常のバリデーションと異なり、影響がなく、javaコマンドに-aeをつけない限りコストもかからない。（**理由がピンとこない**）
+
+```java
+// Private helper function for a recursive sort
+private static void sort(long a[], int offset, int length) {
+    assert a != null;
+    assert offset >= 0 && offset <= a.length;
+    assert length >= 0 && length <= a.length - offset;
+    ... // Do the computation
+}
+```
+
+* メソッドで使う引数でなく、後々の利用のために溜めておく引数は特にバリデーションチェックすることが重要（コンストラクタとかの話）。そこで誤った値を落としておかないと、後の処理でエラーになったときにデバッグが難しいため。
+* バリデーションチェックを明示的にすべきでないときもあって、それは、バリデーションチェックのコストが高く、非現実的で、かつ、チェックが処理の中に内包されているとき。例えば、Collections.sort(List)において、Listに内包される値は互いに比較可能なものでなければならないが、それはキャストするときにチェックされる。
+* 内包的チェックがなされた時に、出力されたエラーが適切なものでない場合には、適切なエラーへの変換処理を行う。
+* ここでの指南は、引数の恣意的な制限が良いというわけではなく、メソッドの設計をより汎用的なものに対応できるようにすることを目指すべきであり、制限は少ないほうがよい。
+
+# 50.必要に応じて防御的コピー（defensive copies）を作るべし
+* JavaはCやC++のようなメモリに手を加えて起こる脆弱性（バッファオーバラン等）がない、という意味で安全な言語であるが、自分でクラスを実装するにあたっては、攻撃者が不変条件（invariant）を破ってくる、というつもりで実装をすべき。
+* 以下のクラスは一見immutableに見える。
+
+```java
+// Broken "immutable" time period class
+public final class Period {
+    private final Date start;
+    private final Date end;
+ /**
+     * @param  start the beginning of the period
+     * @param  end the end of the period; must not precede start
+     * @throws IllegalArgumentException if start is after end
+     * @throws NullPointerException if start or end is null
+     */
+    public Period(Date start, Date end) {
+        if (start.compareTo(end) > 0)
+            throw new IllegalArgumentException(
+                start + " after " + end);
+        this.start = start;
+        this.end   = end;
+    }
+    public Date start() {
+        return start;
+    }
+    public Date end() {
+        return end;
+    }
+ ...    // Remainder omitted
+}
+```
+* しかし、Dateクラスはmutableなので、以下のように簡単に、「startはend以後にはならない」という条件を破れる。
+
+```java
+// Attack the internals of a Period instance
+Date start = new Date();
+Date end = new Date();
+Period p = new Period(start, end);
+end.setYear(78);  // Modifies internals of p!
+```
+
+* 日付のクラスに関しては、Dateはもはや時代遅れであり、Java8以降は Instant クラス等を使うべきである。
+* mutable な引数を持つコンストラクタに defensive　copy を使用して、脆弱性をなくす。defensive copyを使って上のコードのコンストラクタを書き直すと以下のようになる。
+
+```java
+// Repaired constructor - makes defensive copies of parameters
+public Period(Date start, Date end) {
+    this.start = new Date(start.getTime());
+    this.end   = new Date(end.getTime());
+ if (this.start.compareTo(this.end) > 0)
+      throw new IllegalArgumentException(
+        this.start + " after " + this.end);
+}
+```
+* defensive copy を採用した際の引数のバリデーションチェックは、引数で渡ってきたオリジナルのものではなく、コピー側に対して行う。これは、バリデーションチェックを行ってから、コピーを行うまでの間に、別スレッドから攻撃を受ける可能性（TOCTOUというらしい）を考慮してのことである。
+* 引数で受けるオブジェクトがfinalでない、つまり、継承が可能であるクラスである場合は、defensive copy の作成に当たって、cloneを用いてはならない。なぜなら、受け取った引数が悪意のあるサブクラスである可能性があるため。
+* アクセサを用いて、不変条件を壊すことも可能。
+
+```java
+// Second attack on the internals of a Period instance
+Date start = new Date();
+Date end = new Date();
+Period p = new Period(start, end);
+p.end().setYear(78);  // Modifies internals of p!
+```
+* 上の攻撃を防ぐため、アクセサにおいてもdefensive copyを作って対応する。
+
+```java
+// Repaired accessors - make defensive copies of internal fields
+public Date start() {
+    return new Date(start.getTime());
+}
+ public Date end() {
+    return new Date(end.getTime());
+}
+```
+* その他のdefensive copyの用途として、フィールドの配列変数をクライアントに返す際に用いる。配列は必ず mutable なので、このような対応を取る必要がある。（Item15でも言及）
+* そもそもmutableなものをクライアントに返す設計にしないようにすべきである。
+* defensive copyのコストがとても高く、かつ、クラスの利用者が不適切にmutableなフィールドを変更ないと確信できる場合は、defensive copyの代わりに、ドキュメントで注意を書く。
+
+# 51.メソッドのシグニチャは注意深く設計せよ
+*
 
 # 9章.プログラミング一般
 
