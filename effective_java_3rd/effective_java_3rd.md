@@ -472,7 +472,247 @@ public Date start() {
 * defensive copyのコストがとても高く、かつ、クラスの利用者が不適切にmutableなフィールドを変更ないと確信できる場合は、defensive copyの代わりに、ドキュメントで注意を書く。
 
 # 51.メソッドのシグニチャは注意深く設計せよ
-*
+* メソッドの名前は注意深く決めるべき。理解しやすく、同パッケージ内の他の名前と矛盾しないようにする。また、広く一般的に合意を得ている名前を付ける。迷ったらガイダンスとして、JavaライブラリAPIを見てみる（良くないのもあるが、良いのがたくさんある）。
+* 便利なメソッドを過度に提供すべきでない。あまりに多いメソッドがあると、学習、利用、ドキュメント作成、テスト、保守が大変になる。頻繁に使われる場合にのみ、記述の省略化ができるようなメソッドの提供を考慮すべき。迷ったら作らないほうが良い。
+* 引数の数を多くとるべきでない。引数の数は4つ以下に抑えるべきである。利用者は多くの引数を覚えることができないので、リファレンスをみながら使用しなければならない。特に、同じ型で多くの引数がある場合は避けたい。なぜなら、引数の順番を間違えたとしても、コンパイルエラーとならず、意図したものと違う処理がなされる可能性があるから。引数の数を減らすテクニックは以下の3つ。
+   * 1つのメソッドを複数のメソッドに分割する。（**Listのsublist、indexOf、lastIndexOfの例をあげていたがいまいちわからず**）
+   * ヘルパークラスを作る。例えば、トランプの柄と数を引数に取るものがあるならば、柄と数をまとめたEntityを作成し、それを引数に取るようにする。
+   * ビルダーパターンを使う。（Item2）
+* 引数の型は具象クラスよりもインターフェースに優先すべき。具象クラスにした場合には、メソッドの使用者に特定の実装を強いることになり、時にはコストの高いコピーを強いるときがある。
+* boolean 引数よりも、2値のenumとすべき。なぜなら、enumの方は後に拡張することが容易であるから（要素を2つから3つにする）。また、enumはその中にメソッドを持つこともできる。（Item34）
+
+# 52.オーバーロードは気を付けて使うべし
+* オーバーロードはコンパイル時に呼び出すメソッドが決められる。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+public class OverloadTest {
+    public static String classify(Set<?> s) {
+        return "Set";
+    }
+
+    public static String classify(List<?> s) {
+        return "List";
+    }
+
+    public static String classify(Collection<?> s) {
+        return "Collection";
+    }
+
+    public static void main(String[] args) {
+        Collection<?>[] collections = { new HashSet<String>(), new ArrayList<String>(),
+                new HashMap<String, String>().values() };
+
+        for (Collection<?> c : collections) {
+            System.out.println(classify(c));
+        }
+        /**
+         * Collection <br>
+         * Collection <br>
+         * Collection
+         */
+    }
+}
+```
+
+* 一方、オーバーライドはコンパイル時ではなく、実行時に決められる。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.List;
+
+public class OverrideTest {
+    public static void main(String[] args) {
+        List<Wine> l = List.of(new Wine(), new SparklingWine(), new Champagne());
+
+        for (Wine w : l) {
+            System.out.println(w.name());
+            /**
+             * wine<br>
+             * sparkling wine<br>
+             * champagne
+             */
+        }
+    }
+}
+
+class Wine {
+    String name() {
+        return "wine";
+    }
+}
+
+class SparklingWine extends Wine {
+    @Override
+    String name() {
+        return "sparkling wine";
+    }
+}
+
+class Champagne extends SparklingWine {
+    @Override
+    String name() {
+        return "champagne";
+    }
+}
+```
+
+* 混乱を招くようなオーバーロードの使用は避ける。混乱を招くオーバーロードとは何か、ということについては議論の余地があるが、同じ引数の数で、オーバーロードさせるメソッドは作るべきでない、という意見は受け入れられている。
+* 同じ引数の数でオーバーロードしたくなったら、違うメソッド名でメソッドを作るべきである。ObjectOutputStream は全てのprimitive型の書き込みメソッドを持っているが、それぞれ writeBoolean、writeInt等、writeをオーバーライドしたりせず、別のメソッドを作っている。
+* コンストラクタの場合は、別の名称にすることはできないので、同じ数の引数で複数のコンストラクタを用意することがあるかもしれない。そういった場合に取る引数は、互いに根本的に異なる（radically different）のであれば比較的安全である（キャストできないような関係）。
+* Java5になる前は、primitive型と全ての参照型は根本的に異なるものであったが、autoboxingが出現したことによってその前提が覆された。以下のコードでは、直感的には、 [-3, -2, -1] [-3, -2, -1]が表示されそうだが、Listのremoveには、int を引数に取るremoveメソッドがオーバライドされているため、実際には、[-3, -2, -1] [-2, 0, 2]となる。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+
+public class SetList {
+    public static void main(String[] args) {
+        Set<Integer> s = new TreeSet<>();
+        List<Integer> l = new ArrayList<>();
+
+        for (int i = -3; i < 3; i++) {
+            s.add(i);
+            l.add(i);
+        }
+
+        for (int i = 0; i < 3; i++) {
+            s.remove(i);
+            l.remove(i);
+        }
+
+        System.out.println(s + "" + l);// [-3, -2, -1] [-2, 0, 2]
+    }
+}
+```
+
+* 以下のコードは、```exec.submit(System.out::println);```の部分でコンパイルエラーになる。このsubmitメソッドは、```submit(Runnable task);```と```submit(Callable<T> task);```でオーバーロードされており、コンパイラがどちらを使うか判断できないようになる（**判断できない理屈は難しくてわからず。```System.out::println```は inexact method referenceであるとかなんとか**）。とにかく、混乱を避けるためにも、同じ引数の位置で異なるfunctional interface でオーバーロードするのは避けるようにするべき。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class Snippet {
+    public static void main(String[] args) {
+        new Thread(System.out::println).start();
+        ExecutorService exec = Executors.newCachedThreadPool();
+        exec.submit(System.out::println); //コンパイルエラー
+
+    }
+}
+```
+
+* 以前作成したコードの修正等でやむを得ずオーバーロードせねばならない場合には、同じ動作をするよう保証して作る。
+
+```java
+// Ensuring that 2 methods have identical behavior by forwarding
+public boolean contentEquals(StringBuffer sb) {
+    return contentEquals((CharSequence) sb);
+}
+```
+
+# 53.可変長引数は気を付けて使うべし
+* 0個以上の引数を取る場合に、個数のチェック等が入って美しくない作りになるときがある。そういった場合は、取るべき引数を、以下のように2つに分解してやる。
+
+```java
+package tryAny.effectiveJava;
+
+public class Varargs {
+    public static void main(String[] args) {
+        System.out.println(min1(99));
+        System.out.println(min2(1, 2, 3));
+
+    }
+
+    // ugly
+    static int min1(int... args) {
+        if (args.length == 0)
+            throw new IllegalArgumentException("Too few arguments");
+        int min = args[0];
+        for (int i = 1; i < args.length; i++)
+            if (args[i] < min)
+                min = args[i];
+        return min;
+    }
+
+    // better
+    static int min2(int firstArg, int... remainingArgs) {
+        int min = firstArg;
+        for (int arg : remainingArgs) {
+            if (arg < min) {
+                min = arg;
+            }
+        }
+        return min;
+    }
+}
+```
+
+* 可変長引数を用いる場合には、配列のメモリ割り当てと初期化が必要となり、コストがかかる。もし、コストを減らす必要があり、引数の個数が3つ以下の場合が大多数であるとわかっている場合には、あらかじめ引数が0,1,2,3個の場合を作って対応するのがよい。
+
+```java
+public void foo() { }
+public void foo(int a1) { }
+public void foo(int a1, int a2) { }
+public void foo(int a1, int a2, int a3) { }
+public void foo(int a1, int a2, int a3, int... rest) { }
+```
+
+# 54.nullではなく、空のコレクション、配列を返すべし
+* nullを返すとなると、呼び出し側でnullをチェックするためのコードが必要となり、煩わしい。空のコレクション、配列を返すべきである。
+
+```java
+//The right way to return a possibly empty collection
+public List<Cheese> getCheeses() {
+    return new ArrayList<>(cheesesInStock);
+}
+```
+
+```java
+//The right way to return a possibly empty array
+public Cheese[] getCheeses() {
+    return cheesesInStock.toArray(new Cheese[0]);
+}
+```
+
+* 空のコレクション、配列を返すよりnullを返すほうが、メモリ割り当てがない分性能が良くなるという意見がある。これは以下2点で誤っている。
+  * このレベルで性能が良くなるかは疑わしい。証明できている場合を除いたら、心配する必要はない。
+  * メモリ割り当てをすることなく空のコレクション、配列を返すことは可能である。
+
+```java
+// Optimization - avoids allocating empty collections
+public List<Cheese> getCheeses() {
+    return cheesesInStock.isEmpty() ? Collections.emptyList()
+        : new ArrayList<>(cheesesInStock);
+}
+```
+
+```java
+// Optimization - avoids allocating empty arrays
+private static final Cheese[] EMPTY_CHEESE_ARRAY = new Cheese[0];
+public Cheese[] getCheeses() {
+    return cheesesInStock.toArray(EMPTY_CHEESE_ARRAY);
+}
+```
+
+# 55.Optional を返す時は気を付けるべし
+* 
+
 
 # 9章.プログラミング一般
 
@@ -534,9 +774,7 @@ public class NestedFor {
 
 
 # 59.ライブラリを知り、利用する
-
 * ランダムな値を作るにおいて、下記の1番目のような実装では値の平均値がおかしくなる。ライブラリを使用することで正しくランダム値生成ができる。
-
 
 
 ```java
