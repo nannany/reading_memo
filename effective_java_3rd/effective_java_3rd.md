@@ -108,27 +108,10 @@
 * 大体の場合において、cloneメソッドでオブジェクトのコピーを作るよりも、コンストラクタやファクトリメソッドで作るほうが容易である。唯一、配列のコピーはcloneのほうがうまくやれる。
 
 
-
-
-
-
-
 # 14.Comparableを実装することを考慮せよ
-
-
-
 * Javaライブラリの値クラスは、enumも含めておおむねComparableを実装している。
-
-
-
 * BigDecimalについて、equalsではBigDecimal("1.0")とBigDecimal("1.00")は異なる扱いになるが、compareToでは同じ扱いになる。そのため、HashSetにこれらの2つを入れたときには、2つの要素が残るが、TreeSetに入れた場合には、1つになる。
-
-
-
 * compareToの中で、不等号を使って比較を行うことは冗長で、エラーの要因となりうるので、プリミティブ型のラッパークラスのcompareを使うべき。
-
-
-
 * 複数キーでのソートを考える場合、Comparatorのコンストラクションメソッドを使うことを考慮に入れる。1つずつ比較して、if文で分けていくよりもこちらのほうが性能が良いらしい。
 
 
@@ -366,6 +349,50 @@ import static com.effectivejava.science.PhysicalConstants.*;
 * そもそもordinalメソッドはEnumSetやEnumMap用に使われるものであって、大半のプログラマは使わないものである。
 
 # 36.bitフィールドの替わりにEnumSetを用いるべし
+
+# 7章.ラムダとストリーム
+
+# 42.匿名クラスより、ラムダ式を選択すべし
+
+* より簡潔明瞭に書けるという理由から、匿名クラスよりもラムダ式を用いるべき。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+public class AnonymouseVsLambda {
+    public static void main(String[] args) {
+        List<String> words1 = Arrays.asList("apple", "pen", "pineapple");
+        // 匿名クラスで書く。
+        Collections.sort(words1, new Comparator<String>() {
+            public int compare(String s1, String s2) {
+                return Integer.compare(s1.length(), s2.length());
+            }
+        });
+        System.out.println(words1);
+
+        // 型をRawにするとコンパイルエラーとなる。
+        List<String> words2 = Arrays.asList("banana", "grape", "melon");
+        // ラムダ式で書く。
+        Collections.sort(words2, (s1, s2) -> Integer.compare(s1.length(), s2.length()));
+        System.out.println(words2);
+    }
+}
+```
+
+* ラムダ式での型は、書くことによってコードが綺麗にならない限り、省略してよい。
+* クラスやメソッドと違って、ラムダ式には名前もドキュメントもないので、自明な処理でなかったり、4行以上となる処理はラムダ式で記述すべきでない。
+* 匿名クラスが必要となる場面は以下。
+  * ラムダ式は関数型インターフェースのインスタンスにしか代入できないので、複数のメソッドを持つインターフェースや、抽象クラスのインスタンスが必要となる場合は匿名クラスを使う
+  * ラムダ式でのthisはエンクロージングクラス（外側のクラス）を指すが、匿名クラスでは匿名クラス自身を指すので、関数オブジェクト自身へのアクセスが必要な場合には、匿名クラスを使う
+
+# 43.ラムダ式よりメソッド参照を使うべし
+
+* 
 
 # 8章.メソッド
 
@@ -711,8 +738,209 @@ public Cheese[] getCheeses() {
 ```
 
 # 55.Optional を返す時は気を付けるべし
-* 
+* 特定の条件下では値を返せないメソッドを考慮する際に、Java7以前では、exceptionをスローするか、nullを返すしかなかった。Java8からは、Optionalを返すという選択肢が生まれた。
 
+```java
+package tryAny.effectiveJava;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Optional;
+
+public class OptionalTest {
+    public static void main(String[] args) {
+        List<String> l1 = Arrays.asList("paper", "strong", "java", "pepper");
+        List<String> l2 = new ArrayList<>();
+
+        System.out.println(max(l1).get());
+        System.out.println(max(l2).orElse("no words"));
+        try {
+            max(l2).orElseThrow();
+        } catch (NoSuchElementException e) {
+            System.out.println(e.getMessage());
+        }
+
+        System.out.println(max(l1).filter(str -> str.length() == 6).map(str -> str.toUpperCase()).get());
+    }
+
+    public static <E extends Comparable<E>> Optional<E> max(Collection<E> c) {
+        if (c.isEmpty()) {
+            return Optional.empty();
+        }
+
+        E result = null;
+        for (E ele : c) {
+            if (result == null || ele.compareTo(result) > 0) {
+                result = Objects.requireNonNull(ele);
+            }
+        }
+
+        return Optional.of(result);
+    }
+}
+```
+
+* Optionalが戻り値であるメソッドからnullを返してはならない。これを行うと、Optionalを導入した意味がなくなる。
+* nullを返したり、例外をスローする代わりに、Optionalを返すかを選択するにあたっては、検査例外をスローするか否かを決めるのと同じ考え（Item71）で選択する。
+* コレクション、マップ、ストリーム、配列、Optionalといった何かを格納するものに対して、Optionalでラップすべきではない。例えば、Optional<List<T>>を返すよりは、空のList<T>を返すほうが良い。空のList<T>を返せるのであれば、そもそもOptionalを返す必要がないからである。
+* メソッドの戻り値として、Optionalでラップした値を選択すべき時は、結果を返すことができない可能性があり、かつ、結果がnullである場合にメソッド呼び出し側で特別な考慮が必要な場合である。
+* int,double,longのラッパークラスのOptionalを返してはならない。OptionalInt,OptionalDouble,OptionalLongが用意されているのでそちらを使う。
+* コレクション、配列のキー、バリュー、要素としてOptionalを使ってはならない。
+* インスタンスの必須ではないフィールド値として、Optionalを使用することはあり得る。（Item2で扱ったクラス参照）
+
+# 56.公開するAPIの全ての要素にJavadocコメントを書くべし
+* Javadocの書き方については、How to Write Doc CommentsというJava4がリリースされて以来更新されていないWebページで、いまだに価値のある情報が提供されている。Java9で```@index```、Java8では```@implSpec```、Java5では```@literal```と```@code```、という重要なタグが追加された。
+<http://www.oracle.com/technetwork/java/javase/tech/index-137868.html>
+* 公開する全てのクラス、インターフェース、コンストラクタ、メソッド、フィールドにJavadocコメントを書く必要がある（公開しないものについても書くべきであるが、公開するものはマスト）。publicなクラスでは、コメントが書けないのを避けるため、デフォルトコンストラクタの使用は避けるべき。
+* メソッドのJavadocコメントには、メソッドと使用者の間の決まり事を簡潔に記すべき。継承を見越した設計は別として（Item19）、一般に、Javadocコメントにはどのように役割を果たすかではなく、どんな役割を果たすかを書く。
+また、コメントには、利用前の条件、利用後の状態を書く。```@throws```タグで、前提条件を破るとこの例外が出る、と示すことで利用前の条件を暗に示し、```@tag```タグで、メソッド呼び出し後の引数の状態を示すことで利用後の状況を書くのが典型的なパターンである。
+加えて、メソッド呼び出しで起こる副作用も記述する。例えば、メソッド呼び出しをするとバックグラウンドでスレッドが立ち、処理が流れる、など。
+メソッドの決まりごとを十分に記述するために、@param、@return、@throwsを書くようにする。
+慣例として、@param、@returnには名詞句を記述する。@throwsはifから始まるような言葉で構成する。
+
+```java
+/**
+ * Returns the element at the specified position in this list.
+ *
+ * <p>This method is <i>not</i> guaranteed to run in constant
+ * time. In some implementations it may run in time proportional
+ * to the element position.
+ *
+ * @param  index index of element to return; must be
+ *         non-negative and less than the size of this list
+ * @return the element at the specified position in this list
+ * @throws IndexOutOfBoundsException if the index is out of range
+ *         ({@code index < 0 || index >= this.size()})
+ */
+E get(int index);
+```
+
+* Javadoc内ではHTMLのタグが使える。
+* ```@code```を使うことで、囲んだ部分をHTMLマークアップJavadocタグがないものとみなす。
+* 継承元となる設計をされたクラスは```@implSpec```タグでメソッドとサブクラスとの決まり事を記述する。
+
+```java
+/**
+ * Returns true if this collection is empty.
+ *
+ * @implSpec
+ * This implementation returns {@code this.size() == 0}.
+ *
+ * @return true if this collection is empty
+ */
+public boolean isEmpty() { ... }
+```
+
+* Java9からできた```@literal```で囲むと、その中身はHTMLマークアップの処理がされない。また、```@code```と違い、コードのフォントにレンダリングされない。
+* Javadocコメントの一文目には、その要素の要約を記す。混乱を避けるために、クラス内で異なるメンバ、コンストラクタに同じ要約をつけないようにする（オーバーロードする時など特にやりがちなので注意する）。
+* メソッドとコンストラクタの要約文は慣例として、完全な文でなく、動詞句の文となっている。Collection.size()の例は以下のよう。
+
+```
+Returns the number of elements in this collection.
+```
+
+* クラス、インターフェース、フィールドの要約文は慣例として、名詞句の文となっている。Instantクラスの例は以下のよう。
+
+```
+An instantaneous point on the time-line.
+```
+
+* Java9以降で、Javadocにインデックスを張り、検索ができるようになった。クラス、メソッド、フィールド等は自動的にインデックスが張られるのだが、任意の文字列に対してもインデックスを張りたい場合には、```@index```を用いる。
+
+```
+This method complies with the {@index IEEE 754} standard.
+```
+
+* ジェネリック型に対しては、すべての型にドキュメントを書く必要がある。
+
+```java
+/**
+ * An object that maps keys to values.  A map cannot contain duplicate keys;
+ * each key can map to at most one value.
+ *
+ *
+ * @param <K> the type of keys maintained by this map
+ * @param <V> the type of mapped values
+ *
+ * @since 1.2
+ */
+public interface Map<K, V> {
+```
+
+* Enumに対しては、enum定数の全てにドキュメントを書く必要がある。
+
+```java
+/**
+ * An instrument section of a symphony orchestra.
+ */
+public enum OrchestraSection {
+    /** Woodwinds, such as flute, clarinet, and oboe. */
+    WOODWIND,
+    /** Brass instruments, such as french horn and trumpet. */
+    BRASS,
+     /** Percussion instruments, such as timpani and cymbals. */
+    PERCUSSION,
+     /** Stringed instruments, such as violin and cello. */
+    STRING;
+}
+```
+
+* アノテーション型については、アノテーション型そのものに加え、メンバにもドキュメントを書く。
+
+```java
+/**
+ * Indicates that the named compiler warnings should be suppressed in the
+ * annotated element (and in all program elements contained in the annotated
+ * element).  Note that the set of warnings suppressed in a given element is
+ * a superset of the warnings suppressed in all containing elements.  For
+ * example, if you annotate a class to suppress one warning and annotate a
+ * method to suppress another, both warnings will be suppressed in the method.
+ * However, note that if a warning is suppressed in a {@code
+ * module-info} file, the suppression applies to elements within the
+ * file and <em>not</em> to types contained within the module.
+ *
+ * <p>As a matter of style, programmers should always use this annotation
+ * on the most deeply nested element where it is effective.  If you want to
+ * suppress a warning in a particular method, you should annotate that
+ * method rather than its class.
+ *
+ * @author Josh Bloch
+ * @since 1.5
+ * @jls 4.8 Raw Types
+ * @jls 4.12.2 Variables of Reference Type
+ * @jls 5.1.9 Unchecked Conversion
+ * @jls 5.5.2 Checked Casts and Unchecked Casts
+ * @jls 9.6.4.5 @SuppressWarnings
+ */
+@Target({TYPE, FIELD, METHOD, PARAMETER, CONSTRUCTOR, LOCAL_VARIABLE, MODULE})
+@Retention(RetentionPolicy.SOURCE)
+public @interface SuppressWarnings {
+    /**
+     * The set of warnings that are to be suppressed by the compiler in the
+     * annotated element.  Duplicate names are permitted.  The second and
+     * successive occurrences of a name are ignored.  The presence of
+     * unrecognized warning names is <i>not</i> an error: Compilers must
+     * ignore any warning names they do not recognize.  They are, however,
+     * free to emit a warning if an annotation contains an unrecognized
+     * warning name.
+     *
+     * <p> The string {@code "unchecked"} is used to suppress
+     * unchecked warnings. Compiler vendors should document the
+     * additional warning names they support in conjunction with this
+     * annotation type. They are encouraged to cooperate to ensure
+     * that the same names work across multiple compilers.
+     * @return the set of warnings to be suppressed
+     */
+    String[] value();
+}
+```
+
+* クラス、メソッドのスレッド安全例のレベル（Item82）と直列化可否、直列化されたときの形式（Item87）を書くべき。
+* クラス同士が複雑に連携しているなど、APIの全体観を示す補助資料が必要な場合で、資料がある場合にはJavadocにリンクを載せておく。
 
 # 9章.プログラミング一般
 

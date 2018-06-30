@@ -276,6 +276,55 @@ class Hoge<T, U extends T> {
 
 * TreeSetに格納される要素がComparable<T>型でない場合はClassCastExceptionがスローされる。
 
+* コンストラクタ参照の戻り値を受ける変数は関数型インターフェースでなければならない（考えれば当たり前だが）。
+
+```java
+package tryAny.lambda;
+
+public interface Flyable {
+    AirPlane getAirPlane(String name);
+}
+```
+
+```java
+package tryAny.lambda;
+
+public class LambdaTest6 {
+    public static void main(String[] args) {
+        Flyable f = AirPlane::new;
+        AirPlane ap = f.getAirPlane("ana");
+
+        System.out.println(ap);
+    }
+}
+
+class AirPlane {
+    private String name;
+
+    public AirPlane(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return "constructor " + this.name;
+    }
+}
+```
+
+* ジェネリック型の定義内で型変数が使える場所
+  * インスタンスフィールド変数の型（型引数も含む）
+  * インスタンスメソッドの返り値の型
+  * インスタンスメソッド内のローカル変数の型
+  * インスタンスメソッド内のパラメータ変数の型
+  * ネストした型の型名
+* ジェネリック型の定義内で型変数が使えない場所
+  * クラスフィールド変数の型
+  * クラスメソッドの返り値の型
+  * クラスメソッド内のローカル変数の型
+  * クラスメソッド内のパラメータ変数の型
+  * new演算子のオペランド
+
 # 3章 ラムダ式と組み込み関数型インターフェース
 * ラムダ式→匿名内部クラスの実装を簡潔に記述できる
 
@@ -333,10 +382,31 @@ public class LambdaTest2 {
 }
 ```
 
-* UnaryOperator<T> は、引数、戻り値ともにT型になる。つまり、Function<T,T>と考えられる。
+* UnaryOperator< T > は、引数、戻り値ともにT型になる。つまり、Function< T,T >と考えられる。
 * BinaryOperator<T>は上と同様に、BiFunction<T,T,T>とおなじ。
+* 型変数に関数を指定することも可能。例えば、IntFunction< R > のRに関数を指定することができる。
+
+```java
+package tryAny.lambda;
+
+import java.util.function.IntFunction;
+import java.util.function.IntUnaryOperator;
+import java.util.stream.IntStream;
+
+public class LambdaTest3 {
+    public static void main(String[] args) {
+        IntStream s1 = IntStream.of(1, 2, 3);
+        IntFunction<IntUnaryOperator> func = x -> y -> x + y;
+
+        IntStream s2 = s1.map(func.apply(2));
+        s2.forEach(System.out::println);
+    }
+}
+```
 
 * メソッド参照→ラムダ式が何らかのメソッド呼び出しのみで完結し、SAMの抽象メソッドと、ラムダ式で呼び出しているメソッドのシグニチャが同一の場合に使える構文。
+* メソッド参照とラムダ式の対応は以下のページの説明が分かりやすい。
+<http://www.ne.jp/asahi/hishidama/home/tech/java/methodreference.html>
 
 # 4章 Stream API
 * StreamAPIのStreamはInputStreamやOutputStreamとは別の概念。
@@ -434,6 +504,23 @@ public class StreamTest3 {
 ```
 
 * flatMapを用いることで入れ子になったListを平たんにすることができる。
+* flatMapToIntはIntStreamを返す。
+
+```java
+package tryAny.lambda;
+
+import java.util.Arrays;
+import java.util.stream.IntStream;
+
+public class LambdaTest4 {
+    public static void main(String[] args) {
+        int[][] data = { { 1, 2 }, { 3, 4 }, { 5, 6 } };
+        IntStream s1 = Arrays.stream(data).flatMapToInt(Arrays::stream);
+        s1.forEach(System.out::print);// 123456
+    }
+}
+```
+
 * distinct()で重複を削除できる。
 
 ```java
@@ -518,6 +605,30 @@ public class StreamTest8 {
 	// 頭文字後にグルーピングする
 	Map<Character, List<String>> map2 = l.stream().collect(Collectors.groupingBy(e -> e.charAt(0)));
 	map2.forEach((v1, v2) -> System.out.println(v1 + ":" + v2));
+    }
+}
+```
+
+* 基本型を扱う時のFunctionインターフェースについて、
+  * 戻り値がRで、applyの引数がintの場合は、IntFunction<R>を使う。
+  * 戻り値がintで、applyAsIntの引数がTの場合は、ToIntFunction<T>を使う。
+
+```java
+package tryAny.lambda;
+
+import java.util.function.IntFunction;
+import java.util.function.ToIntFunction;
+
+public class LambdaTest7 {
+    public static void main(String[] args) {
+        // 引数でとったintを文字にして返す
+        IntFunction<String> intFunc = String::valueOf;
+
+        // 引数でとったStringの文字数を返す
+        ToIntFunction<String> toIntFunc = String::length;
+
+        System.out.println(intFunc.apply(11));
+        System.out.println(toIntFunc.applyAsInt("apple"));
     }
 }
 ```
@@ -884,6 +995,8 @@ public class IOTest6 {
 }
 ```
 
+* FilesのlistメソッドはStream<Path>を返し、linesメソッドはStream<String>を返し、readAllLinesはList<String>を返す。
+
 # 8章 並行性
 * 並行処理ユーティリティはjava.util.concurrent.atomicとjava.util.concurrent.locksで提供される。ここで提供される仕組み、機能は以下。
   * スレッドプール：あらかじめスレッドを生成してためておくことで、スレッド生成のオーバーヘッドをなくすための仕組み。Executorフレームワークがこの機能を提供
@@ -953,6 +1066,67 @@ class MyAtomWorker implements Runnable {
 * **ConcurrentHashMap**クラスはMapがアトミック操作できるようになったもの。ロックする単位はマップ全体ではなくもっと細かいものとなっており、実行性能の劣化は小さいが、size()やisEmpty()が正確でないことがある。また、このクラスが返すIteratorの設計方針は**弱い整合性**であり、並行アクセス時の要素変更を許容しているため、ConcurrentModificationExceptionは発生しない。
 * **CopyOnWriteArrayList**クラスは、リストの要素に変更がはいるようなメソッドが呼ばれる際には、元のリストのコピーが生成される。リスト要素変更中にほかのスレッドからリストの読み取り要求が来た場合には、作成したコピーの値を返すため、ConcurrentModificationExceptionは発生しない。コピーを作成するという仕組み上、リストのサイズが大きい場合は性能が悪くなる。
 * CyclicBarrierクラスを用いることで複数スレッド間で協調を取ることができる。
+
+```java
+package tryAny.concurrentUtility;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
+
+public class ConcurrentTest9 {
+    public static void main(String[] args) {
+
+        Runnable runner = new Runner();
+        CyclicBarrier barrier = new CyclicBarrier(3, runner);
+
+        List<Worker> workers = new ArrayList<Worker>();
+        for (int i = 0; i < 3; i++) {
+            workers.add(new Worker(barrier));
+        }
+
+        workers.stream().parallel().forEach(Worker::run);
+        /**
+         * 1<br>
+         * 2<br>
+         * 3<br>
+         * All threads have run.
+         *
+         * 1,2,3の部分はそうならないこともある。1,2,1とかなったりする。
+         */
+    }
+}
+
+class Runner implements Runnable {
+
+    @Override
+    public void run() {
+        System.out.println("All threads have run.");
+    }
+}
+
+class Worker extends Thread {
+    private CyclicBarrier barrier;
+
+    private static int count;
+
+    public Worker(CyclicBarrier barrier) {
+        this.barrier = barrier;
+    }
+
+    @Override
+    public void run() {
+        try {
+            System.out.println(++count);
+            barrier.await();
+        } catch (InterruptedException | BrokenBarrierException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
 * Threadクラスでは「タスクの実行をJVMに依頼する」部分と「タスクをどのように実行するか」という部分が蜜結合となっており、スレッドの生成と管理をプログラムで制御することが難しかった。JavaSE8からはExecutorクラスがそれらの問題を解決する形で登場した。
 * Executorフレームワークによって、タスクのライフサイクルの管理、スレッドプール、タスクの遅延開始・周期的実行の機能等が提供されるようになった。
 * ScheduledThreadPoolExecutor クラスを使用することで、タスクの遅延開始・周期的実行ができる。
@@ -1053,7 +1227,7 @@ class MyAction extends RecursiveAction {
 * Statementオブジェクトには以下の3つのSQL実行のためのメソッドがある。
   * execute:CRUD全部実行可能。戻り値は、セレクトで値が取れた場合true、それ以外はfalse。
   * executeQuery:SELECTのみ実行可能。戻り値はResultSet。
-  * executeUpdate:INSERT、UPDATE、DELETEが実行可能。戻り値は更新行数としてint。
+  * executeUpdate:INSERT、UPDATE、DELETE、またはDDL文が実行可能。戻り値は更新行数としてint。
 
 ```java
 package tryAny.jdbc;
@@ -1089,6 +1263,13 @@ public class JdbcTest1 {
 }
 ```
 
+* JDBC3.0ではドライバをロードするために、以下のようにプログラムの中で明示的に記述してやらねばならない。JDBC4.0では明示的ロードは不要となった。
+
+```java
+Class.forName("com.mysql.jdbc.Driver");
+```
+
+* 1度StatementオブジェクトからResultSetを取り出し、再び同じStatementから別のResultSetを取り出すと、最初に取得したResultSetはクローズされる。
 
 # 10章 ローカライズ
 * java.util.Propertiesで許されているプロパティファイルの形式はテキストファイルかXMLファイル。
@@ -1157,3 +1338,18 @@ public class LocaleTest2 {
     }
 }
 ```
+
+* ローカライズに使用される言語コードは小文字、地域コードは大文字。
+* Localeオブジェクトを得る方法
+  * コンストラクタ：```Locale l = new Locale("ja", "JP");```
+  * 定数：```Locale l = Locale.JAPAN;```
+  * getDefault使う：```Locale l = Locale.getDefault();```
+  * ビルダー使う
+  
+```java
+Locale.Builder b = new Locale.Builder();
+b.setLanguage("cat");
+b.setRegion("ES");
+Locale l = b.build();
+```
+
