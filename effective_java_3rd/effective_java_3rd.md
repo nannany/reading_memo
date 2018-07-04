@@ -392,7 +392,34 @@ public class AnonymouseVsLambda {
 
 # 43.ラムダ式よりメソッド参照を使うべし
 
-* 
+* 基本的にラムダ式よりメソッド参照の方が簡潔に書けるため、メソッド参照を選択するべき。
+* ラムダ式の方が簡潔に書ける場合もある。よくあるのは、同クラスにあるメソッドを用いる場合。
+
+```java
+// メソッド参照
+service.execute(GoshThisClassNameIsHumongous::action);
+// ラムダ式
+service.execute(() -> action());
+```
+
+* 多くのメソッド参照はstaticメソッドの参照であるが、他にも4つのパターンがある。
+  * Bound 参照（訳が分からない。。）はメソッド参照において、受け取るオブジェクトが特定される。
+  * UnBound 参照（訳が分からない。。）は関数オブジェクトを適用するときに、受け取るオブジェクトが特定される（**意味がよくわからない**）。streamのmapやfilterでよく使われる。
+  * クラス、配列のコンストラクタについては以下の表のようにできる。
+
+
+| Method Ref Type | Example | Lambda Equivalent |
+|:-------|:-------|:-------|
+| Static       | Integer::parseInt | str -> Integer.parseInt(str)
+| Bound |Instant.now()::isAfter | Instant then = Instant.now(); t -> then.isAfter(t) |
+| Unbound | String::toLowerCase | str -> str.toLowerCase() |
+| Class Constructor | TreeMap<K,V>::new | () -> new TreeMap<K,V> |
+| Array Constructor | int[]::new | len -> new int[len]
+
+# 44.標準の関数型インターフェースを使うべし
+* 標準で用意されているものを使うことによって、使いやすさが増し、すでに組み込まれている様々なメソッドの恩恵にあずかれる。
+* java.util.functionに含まれる関数型インターフェースは43個ある。
+  * 中心的なのはUnaryOperator< T >、BinaryOperator< T >、
 
 # 8章.メソッド
 
