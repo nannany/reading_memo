@@ -435,6 +435,136 @@ service.execute(() -> action());
 * Streamパイプラインの処理は終端処理が呼ばれて初めて実行される。
 * 簡単に並列Streamにすることができるが、おおむね並列にするのは適切でない。（Item48）
 * いつStreamを使うべきかにかっちりしたルールはない。ヒューリスティックな解があるのみ。
+* 指定したファイルに含まれる単語（例1）、行（例2,3）について、アナグラム毎にまとめ、指定した数以上の単語があるアナグラムを表示するプログラムが以下。
+例2はstream処理を使いすぎて読みづらくなっている。例3が適切な使い方。
+下の例のラムダ式内のgなどは本当はgroupとして、読みやすさを向上させるべき。
+alphabetize のようなヘルパーメソッドを作ることは、ストリーム処理を書くにおいて、読みやすさを向上させるために重要なことである。
+
+```java
+package tryAny.effectiveJava;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+public class Anagrams {
+    public static void main(String[] args) throws IOException {
+        File dictionary = new File("/application/gradle/getting-started.html");
+        int minGroupSize = 2;
+
+        Map<String, Set<String>> groups = new HashMap<>();
+
+        // 例1 start
+        try (Scanner s = new Scanner(dictionary)) {
+            while (s.hasNext()) {
+                String word = s.next();
+                groups.computeIfAbsent(alphabetize(word), (unused) -> new TreeSet<>()).add(word);
+            }
+        }
+        for (Set<String> group : groups.values()) {
+            if (group.size() >= minGroupSize) {
+                System.out.println(group.size() + ":" + group);
+            }
+        }
+        // 例1 end
+
+        // 例2 start(こっちは一行毎でアナグラム取っているから例1と結果違う)
+        Path dictionary2 = Paths.get("/application/gradle/getting-started.html");
+        try (Stream<String> words = Files.lines(dictionary2)) {
+            words.collect(Collectors.groupingBy(word -> word.chars().sorted()
+                    .collect(StringBuilder::new, (sb, c) -> sb.append((char) c), StringBuilder::append).toString()))
+                    .values().stream().filter(group -> group.size() >= minGroupSize)
+                    .map(group -> group.size() + ":" + group).forEach(System.out::println);
+        }
+        // 例2 end
+
+        // 例3 start（例2と同じ結果）
+        try (Stream<String> words = Files.lines(dictionary2)) {
+            words.collect(Collectors.groupingBy(word -> alphabetize(word)))
+            .values().stream()
+                    .filter(group -> group.size() >= minGroupSize)
+                    .forEach(g -> System.out.println(g.size() + ":" + g));
+        }
+        // 例3 end
+    }
+
+    private static String alphabetize(String s) {
+        char[] a = s.toCharArray();
+        Arrays.sort(a);
+        return new String(a);
+    }
+}
+```
+
+* 以下の例のように、char型のstream処理は直感的でない動きをしうるので、原則としてchar型の値をstream処理で扱うべきでない。
+
+```java
+package tryAny.effectiveJava;
+
+public class CharStream {
+    public static void main(String[] args) {
+        "Hello, world!".chars().forEach(System.out::print);
+        // 72101108108111443211911111410810033 が表示
+
+        System.out.println();
+
+        "Hello, world!".chars().forEach(x -> System.out.print((char) x));
+        // Hello, world! が表示
+    }
+}
+```
+
+* 既存のforループをstreamに置き換えるにおいては、やる意味があるときのみやるべき。
+* 関数型オブジェクトを使用したstream処理ではできないが、code block（**普通の繰り返し文のこと?**）ではできることが以下。
+  * ラムダ式ではローカル変数について、実質finalなものしか読み取れないが、code blockでは、どんなものでも読めるし変更もできる。
+  * code block では enclosing methodからリターンすることができ（**どういうこと？**）、ループからbreakやcontinueの操作ができ、宣言している検査例外をスローすることができるが、ラムダ式では以上のことはできない。
+
+* streamで簡単にできるようになることは以下。
+  * 画一的な要素の変換
+  * 要素のフィルタリング処理
+  * 単一のオペレーションで要素を結びつける処理（加えたり、最小値を出したり）
+  * 要素をcollectionに集約する処理（ある属性でグルーピングするなど）
+  * 特定の基準を満たす要素を探す処理
+* パイプライン上の別のステージにある要素を同時に扱うような処理は、streamでは困難。
+以下の例では、Mersenne素数というものを出力している。
+Mersenne素数はpが素数であったときに、2^p-1で表される数で、必ず素数になるものである。
+stream処理で、
+素数→Mersenne素数→20個で区切る→表示
+としているが、表示する部分では、元となった素数にアクセスすることはできない（今回は結果から逆算することができたが）。
+
+```java
+package tryAny.effectiveJava;
+
+import static java.math.BigInteger.*;
+
+import java.math.BigInteger;
+import java.util.stream.Stream;
+
+public class MersennePrimes {
+    public static void main(String[] args) {
+        primes().map(p -> TWO.pow(p.intValueExact()).subtract(ONE)).filter(mersenne -> mersenne.isProbablePrime(50))
+                .limit(20)
+                // .forEach(System.out::println);
+                .forEach(mp -> System.out.println(mp.bitLength() + ":" + mp));
+    }
+
+    static Stream<BigInteger> primes() {
+        return Stream.iterate(TWO, BigInteger::nextProbablePrime);
+    }
+}
+```
+
+* streamを使うべきか、繰り返し処理をすべきか迷う処理はたくさんある。迷った場合には、両方試してみてどちらが良いか判断してみるべき。
 
 # 8章.メソッド
 
@@ -1315,4 +1445,129 @@ try {
 * エラーを無視するのが適切な場合もありうるが、その場合はcatchブロックの中でなぜエラーを無視するかのコメントを入れ、catchするエラーの変数名を**ignored**にするべきである。
 * 検査例外も非検査例外も等しくこのItem77を守るべき。
 
+# 11章.並列性
 
+# 78.共有されるmutableなデータには、同期したアクセスをすべし
+* 同期化の一つの役割は、排他制御であり、変数を矛盾した状態で読み取らせないようにすることにある。また、他スレッドが行った変更を見ることができるようにするのも同期化の役割である（**後半いまいちわからん**）。
+* 排他制御だけでなく、スレッド間の信頼ある通信のためにも同期化は必要である。
+* Thread#stop()は使ってはいけない。使うとデータが壊れてしまう。
+* 以下のコードは一見、1秒で止まるように見えるが、実際には止まらない。バックグラウンドで動作するスレッドがいつstopRequestedを見に行くか、同期が保証されていないので、JVMは
+
+```java
+    while (!stopRequested)
+        i++;
+```
+を
+
+```java
+if (!stopRequested)
+    while (true)
+        i++;
+```
+のように変換する。この最適化はhoistingと呼ばれる。
+
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.concurrent.TimeUnit;
+
+public class StopThread {
+    private static boolean stopRequested;
+
+    public static void main(String[] args) throws InterruptedException {
+        Thread backgroundThead = new Thread(() -> {
+            int i = 0;
+            while (!stopRequested) {
+                i++;
+            }
+        });
+
+        backgroundThead.start();
+
+        TimeUnit.SECONDS.sleep(1);
+
+        stopRequested = true;
+    }
+}
+```
+
+* 以下のように、stopRequested の読み込み、書き込みともに同期化してやれば期待通りに1秒で止まる。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.concurrent.TimeUnit;
+
+public class StopThread2 {
+    private static boolean stopRequested;
+
+    private static synchronized void requestStop() {
+        stopRequested = true;
+    }
+
+    private static synchronized boolean stopRequested() {
+        return stopRequested;
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        Thread backgroundThead = new Thread(() -> {
+            int i = 0;
+            while (!stopRequested()) {
+                i++;
+            }
+        });
+
+        backgroundThead.start();
+
+        TimeUnit.SECONDS.sleep(1);
+
+        requestStop();
+    }
+}
+```
+
+* 以下のように、stopRequestedにvolatile修飾子をつけてやれば、一番新しく書き込まれた値を読むことを保証できるので、期待通りに1秒で止まる。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.concurrent.TimeUnit;
+
+public class StopThread3 {
+    private static volatile boolean stopRequested;
+
+    public static void main(String[] args) throws InterruptedException {
+        Thread backgroundThead = new Thread(() -> {
+            int i = 0;
+            while (!stopRequested) {
+                i++;
+            }
+        });
+
+        backgroundThead.start();
+
+        TimeUnit.SECONDS.sleep(1);
+
+        stopRequested = true;
+    }
+}
+```
+
+* ++のインクリメント処理はアトミックなものではないので、以下のコードが1ずつ上昇していくユニークな値を返す保証はない。解消する場合には、AtomicLongを使うべき。
+
+```java
+private static volatile int nextSerialNumber = 0;
+public static int generateSerialNumber() {
+    return nextSerialNumber++;
+}
+```
+
+```java
+private static final AtomicLong nextSerialNum = new AtomicLong();
+ public static long generateSerialNumber() {
+    return nextSerialNum.getAndIncrement();
+}
+```
+
+* 
