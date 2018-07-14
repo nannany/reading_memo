@@ -1464,7 +1464,7 @@ if (!stopRequested)
     while (true)
         i++;
 ```
-のように変換する。この最適化はhoistingと呼ばれる。
+のように変換する。この最適化はhoistingと呼ばれる。（「**liveness failure**:プログラムがそれ以上先に進めなくなるエラー」の例）
 
 
 ```java
@@ -1554,9 +1554,10 @@ public class StopThread3 {
 }
 ```
 
-* ++のインクリメント処理はアトミックなものではないので、以下のコードが1ずつ上昇していくユニークな値を返す保証はない。解消する場合には、AtomicLongを使うべき。
+* ++のインクリメント処理はアトミックなものではないので、以下のコードが1ずつ上昇していくユニークな値を返す保証はない。解消する場合には、AtomicLongを使うべき。（「**safety failure**：プログラムが誤った結果を返すエラー」の例）
 
 ```java
+// safety failure
 private static volatile int nextSerialNumber = 0;
 public static int generateSerialNumber() {
     return nextSerialNumber++;
@@ -1570,4 +1571,9 @@ private static final AtomicLong nextSerialNum = new AtomicLong();
 }
 ```
 
-* 
+* 本章で扱われている問題を避けるには、mutableなデータの処理は1つのスレッドに限定させておくようにする。
+
+# 79.過度な同期は避ける
+
+* 過度な同期は、性能の劣化、デッドロック、非決定的な挙動を招く。
+* 活性エラー（liveness failure）、安全性エラー（safety failure）を避けるためには、同期をとった処理の中でクライアントに処理させる権限を与えないようにするべき。
