@@ -1941,4 +1941,72 @@ class AddAction extends RecursiveAction {
 
 #81 wait と notify よりコンカレンシーユティリティを選ぶべし
 
-* 
+* Java5以降、以前はwaitやnotifyで行っていた処理が高レベルなコンカレンシーユーティリティでできるようになった。これらを代わりに使うべきである。
+* 高レベルなコンカレンシーユーティリティは3つに分けられる。
+  * Executor フレームワーク（Item80）
+  * concurrent collection。List、Map、Queueに並列処理がうまくできるように実装されたものがこれに当たる。これらは内部で同期がなされるため、ロックしても単に処理が遅くなるだけである。この部品は状態に依存する変更処理（state-dependent modify operations）に適している。concurrent collections の登場によって、synchronized collections はお払い箱となった。
+  * synchronizers。synchronizers は他のスレッドの処理完了を待つなど、他と強調した動きを可能にする。有名なのは、CountDownLatch、Semaphore、CyclicBarrier、Exchanger、Phaserなど。
+* CountDownLatch を使用したコードは以下のようになる。timeメソッドについて説明すると、ready が3回 countDown されると、ready のawait が解けて、startNanosが計測されて、start の countDown が1回なされて actionが走り、そして、各スレッドで done の countDown がなされて、3つすべてでcountDownされたらdoneのawaitが解けて、かかった時間が返される仕組み。このメソッドはスレッド数が第2引数で指定されていた数より少ない場合は処理が終わらない（thread starvation deadlock）。	
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+
+public class CountDownLatchTest {
+    public static void main(String[] args) throws InterruptedException {
+        Executor e = Executors.newFixedThreadPool(3); // ここの引数をtimeの第2引数の値未満にすると処理が終わらない。
+
+        System.out.println(time(e, 3, () -> System.out.println("a")));
+
+    }
+
+    // Simple framework for timing concurrent execution
+    public static long time(Executor executor, int concurrency, Runnable action) throws InterruptedException {
+        CountDownLatch ready = new CountDownLatch(concurrency);
+        CountDownLatch start = new CountDownLatch(1);
+        CountDownLatch done = new CountDownLatch(concurrency);
+        for (int i = 0; i < concurrency; i++) {
+            executor.execute(() -> {
+                ready.countDown(); // Tell timer we're ready
+                try {
+                    start.await(); // Wait till peers are ready
+                    action.run();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    done.countDown(); // Tell timer we're done
+                }
+            });
+        }
+        ready.await(); // Wait for all workers to be ready
+        long startNanos = System.nanoTime();
+        start.countDown(); // And they're off!
+        done.await(); // Wait for all workers to finish
+        return System.nanoTime() - startNanos;
+
+    }
+}
+```
+
+* wait と notify についてはもはや新しく書かれたコードで見ることはない。レガシーなコードの保守で見ることはあるかもしれない。
+* wait と notify についての要約だけ書くと、
+  * waitはwhile ループの中で使うこと。
+  * notifyよりnotifyAllを使うべき。notifyを使うときは、スレッドの生存に気を付けて使用せねばならない。
+
+# 82.スレッドセーフティについてドキュメントすべし
+
+* 提供するメソッドを並列実行させた時の挙動は、クライアントとの重要な約束事であり、ドキュメントとして明記しないとエラーを招くこととなる。
+* sychronized句の有無でスレッドセーフであるかを見分けることはできない。
+* スレッドセーフという性質はオールオアナッシングなものではなく、数段階のレベルがあるものである。以下、スレッドセーフの各レベルを要約する。
+  * Immutable：状態は常に一貫しており、外部での同期は必要ない。
+ex)String,Long,BigInteger
+  * Unconditionally thread-safe：mutableなインスタンスであるが、内部で十分に同期がとれているので、外部での同期は必要ない。
+ex)AtomicLong,ConcurrentHashMap
+  * Conditionally thread-safe：Unconditionally thread-safeに似ているが、一部のメソッドでは外部での同期が必要となる。
+ex)Collections.synchronized のラッパークラス。これらのiterators は外部の同期が必要となる。
+  * Not thread-safe：並列処理をしようと思ったら必ず外部で同期が必要となる。
+ex)ArrayList,HashMap
+  * Thread-hostile：
