@@ -2009,4 +2009,108 @@ ex)AtomicLong,ConcurrentHashMap
 ex)Collections.synchronized のラッパークラス。これらのiterators は外部の同期が必要となる。
   * Not thread-safe：並列処理をしようと思ったら必ず外部で同期が必要となる。
 ex)ArrayList,HashMap
-  * Thread-hostile：
+  * Thread-hostile：外部で同期をかけてもスレッドセーフにならない。たいていはstaticなデータを同期なしで変更していることによる。
+ex)Item78のgeneralSerialNumber メソッド
+
+* クラスのスレッドセーフティについてはクラスのJavadocに書くべきで、スレッドセーフティに関して特別な考慮が必要なメソッドには、そのJavadocに記述する。以下の```Collections.synchronizedMap```が好例。
+
+```java
+    /**
+     * It is imperative that the user manually synchronize on the returned
+     * map when traversing any of its collection views via {@link Iterator},
+     * {@link Spliterator} or {@link Stream}:
+     * <pre>
+     *  Map m = Collections.synchronizedMap(new HashMap());
+     *      ...
+     *  Set s = m.keySet();  // Needn't be in synchronized block
+     *      ...
+     *  synchronized (m) {  // Synchronizing on m, not s!
+     *      Iterator i = s.iterator(); // Must be in synchronized block
+     *      while (i.hasNext())
+     *          foo(i.next());
+     *  }
+     * </pre>
+     */
+    public static <K,V> Map<K,V> synchronizedMap(Map<K,V> m) {
+        return new SynchronizedMap<>(m);
+    }
+```
+
+* Unconditionally thread-safe なクラスを書くにあたっては、synchronized なメソッドの代わりにprivate lockを使う手法がある。これによって、クライアント、サブクラスからの悪意ある同期から守ることができる。（**DOSの例を挙げていたが、どうやって起こすのかいまいちわからない**）
+
+# 83.遅延初期化は注意して使うべし
+
+* 遅延初期化とは、値が必要となった時に初めて初期化させる動作のことをいう。遅延初期化は主に処理性能を上げるために行われるが、害をもたらすこともある。
+* 遅延初期化はクラスの初期化やインスタンス生成のコストを省いてくれるが、遅延初期化を行うフィールドへのアクセスコストは増加する。
+* 遅延初期化を行う該当のフィールドが、該当クラスのインスタンスのたった一部のフィールドであり、かつ、そのフィールドの初期化コストが高い場合には、遅延初期化の効果があるかもしれない。効果を確かめる唯一の方法は遅延初期化しない場合と性能差を比べるしかない。
+* マルチスレッド環境下での遅延初期化はトリッキーなものとなる。本章で述べられる初期化テクニックはスレッドセーフなものである。
+* たいていの状況では、普通の初期化の方が遅延初期化よりも好ましい。以下通常の初期化例。
+
+```java
+// Normal initialization of an instance field
+private final FieldType field = computeFieldValue();
+```
+
+* 遅延初期化を使って、初期化循環を防ぐにあたっては、シンプルで明確であるという理由から、synchronizedアクセサを使用するべきである。
+
+```java
+// Lazy initialization of instance field - synchronized accessor
+private FieldType field;
+ private synchronized FieldType getField() {
+    if (field == null)
+        field = computeFieldValue();
+    return field;
+}
+```
+
+* 上記2つの書き方は、フィールドがstaticであっても変わらない（フィールドとアクセサメソッド両方がstaticである場合は除く）。
+* 遅延初期化をstaticフィールドに対して、パフォーマンス向上のために使用するのであれば、以下のような書き方があり得る（lazy initialization holder class idiom）。
+
+
+```java
+// Lazy initialization holder class idiom for static fields
+private static class FieldHolder {
+  static final FieldType field = computeFieldValue();
+}
+private static FieldType getField() { return FieldHolder.field; }
+```
+
+* 遅延初期化をインスタンスフィールドに対して、パフォーマンス向上のためにやるのであれば、以下のような書き方がある（double-check idiom）。
+この書き方では、初期化済みであった場合には、ロックを取らないようにしている。
+書き方の説明をすると、ここではフィールド変数に対して2回のチェックロジックがはしっている。1回目はロックせずにチェックをし、チェックの結果として初期化がまだであれば、ロックをしてもう一度チェックをする。2度目のチェックでも初期化がまだだったら初期化のメソッドを走らせる。
+一度初期化されるとロックを用いた処理ではなくなるので、フィールドはvolatileで宣言しておかねばならない。
+
+```java
+// Double-check idiom for lazy initialization of instance fields
+private volatile FieldType field;
+ private FieldType getField() {
+    FieldType result = field;
+    if (result == null) {  // First check (no locking)
+        synchronized(this) {
+            if (field == null)  // Second check (with locking)
+                field = result = computeFieldValue();
+        }
+    }
+    return result;
+}
+```
+
+* 上記のコードのresultはいらないように見えるが、これがあるとない場合より1.4倍くらい速くなるらしい（**速くなる理屈はよくわからず**）。
+* double-check idiomはstatic フィールドにも適用できるが、lazy initialization holder class idiom の方がベターである。
+* double-check idiom に関して、複数回の初期化にも耐えられるようにするには2つ目のチェックを除けばよい（single-check idiom）。
+（**複数回の初期化に耐えられるようにするのに、なぜsingle-check idiomが適しているのかわからない。。**）
+
+```java
+// Single-check idiom - can cause repeated initialization!
+private volatile FieldType field;
+ private FieldType getField() {
+    FieldType result = field;
+    if (result == null)
+        field = result = computeFieldValue();
+    return result;
+}
+```
+
+# 84.スレッドスケジューラに依存してはならない
+
+* 
