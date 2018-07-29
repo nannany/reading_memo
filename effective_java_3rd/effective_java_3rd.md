@@ -334,7 +334,181 @@ import static com.effectivejava.science.PhysicalConstants.*;
 
 ```
 
-# 23.
+
+# 5章.ジェネリクス
+
+# 26.raw タイプは使ってはならない
+
+* rawタイプとは、型パラメータなしで宣言されたジェネリック型のことを指す。例えば、List< E > に対する、List のようなものをrawタイプと呼ぶ。
+* rawタイプを用いると、型パラメータを明確にして宣言したジェネリクス型であればコンパイル時に検出できた誤りが、実行時まで検出されなくなる。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+
+public class GenericsTest1 {
+
+    public static void main(String[] args) {
+        final Collection stamps = Arrays.asList(new Stamp(), new Stamp(), "");
+        // 以下のコードだとコンパイルエラーとして検出してくれる。
+        // final Collection<Stamp> stamps = Arrays.asList(new Stamp(), new Stamp(), "");
+        for (Iterator i = stamps.iterator(); i.hasNext();) {
+            Stamp stamp = (Stamp) i.next(); // 3つ目の要素をキャストするときにエラー送出。実行時に初めてわかる。
+            System.out.println("cast success");
+        }
+    }
+
+    static class Stamp {
+
+    }
+}
+```
+
+* Listのようなrawタイプを使うべきではないが、任意の型を許容する、List< Object > のようなジェネリック型は使用してもよい。
+大まかに、この2つの違いは、前者はジェネリックに適応していないが、後者はコンパイラに明確にどのような型も許容すると明確に示している。
+例えば、List< String >をList型に入れることはできるが、List< Object >に入れることはできない。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class GenericsTest2 {
+    public static void main(String[] args) {
+        List<String> strings = new ArrayList<>();
+        unsafeAdd(strings, Integer.valueOf(42));
+        String s = strings.get(0); // Has compiler-generated cast
+    }
+
+    private static void unsafeAdd(List list, Object o) {
+        // 以下のコードにするとコンパイルエラーにしてくれる。
+        // private static void unsafeAdd(List<Object> list, Object o) {
+        list.add(o);
+    }
+
+}
+```
+
+* 要素となる型が何であれ構わない場合にはrawタイプを使いたくなるかもしれないが、**?**のワイルドカードを使うべきである。
+これらの違いも型安全性にある。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+public class GenericsTest3 {
+
+    public static void main(String[] args) {
+        Set<?> s1 = Stream.of("2", "b", 1).collect(Collectors.toSet());
+        Set s2 = Stream.of("2", "c", 1).collect(Collectors.toSet());
+
+        // s1.add("c"); // このコードはコンパイルエラーとなる
+        s2.add("b");
+
+        System.out.println(numElementsInCommon(s1, s2));
+    }
+
+    // Use of raw type for unknown element type - don't do this!
+    static int numElementsInCommon(Set<?> s1, Set<?> s2) {
+        int result = 0;
+        for (Object o1 : s1)
+            if (s2.contains(o1))
+                result++;
+        return result;
+    }
+}
+```
+
+* rawタイプを使うべきでないという規則の例外が少数ある。
+  * クラスのリテラルに型パラメータを使ったジェネリック型を指定することはできない。つまり、List.classやString[].classは許されるが、List< String >やList< ? > は許されない。
+  * instanceof を型パラメータを使ったジェネリック型に対して使うことはできないので（Unbounded wildcard type除く）、その時はrawタイプで検査する。
+
+```java
+// Legitimate use of raw type - instanceof operator
+if (o instanceof Set) {       // Raw type
+    Set<?> s = (Set<?>) o;    // Wildcard type
+    ...
+}
+```
+
+# 27.unchecked warnings は削除せよ
+
+* コンパイラが出すunchecked warningsを全部消すことができれば、そのコードはタイプセーフ、つまり、実行時にClassCastExceptionを発生させることがなくなる。よって、unchecked warningsは全て消すようにするべきである。
+* すべてのwarningは消すことができないが、タイプセーフであることを証明できた場合は```@SuppressWarnings("unchecked")```アノテーションを付与する。
+タイプセーフであることを証明する前にこのアノテーションを付与してしまうと、コンパイル時にunchecked warnings はでないのに、ClassCastExceptionは出ることとなり、エラー解消を困難にしてしまう。
+* ```@SuppressWarnings("unchecked")```の付与はできるだけ小さいスコープにするべきである。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.Arrays;
+
+public class GenericsTest4 {
+
+    private int size;
+    transient Object[] elementData; // non-private to simplify nested class access
+
+    public <T> T[] toArray(T[] a) {
+        if (a.length < size) {
+            @SuppressWarnings("unchecked")
+            T[] result = (T[]) Arrays.copyOf(elementData, size, a.getClass());
+            return result;
+        }
+        System.arraycopy(elementData, 0, a, 0, size);
+        if (a.length > size)
+            a[size] = null;
+        return a;
+    }
+}
+```
+
+* ```@SuppressWarnings("unchecked")```を使用するときは、なぜそれが安全なのか理由を記載すべき。
+記載することによって、コードの理解の助けになるし、誰かが安全でない演算となるような変更を加える機会は減る。
+
+# 28.配列よりもリストを使うべし
+
+* 配列はジェネリック型と比べて2つの重要な点で異なる。
+  * 配列は共辺である。例えば、SubクラスはSuperクラスのサブクラスであるとして、Sub[]クラスはSuper[]クラスのサブクラスである。
+  一方で、ジェネリックスは共辺ではない。どのような2つのType1、Type2クラスであっても、List< Type1 > 、List< Type2 >は親子関係になりえない。
+  この性質から、以下のようなコードでは、配列は実行するまで結果が分からないがListはコンパイル時にわかる。
+  
+```java
+package tryAny.effectiveJava;
+
+public class GenericsTest5 {
+    public static void main(String[] args) {
+
+        Object[] objAry = new Long[1];
+        objAry[0] = "aa";
+
+        // Won't compile!
+        // List<Object> ol = new ArrayList<Long>(); // Incompatible
+
+    }
+}
+```
+  * 配列は物象化（reified）される。配列は実行時に要素を知り、要素を処理する。
+  一方で、ジェネリクスはイレイジャー（erasure）によって実装される。ジェネリクスはコンパイル時にのみ型制限が効き、実行時には要素の型情報は捨てられる。
+  
+* 上記のような根本的な違いにより、配列とジェネリクスはうまく混ぜて使うことができない。例えば、```new List< E >[]```といったコードはコンパイル時にはじかれる。
+ジェネリクスの配列が作れない理由を、以下のコードの1行目がコンパイルエラーにならないと仮定して説明していく。
+
+
+```java
+// Why generic array creation is illegal - won't compile!
+List<String>[] stringLists = new List<String>[1];  // (1)
+List<Integer> intList = List.of(42);               // (2)
+Object[] objects = stringLists;                    // (3)
+objects[0] = intList;                              // (4)
+String s = stringLists[0].get(0);                  // (5)
+```
 
 # 6章.ENUMとアノテーション
 
@@ -2216,4 +2390,3 @@ public class CountDownLatchTest {
 
 # 12章．シリアライゼーション
 
-# 85.
