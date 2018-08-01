@@ -475,7 +475,7 @@ public class GenericsTest4 {
 # 28.配列よりもリストを使うべし
 
 * 配列はジェネリック型と比べて2つの重要な点で異なる。
-  * 配列は共辺である。例えば、SubクラスはSuperクラスのサブクラスであるとして、Sub[]クラスはSuper[]クラスのサブクラスである。
+  * 配列は共辺（covariant）である。例えば、SubクラスはSuperクラスのサブクラスであるとして、Sub[]クラスはSuper[]クラスのサブクラスである。
   一方で、ジェネリックスは共辺ではない。どのような2つのType1、Type2クラスであっても、List< Type1 > 、List< Type2 >は親子関係になりえない。
   この性質から、以下のようなコードでは、配列は実行するまで結果が分からないがListはコンパイル時にわかる。
   
@@ -498,7 +498,12 @@ public class GenericsTest5 {
   一方で、ジェネリクスはイレイジャー（erasure）によって実装される。ジェネリクスはコンパイル時にのみ型制限が効き、実行時には要素の型情報は捨てられる。
   
 * 上記のような根本的な違いにより、配列とジェネリクスはうまく混ぜて使うことができない。例えば、```new List< E >[]```といったコードはコンパイル時にはじかれる。
-ジェネリクスの配列が作れない理由を、以下のコードの1行目がコンパイルエラーにならないと仮定して説明していく。
+ジェネリクスの配列が作れない理由を、以下のコードの1行目がコンパイルエラーにならないと仮定して説明していく(本当は1行目でコンパイルエラー)。
+2行目で要素を一つ持つList<Integer>が作られる。
+3行目でList< String > の配列を Objectの配列に格納している。これは配列はcovariantであるので成立する。
+4行目でObject配列にList< Integer > を格納している。これは実行にはList< Integer >は単にListで、List< String >[]は単にList[]となるため、ArrayStoreExceptionは発生しない。
+そうすると、5行目でList< String >の中から取り出した要素がIntegerであり、ClassCastExceptionが発生する。
+このようなことを防ぐために、ジェネリック型の配列はコンパイルエラーにしている。
 
 
 ```java
@@ -509,6 +514,64 @@ Object[] objects = stringLists;                    // (3)
 objects[0] = intList;                              // (4)
 String s = stringLists[0].get(0);                  // (5)
 ```
+
+* EやList< E >といった型は**non-reifiable**と呼ばれる。この言葉の直感的な意味は、コンパイル時よりも実行時の時の方が持っている情報が少ない、という意味である。?のワイルドカードを使ったジェネリック型のみreifiableであるが、ワイルドカードを使ったジェネリクスの配列に実用的な価値はない。
+* ジェネリック型の配列が作れないことによって、可変長引数を持つメソッドを利用する時などの対応が面倒となる。可変長引数のメソッドを利用するときは、可変長引数を保持するために配列が作られる。これらの要素型がnon-reifiableだった場合には、ワーニングが出る。これの対処のためには```SafeVarargs```アノテーションを使用する（Item32）。
+* ジェネリック型の配列が作れなかったり、配列へのキャストができない状況に直面した場合には、要素型の配列**E[]**よりも、コレクション型**List< E >**を利用するべき。こうすることで、簡潔さやパフォーマンスを犠牲にして型安全性と相互運用性を担保できる。
+* 例として、コンストラクタにcollectionをとり、唯一のメソッドでそのcollectionの中にある要素をランダムで取り出す、Chooserクラスを書くとする。
+ジェネリックスを使わずに書くと以下のようになる。このクラスを使う場合だと、メソッドを使うとき常に望む型であるかキャストせねばならないし、キャストに失敗したときには実行時にエラーが出てしまう。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.Collection;
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
+
+public class Chooser1 {
+    private final Object[] choiceArray;
+
+    public Chooser1(Collection choices) {
+        choiceArray = choices.toArray();
+    }
+
+    public Object choose() {
+        Random rnd = ThreadLocalRandom.current();
+        return choiceArray[rnd.nextInt(choiceArray.length)];
+    }
+
+}
+```
+
+Item29に従い、ジェネリックスで書いたのが以下。少し冗長で、性能劣化するが、実行時にClassCastExceptionを出さない。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
+
+//List-based Chooser - typesafe
+public class Chooser2<T> {
+    private final List<T> choiceList;
+
+    public Chooser2(Collection<T> choices) {
+        choiceList = new ArrayList<>(choices);
+    }
+
+    public T choose() {
+        Random rnd = ThreadLocalRandom.current();
+        return choiceList.get(rnd.nextInt(choiceList.size()));
+    }
+}
+```
+
+# 29.ジェネリック型を使用すべし
+
+* 
 
 # 6章.ENUMとアノテーション
 
