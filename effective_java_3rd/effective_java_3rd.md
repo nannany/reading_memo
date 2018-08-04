@@ -571,6 +571,179 @@ public class Chooser2<T> {
 
 # 29.ジェネリック型を使用すべし
 
+* Item7で扱った、簡単なスタックの実装について考えてみる。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.Arrays;
+import java.util.EmptyStackException;
+
+//Object-based collection - a prime candidate for generics
+public class Stack1 {
+    private Object[] elements;
+    private int size = 0;
+    private static final int DEFAULT_INITIAL_CAPACITY = 16;
+
+    public Stack1() {
+        elements = new Object[DEFAULT_INITIAL_CAPACITY];
+    }
+
+    public void push(Object e) {
+        ensureCapacity();
+        elements[size++] = e;
+    }
+
+    public Object pop() {
+        if (size == 0)
+            throw new EmptyStackException();
+        Object result = elements[--size];
+        elements[size] = null; // Eliminate obsolete reference
+        return result;
+    }
+
+    public boolean isEmpty() {
+        return size == 0;
+    }
+
+    private void ensureCapacity() {
+        if (elements.length == size)
+            elements = Arrays.copyOf(elements, 2 * size + 1);
+    }
+
+}
+```
+
+* クラスをジェネリック化するにあたっては、まず型パラメータをクラスに加える。上記のスタックの場合は1つ型パラメータが必要で、それはスタックの要素であるので、慣習に従って名前は E とする（Item68）。
+* その次に、全てのObject型を適切な型パラメータに置換し、コンパイルできるようにする。
+* non-reifiableな型の配列ができてしまった場合の対処法の1つは、Objectで配列をnewしてやり、それをキャストしてやる方法があるが、一般にはこれはタイプセーフではない。
+今回の場合、問題となるのはコンストラクタの中のソースだが、elementsフィールドはprivateであり、pushメソッド以外から値を入れることはないので、実態がEであることは保証されている。よって```@SuppressWarning("unchecked")```の付与を最小の範囲で、かつ、コメント付きで付与してやることでwarningを消してやるべき。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.Arrays;
+import java.util.EmptyStackException;
+
+//Initial attempt to generify Stack - won't compile!
+public class Stack2<E> {
+    private E[] elements;
+    private int size = 0;
+    private static final int DEFAULT_INITIAL_CAPACITY = 16;
+
+    // The elements array will contain only E instances from push(E).
+    // This is sufficient to ensure type safety, but the runtime
+    // type of the array won't be E[]; it will always be Object[]!
+    @SuppressWarnings("unchecked")
+    public Stack2() {
+        elements = (E[]) new Object[DEFAULT_INITIAL_CAPACITY];
+    }
+
+    public void push(E e) {
+        ensureCapacity();
+        elements[size++] = e;
+    }
+
+    public E pop() {
+        if (size == 0)
+            throw new EmptyStackException();
+        E result = elements[--size];
+        elements[size] = null; // Eliminate obsolete reference
+        return result;
+    }
+
+    public boolean isEmpty() {
+        return size == 0;
+    }
+
+    private void ensureCapacity() {
+        if (elements.length == size)
+            elements = Arrays.copyOf(elements, 2 * size + 1);
+    }
+
+}
+```
+
+* non-reifiableな型の配列ができてしまった場合の対処法のもう1つは、配列の宣言はObjectで行うようにすることが考えられる。
+この場合でも、そのままではpopメソッドにてエラーが発生してしまうので、キャストをする。キャストするとwarningがでてしまうが、上と同じ理由で今回も E にキャストできることは自明なので、```@SuppressWarning("unchecked")```を最小の範囲で付与する（Item27）。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.Arrays;
+import java.util.EmptyStackException;
+
+public class Stack3<E> {
+    private Object[] elements;
+    private int size = 0;
+    private static final int DEFAULT_INITIAL_CAPACITY = 16;
+
+    public Stack3() {
+        elements = new Object[DEFAULT_INITIAL_CAPACITY];
+    }
+
+    public void push(E e) {
+        ensureCapacity();
+        elements[size++] = e;
+    }
+
+    public E pop() {
+        if (size == 0)
+            throw new EmptyStackException();
+        // push requires elements to be of type E, so cast is correct
+        @SuppressWarnings("unchecked")
+        E result = (E) elements[--size];
+        elements[size] = null; // Eliminate obsolete reference
+        return result;
+    }
+
+    public boolean isEmpty() {
+        return size == 0;
+    }
+
+    private void ensureCapacity() {
+        if (elements.length == size)
+            elements = Arrays.copyOf(elements, 2 * size + 1);
+    }
+
+}
+```
+
+* 上記2つの方法に関して、前者の方が読みやすく、キャストもインスタンス生成時の一回で済むので、一般的には前者が多く使われる。しかし、heap pollution（Item32）、つまり、実行時の配列の型とコンパイル時の型が異なるので、それにいらだって後者を選択するプログラマーもいる。
+* 上記の例はItem28の、配列よりもlistを使うべしという助言に矛盾しているが、Javaは本来listをサポートしておらず、ジェネリック型のどこかでは配列を使用しなければならない。例えば、ArrayListなどでは配列を使っている。また、HashMapなどではパフォーマンスのために配列を用いている。
+* 上記の例の型パラメータには基本的に何でも指定できるが、Stack< int > や Stack< double >などプリミティブ型を指定するとコンパイルエラーとなる。プリミティブ型を使いたいような場合はボックス化されたものを型パラメータに指定する（Item61）。
+* ジェネリック型の中には、型パラメータに制限を課しているものもある。例えば、DelayQueueクラスは以下のように境界のあるパラメータを使用している。
+
+```java
+class DelayQueue<E extends Delayed> implements BlockingQueue<E>
+```
+
+# 30.ジェネリックメソッドを選択すべし
+* Collectionsの中のアルゴリズム系のメソッド（バイナリサーチやソート）はジェネリックメソッドである。
+* ジェネリックメソッドを書くことはジェネリック型を書くのと似ている。以下のようにrawタイプで書くとwarningが現れる。
+
+```java
+// Uses raw types - unacceptable! (Item 26)
+public static Set union(Set s1, Set s2) {
+    Set result = new HashSet(s1);
+    result.addAll(s2);
+    return result;
+}
+```
+
+warningを消して、タイプセーフにするにおいては、メソッド修飾子とメソッドの返り値の間に型パラメータを書いて以下のようにする。
+
+```java
+// Generic method
+public static <E> Set<E> union(Set<E> s1, Set<E> s2) {
+    Set<E> result = new HashSet<>(s1);
+    result.addAll(s2);
+    return result;
+}
+```
+
+* immutableであるけれど、たくさんの異なる型に適応できるオブジェクトが必要となる場合があるかもしれない。
+ジェネリックスはerasureによって実装されているので、求められるすべての型パラメータに対して、1つのオブジェクトで対応できるが、繰り返し、求められる型のオブジェクトを生成するstaticなファクトリメソッドを書く必要がある。このパターンは、generic singleton factoryと呼ばれ、関数オブジェクト（Item42）生成などに用いられる。
 * 
 
 # 6章.ENUMとアノテーション
