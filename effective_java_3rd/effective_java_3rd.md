@@ -744,7 +744,208 @@ public static <E> Set<E> union(Set<E> s1, Set<E> s2) {
 
 * immutableであるけれど、たくさんの異なる型に適応できるオブジェクトが必要となる場合があるかもしれない。
 ジェネリックスはerasureによって実装されているので、求められるすべての型パラメータに対して、1つのオブジェクトで対応できるが、繰り返し、求められる型のオブジェクトを生成するstaticなファクトリメソッドを書く必要がある。このパターンは、generic singleton factoryと呼ばれ、関数オブジェクト（Item42）生成などに用いられる。
-* 
+* 自分自身を返す関数が必要だとすると、Fuction.identityメソッドを用いれば事足りるが、説明にはもってこいなので下記に記す。
+```IDENTITY_FN```を```UnaryOperator<T>```にキャストするときにwarningがでるが、```identity```関数は引数を変更せずに返却するので、warningを抑制することができる。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.function.UnaryOperator;
+
+public class GenericsTest7 {
+    public static void main(String[] args) {
+        String[] strings = { "jute", "hemp", "nylon" };
+        UnaryOperator<String> sameString = identityFunction();
+        for (String s : strings)
+            System.out.println(sameString.apply(s));
+        Number[] numbers = { 1, 2.0, 3L };
+        UnaryOperator<Number> sameNumber = identityFunction();
+        for (Number n : numbers)
+            System.out.println(sameNumber.apply(n));
+
+    }
+
+    // Generic singleton factory pattern
+    private static UnaryOperator<Object> IDENTITY_FN = (t) -> t;
+
+    @SuppressWarnings("unchecked")
+    public static <T> UnaryOperator<T> identityFunction() {
+        return (UnaryOperator<T>) IDENTITY_FN;
+    }
+
+}
+```
+
+* 型パラメータが自身の型変数を含んだ表現で定義されている場合を、再帰型境界という。再帰型境界は```Comparable```インターフェースと関係がある。
+
+```java
+public interface Comparable<T> {
+    int compareTo(T o);
+}
+```
+
+* ```Collection```の並べかえ、ソート、最大最小導出のメソッドでは、```Comparable```を実装した要素を使っている。これらのメソッドでは互いに比較可能な要素が必要となるが、それを以下のように表現してる。
+
+```java
+// Using a recursive type bound to express mutual comparability
+public static <E extends Comparable<E>> E max(Collection<E> c);
+```
+```<E extends Comparable<E>>```の表すところは、「自身と比較可能なあらゆる要素E」である。
+以下が再帰型境界を使ったmaxメソッドとなる。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.Collection;
+import java.util.Objects;
+
+public class GenericsTest8 {
+    // Returns max value in a collection - uses recursive type bound
+    public static <E extends Comparable<E>> E max(Collection<E> c) {
+        if (c.isEmpty())
+            throw new IllegalArgumentException("Empty collection");
+        E result = null;
+        for (E e : c)
+            if (result == null || e.compareTo(result) > 0)
+                result = Objects.requireNonNull(e);
+        return result;
+    }
+
+}
+```
+
+上記のメソッドはlistが空の時にIllegalArgumentExceptionを発生させる。良い代替案としては、戻り値を```Optional<E>```とすることがあげられる。
+
+* 再帰型境界はもっと複雑になりえるが、まれである。本章で扱ったイディオムと、ワイルドカードを用いる場合（Item31）と、simulated self-type（Item2）を理解すれば、実際に直面する大体の再帰型境界は扱うことができる。
+
+# 31.APIの柔軟性のために境界ワイルドカードを使用すべし
+
+* Item28でもあったように、型パラメータはinvariantである。よって、例えば、```List<String>```は```List<Object>```のサブタイプではない。```List<Object>```のできることすべてが、```List<String>```にできるわけではないので、リスコフの置換原則にも符合する。（Item10）
+* 時には、もっと柔軟性が必要となることがある。Item29で使用したStackクラスを例に考えてみる。StackクラスのAPIは以下のよう。
+
+```java
+public class Stack<E> {
+    public Stack();
+    public void push(E e);
+    public E pop();
+    public boolean isEmpty();
+}
+```
+ここに要素のシーケンスを引数にとり、それらをすべてStackにのせるメソッドを追加することを考える。最初に考えるのは以下のようなものだろう。
+
+```java
+// pushAll method without wildcard type - deficient!
+public void pushAll(Iterable<E> src) {
+    for (E e : src)
+        push(e);
+}
+```
+
+このメソッドはコンパイルできるが、満足いくものではない。```Iterable<E> src```の要素がStackの要素と一致すればうまく動くが、例えば、以下のようなコードはエラーとなる。エラーの理由は、型パラメータはinvariantだからである。
+
+```java
+Stack<Number> numberStack = new Stack<>();
+Iterable<Integer> integers = ... ;
+numberStack.pushAll(integers);
+```
+
+ここで出てくるエラーに対処するためには、型引数にワイルドカードを用いる。
+
+```java
+// Wildcard type for a parameter that serves as an E producer
+public void pushAll(Iterable<? extends E> src) {
+    for (E e : src)
+        push(e);
+}
+```
+この対応によって、コンパイルできるようになり、タイプセーフにもなる。
+
+次に、collectionを引数にとり、Stackにたまっている要素をすべてそれに移す、```popAll```メソッドを考えてみる。素案は以下のよう。
+
+```java
+// popAll method without wildcard type - deficient!
+public void popAll(Collection<E> dst) {
+    while (!isEmpty())
+        dst.add(pop());
+}
+```
+これは要素EがStackのそれと完全に一致した場合にはうまく動くが、そうでない場合は動かない。つまり、以下のコードはコンパイルエラーとなる。
+
+```java
+Stack<Number> numberStack = new Stack<Number>();
+Collection<Object> objects = ... ;
+numberStack.popAll(objects);
+```
+対処するためには、以下のようにここでも型引数にワイルドカードを用いる。
+
+```java
+// Wildcard type for parameter that serves as an E consumer
+public void popAll(Collection<? super E> dst) {
+    while (!isEmpty())
+        dst.add(pop());
+}
+```
+
+ここでの教訓は明確で、**インプットされる引数が、producerまたは、consumerのどちらかの役割を果たすときワイルドカードを使う**、ということである。
+インプットされる引数がproducer、consumerのどちらの役割も果たす場合には、ワイルドカードを使う必要はない。
+使いどころは以下のように記憶する。
+
+```
+PECS stands for producer-extends, consumer-super.
+```
+これはつまり、型変数Tがproducerである場合には、```<? extends T>```を用い、consumerである場合には```<? super T>```を用いるということを表している。上のStackの例もそのようになっている。
+
+このPECSの具体例を本章の例に適用していく。
+Item28の以下のコンストラクタについて考える。
+
+```java
+public Chooser(Collection<T> choices)
+```
+この引数はproducerの役割を果たすので、PECSに従い、以下のようになる。
+
+```java
+// Wildcard type for parameter that serves as an T producer
+public Chooser(Collection<? extends T> choices)
+```
+
+次に、Item30の以下のunionメソッドについて考える。
+
+```java
+public static <E> Set<E> union(Set<E> s1, Set<E> s2)
+```
+引数はどちらもproducerの役割を担うため、以下のようになる。
+
+```java
+public static <E> Set<E> union(Set<? extends E> s1,
+                               Set<? extends E> s2)
+```
+ここでの注意点は、**戻り値の型には境界ワイルドカードを使ってはならない**ということだ。
+そのような対応は、ユーザにとって柔軟性が増すというより、クライアントのコードの中でワイルドカードを使うことを強いることになる。
+**クラスの使用に当たって、ユーザが境界ワイルドカードのことを考えないといけないのは、そのAPIに問題があると考えられる。**
+
+Java8以前だと以下のように型を明示してやらねばならない。
+
+```java
+// Explicit type parameter - required prior to Java 8
+Set<Number> numbers = Union.<Number>union(integers, doubles);
+```
+
+次に、Item30のmaxメソッドについて考える。
+
+```java
+public static <T extends Comparable<T>> T max(List<T> list)
+```
+これをPECSに当てはめると、以下のようになる。
+
+```java
+public static <T extends Comparable<? super T>> T max(
+        List<? extends T> list)
+```
+ここでは2回PECSを当てはめている。
+**Comparableは常にconsumerなので、```Comparable<T>```より```Comparable<? super T>```を選択するべき**。
+**Comparatorも同様なので、```Comparator<T>```より```Comparator<? super T>```を選択するべき**。
+
+そのほかに、
 
 # 6章.ENUMとアノテーション
 
