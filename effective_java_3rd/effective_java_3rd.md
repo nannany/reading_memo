@@ -820,8 +820,8 @@ public class GenericsTest8 {
 
 # 31.APIの柔軟性のために境界ワイルドカードを使用すべし
 
-* Item28でもあったように、型パラメータはinvariantである。よって、例えば、```List<String>```は```List<Object>```のサブタイプではない。```List<Object>```のできることすべてが、```List<String>```にできるわけではないので、リスコフの置換原則にも符合する。（Item10）
-* 時には、もっと柔軟性が必要となることがある。Item29で使用したStackクラスを例に考えてみる。StackクラスのAPIは以下のよう。
+Item28でもあったように、型パラメータはinvariantである。よって、例えば、```List<String>```は```List<Object>```のサブタイプではない。```List<Object>```のできることすべてが、```List<String>```にできるわけではないので、リスコフの置換原則にも符合する。（Item10）
+時には、もっと柔軟性が必要となることがある。Item29で使用したStackクラスを例に考えてみる。StackクラスのAPIは以下のよう。
 
 ```java
 public class Stack<E> {
@@ -923,7 +923,7 @@ public static <E> Set<E> union(Set<? extends E> s1,
 そのような対応は、ユーザにとって柔軟性が増すというより、クライアントのコードの中でワイルドカードを使うことを強いることになる。
 **クラスの使用に当たって、ユーザが境界ワイルドカードのことを考えないといけないのは、そのAPIに問題があると考えられる。**
 
-Java8以前だと以下のように型を明示してやらねばならない。
+Java8より前だと以下のように型を明示してやらねばならない。
 
 ```java
 // Explicit type parameter - required prior to Java 8
@@ -945,7 +945,151 @@ public static <T extends Comparable<? super T>> T max(
 **Comparableは常にconsumerなので、```Comparable<T>```より```Comparable<? super T>```を選択するべき**。
 **Comparatorも同様なので、```Comparator<T>```より```Comparator<? super T>```を選択するべき**。
 
-そのほかに、
+そのほかに、ワイルドカード関連で議論すべきは、型パラメータを使うべきか、ワイルドカードを使うべきかの問題がある。
+例えば、listのスワップを行うメソッドは、型パラメータを使用した場合と、ワイルドカードを使用した場合の2通りが考えられる。
+
+```java
+// Two possible declarations for the swap method
+public static <E> void swap(List<E> list, int i, int j);
+public static void swap(List<?> list, int i, int j);
+```
+どちらが好まれるかというと、2つ目のワイルドカードを使用したメソッドの方がシンプルであるので好まれる。
+一般に**型変数がメソッド内の一か所にしか現れない場合には、ワイルドカードに置き換えるべきである。**
+2つ目のメソッドは以下のように、それだけを書くとコンパイルエラーとなる。
+
+```java
+public static void swap(List<?> list, int i, int j) {
+    list.set(i, list.set(j, list.get(i)));
+}
+```
+
+```
+型 List<capture#2-of ?> のメソッド set(int, capture#2-of ?) は引数 (int, capture#3-of ?) に適用できません
+```
+これを解消するためには、ワイルドカードを型にはめるヘルパークラスを作成する。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.List;
+
+public class GenericesTest9 {
+    public static void swap(List<?> list, int i, int j) {
+        swapHelper(list, i, j);
+    }
+
+    // Private helper method for wildcard capture
+    private static <E> void swapHelper(List<E> list, int i, int j) {
+        list.set(i, list.set(j, list.get(i)));
+    }
+
+}
+```
+こうすることによって、実装が多少複雑になるが、ユーザにはシンプルなswapメソッドを見せることができる。
+
+# 32.ジェネリクスと可変長引数を結び付ける際は慎重にせよ
+
+可変長引数を持つメソッドとジェネリクスは、Java5で同時にリリースされたが、相性はよくない。
+可変長引数はleaky abstraction である。
+<https://euske.github.io/slides/sem20170627/index.html>
+可変長引数を持つメソッドを呼び出すときには、可変長引数を保持するために配列が作成され、この配列は見えてしまう。（抽象化された場合、本来はユーザから意識させてはならないということを指して、leaky abstractionといっているのだと思われる）
+結果として、ジェネリック型やパラメータ化された型を可変長引数に渡した場合には、コンパイラーは混乱してしまう。
+non-reifiableな型を可変長引数としたメソッドを宣言した場合には、コンパイラがワーニングを上げる。また、non-reifiableと推論される型をもつ可変長引数が渡されるメソッドが呼び出される時もワーニングが上がる。そのワーニングは以下のよう。
+
+```
+warning: [unchecked] Possible heap pollution from
+    parameterized vararg type List<String>
+```
+Heap pollution は、様々なパラメータ化された型が、その型とは違う方を参照するときにおこる。Heap pollutionによってコンパイラによって自動的に起こるキャストが失敗し、ジェネリック型が保証する型安全の基盤が侵されてしまう。
+
+例として、以下のメソッドについて考える。
+
+```java
+// Mixing generics and varargs can violate type safety!
+static void dangerous(List<String>... stringLists) {
+    List<Integer> intList = List.of(42);
+    Object[] objects = stringLists;
+    objects[0] = intList;             // Heap pollution
+    String s = stringLists[0].get(0); // ClassCastException
+}
+```
+このメソッドは明確なキャストをしていないにも関わらず、```ClassCastException```が発生する。最終行でコンパイラによる暗黙のキャストが実行され、失敗している。
+このことは、**ジェネリック型の可変長引数に値を格納するのは安全でない**ことを示している。
+なぜ、ジェネリック型の可変長引数を持つメソッドが宣言された時点でコンパイルエラーが出ないかというと、ジェネリック型やパラメータ化された型の可変長引数がとても便利だからである。
+例として、```Arrays.asList(T... a)```, ```Collections.addAll(Collection<? super T> c, T... elements)```,```EnumSet.of(E first, E... rest)```などのメソッドがJava標準ライブラリにあり、これらはタイプセーフである。
+Java6以前では、ジェネリック型の可変長引数を持ったメソッドの呼び出し箇所で現れるワーニングを、メソッドの作者が対処する方法はなかった。これにより、呼び出し側でいちいち、```@SuppressWarnings("unchecked")```を書かねばならなかった。
+Java7においては、```SafeVarargs```アノテーションなるものが追加された。これをジェネリック型の可変長引数を持ったメソッドに付与することで、呼び出し側でワーニングが出ることはなくなる。**```SafeVarargs```アノテーションは、メソッドの作者が、そのメソッドはタイプセーフであると約束していることを表している。**
+```SafeVarargs``` アノテーションでは、本当にタイプセーフであるかが重要となるが、どのようにタイプセーフであるかを確かめるべきか？
+ジェネリック型の配列は、可変長配列を保持するために、メソッドが呼び出されたときに生成される。メソッドの処理において、該当の配列への格納を行わず、該当の配列への信用できないコードからの参照を許していない場合には、安全といえる（つまり、引数からメソッドへの単純な移送のみが安全といえる）。
+可変長引数配列に対して、何も格納しなかったとしても、タイプセーフを脅かし得ることはしっておくべき。以下の例は一見問題がなさそうだが、危険がはらんでいる。
+
+```java
+// UNSAFE - Exposes a reference to its generic parameter array!
+static <T> T[] toArray(T... args) {
+    return args;
+}
+```
+この配列の型は、メソッドの引数に渡された型のコンパイル時の型、で決まるが、コンパイラは正確な判断の下すための十分な情報を与えられない。このメソッドは可変長引数の配列を返すので、heap pollutionが呼び出しスタックにおいて起きる。
+具体的に考えるために、以下のようなメソッドを考えてみる。
+
+```java
+static <T> T[] pickTwo(T a, T b, T c) {
+    switch(ThreadLocalRandom.current().nextInt(3)) {
+      case 0: return toArray(a, b);
+      case 1: return toArray(a, c);
+      case 2: return toArray(b, c);
+    }
+    throw new AssertionError(); // Can't get here
+}
+```
+このメソッドをコンパイルするにあたり、コンパイラは2つの```T```インスタンスを```toArray```メソッドに渡すための可変長引数配列を生成するコード生み出す。そのコードは、呼び出し元でどのようなオブジェクトが渡されてもよいように、```Object[]```の配列を配置する。```toArray```メソッドは単にこの配列を```pickTwo```メソッドに返し、```pickTwo```メソッドが呼び出し元にこの配列を返す。よって、```pickTwo```メソッドは常に```Object[]```型の配列を返す。
+以下のメインコードから、```pickTwo```を呼び出すことを考える。
+
+```java
+public static void main(String[] args) {
+    String[] attributes = pickTwo("Good", "Fast", "Cheap");
+}
+```
+このコードに関しては、コンパイルエラー、ワーニングともに出ないが、実行すると明示的にキャストしていないのに、```ClassCastException```が発生する。これは、```pickTwo```メソッドの戻り値の型が```Object[]```であるので、それを```String[]```にしようとしているところで発生している。
+この例は、**ほかのメソッドにジェネリック型の可変長引数配列にアクセスをゆるすのは安全でない**、ということを再認識させる。これには以下2つの例外がある。
+  * 正しく@SafeVarargsが付与されているメソッドにその配列を渡すのは安全
+  * その配列を可変長でない引数のメソッドに、単に配列の内容の演算をかける場合は安全
+
+典型的な安全なジェネリック型の可変長引数の使い方は以下のよう。
+
+```java
+// Safe method with a generic varargs parameter
+@SafeVarargs
+static <T> List<T> flatten(List<? extends T>... lists) {
+    List<T> result = new ArrayList<>();
+    for (List<? extends T> list : lists)
+        result.addAll(list);
+    return result;
+}
+```
+```SafeVarargs``` アノテーションをつけるか否かの判断はシンプルで、**ジェネリック型やパラメータ化された型の可変長引数を持つ全メソッドに```SafeVarargs``` アノテーションをつけるべき**。これはつまり、上述の```toArray```メソッドのような安全でない可変長引数メソッドは書くな、ということである。安全な可変長引数メソッドは以下を満たしている。
+1. 可変長引数に何かを格納していない
+2. 可変長引数を信頼ならないコードから視えるようにしていない
+
+また、```SafeVarargs``` アノテーションはオーバーライドされないメソッドでのみ有効である。
+
+```SafeVarargs``` アノテーションを使う以外の対応としては、Item28より、可変長引数を```List```に替えることが考えられる。そうすると、```flatten```メソッドは以下のように変わる。
+
+```java
+// List as a typesafe alternative to a generic varargs parameter
+static <T> List<T> flatten(List<List<? extends T>> lists) {
+    List<T> result = new ArrayList<>();
+    for (List<? extends T> list : lists)
+        result.addAll(list);
+    return result;
+}
+```
+こちらのいいところは、タイプセーフであることを保証し、```SafeVarargs``` アノテーションを自身で付与しなくていいところだ。悪いところは、クライアント側のコードが少し冗長になり、少し遅くなるかもしれないところだ。
+
+# 33.型安全な異種コンテナーを検討する
+
+
+
 
 # 6章.ENUMとアノテーション
 
