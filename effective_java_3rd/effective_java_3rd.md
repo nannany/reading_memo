@@ -1088,8 +1088,95 @@ static <T> List<T> flatten(List<List<? extends T>> lists) {
 
 # 33.型安全な異種コンテナーを検討する
 
+  ```Set<E>``` や```Map<K,V>``` といったcollections、また、```ThreadLocal<T>``` や```AtomicReference<T>``` といった要素を格納するコンテナでは、型パラメータの数が固定されている（Setだと1つ、Mapだと2つ）。
+  型パラメータの数が固定されていることは、大概の場合において、ユーザが望んでいることだが、時にはもっと柔軟性が必要となるときがある。こういった時の対応方法としては、コンテナをパラメータ化するのではなく、キーをパラメータ化する。
+  このアプローチのシンプルな例として、クライアントに任意で複数の型のインスタンスを格納、検索をさせる```Favorites``` クラスを考える。
+  ```Favorites``` クラスのAPIは以下のよう。Mapのキーが```Class<T>``` になっている。
+  
+```java
+// Typesafe heterogeneous container pattern - API
+public class Favorites {
+    public <T> void putFavorite(Class<T> type, T instance);
+    public <T> T getFavorite(Class<T> type);
+}
+```
+以下のコードを実行すると、
 
+```java
+// Typesafe heterogeneous container pattern - client
+public static void main(String[] args) {
+    Favorites f = new Favorites();
+    f.putFavorite(String.class, "Java");
+    f.putFavorite(Integer.class, 0xcafebabe);
+    f.putFavorite(Class.class, Favorites.class);
+    String favoriteString = f.getFavorite(String.class);
+    int favoriteInteger = f.getFavorite(Integer.class);
+    Class<?> favoriteClass = f.getFavorite(Class.class);
+    System.out.printf("%s %x %s%n", favoriteString,
+        favoriteInteger, favoriteClass.getName());
+}
+```
+予想通り、Java cafebabe パッケージ名$Favorites と出る。
+```Favorites```インスタンスはタイプセーフであり、異種（heterogeneous：普通のMapと異なり、全てのキーの型が異なる)であるため、```Favorites```のようなクラスは、typesafe heterogeneous container と呼ばれる。
+  実装は以下のよう。
 
+```java
+// Typesafe heterogeneous container pattern - implementation
+public class Favorites {
+    private Map<Class<?>, Object> favorites = new HashMap<>();
+
+    public <T> void putFavorite(Class<T> type, T instance) {
+        favorites.put(Objects.requireNonNull(type), instance);
+    }
+
+    public <T> T getFavorite(Class<T> type) {
+        return type.cast(favorites.get(type));
+    }
+}
+```
+  Mapのキーが```Class<?>``` となっており、どんな型でもキーに取ることができる。
+  また、Mapのバリューは```Object```である。つまり、Mapにおいてはキーとバリューの型の結びつきは保証されていない。
+  ```putFavorites``` メソッドにおいては、単純にClassオブジェクトとインスタンスをMapに入れ込むのみ。
+  ```getFavorites``` メソッドは技巧的で、Classオブジェクトをキーに、Mapから取ってきたバリューを、Classの```cast``` メソッドで動的に```T```を返すようにキャストしている。
+  ```cast``` メソッドは、引数に取ったインスタンスが自身と同じ型なら、自身の型にキャストして戻す、ということをしている。
+
+  ```Favorites``` クラスには2つ気を付けるべきことがある。
+  1つ目は、悪意のあるクライアントは、rawタイプなClassオブジェクトを使って```Favorites``` クラスのタイプセーフを破ってくるということだ。これを防ぐためには、```putFavorite``` メソッドにおいて、格納するインスタンスが本当にキーと同じ型であるかを、```cast``` メソッドを使って確かめればよい。
+
+```java
+// Achieving runtime type safety with a dynamic cast
+public <T> void putFavorite(Class<T> type, T instance) {
+    favorites.put(type, type.cast(instance));
+}
+```
+これについては、checkedSet, checkedList, checkedMap などでも同じ技術が使われている。これらのラッパークラスは、ジェネリックスとrawタイプが混在したアプリケーションにおいて、クライアントコードから不正な要素の追加をしているところを見つけ出すのに有用である。
+  2つ目は、```Favorites``` クラスはnon-reifiableな型（Item28）を利用できない。つまり、```String``` や、```String[]``` を格納することはできるが、```List<String>``` を格納することはできない。これに関しては、満足いく回避策はない。
+
+  上述の```Favorites``` クラスでは型に境界はなく、```getFavorite``` も```putFavorite``` もあらゆる型を受け入れていた。もし、受け入れる型に制限を加えたいのであれば、境界のある型パラメータ（Item30）や境界ワイルドカード（Item31）を使える。
+
+  アノテーションAPI（Item39）では境界のある型パラメータの拡張的な使い方をしている。例として、実行時にアノテーションを読むメソッドを考える。このメソッドは```AnnotatedElement``` インターフェースにあり、クラス、メソッド、フィールドなどの要素を代表した、リフレクティブ型（reflective types）に実装される。（**リフレクティブ型？？**）
+
+```java
+public <T extends Annotation>
+    T getAnnotation(Class<T> annotationType);
+```
+  引数である```annotationType``` はアノテーションの型を表すが、境界のある型変数が使われている。このメソッドは、引数で受け取った型のアノテーションがあればそれを返し、なければnullを返す。重要なのは、アノテーションを付与された要素は、キーがアノテーション型である、typesafe heterogeneous container であるということである。
+  仮に```Class<?>```という型のオブジェクトを持っていたとして、引数に境界のある型パラメータを求めるようなメソッド、つまり、今回の```getAnnotation``` に渡すとする。その場合には、```Class<T extends Annotation>``` へのキャストをすると思うが、このキャストはコンパイル時にワーニングが出る（Item27）。
+  このような時には、```asSubclass``` メソッドを用いる。このメソッドは、自身が引数に取った```Class``` オブジェクトのサブクラスであれば、自身の```Class``` オブジェクトを戻し、そうでなければ```ClassCastException``` をスローするというものである。
+  結果、以下の実装となる。
+
+```java
+// Use of asSubclass to safely cast to a bounded type token
+static Annotation getAnnotation(AnnotatedElement element, String annotationTypeName) {
+    Class<?> annotationType = null; // Unbounded type token
+    try {
+        annotationType = Class.forName(annotationTypeName);
+    } catch (Exception ex) {
+        throw new IllegalArgumentException(ex);
+    }
+    return element.getAnnotation(annotationType.asSubclass(Annotation.class));
+}
+```
 
 # 6章.ENUMとアノテーション
 
@@ -1104,6 +1191,80 @@ static <T> List<T> flatten(List<List<? extends T>> lists) {
 * そもそもordinalメソッドはEnumSetやEnumMap用に使われるものであって、大半のプログラマは使わないものである。
 
 # 36.bitフィールドの替わりにEnumSetを用いるべし
+  enum型の要素が集合に適用される場合、昔はint enumパターン（Item34）を用いて、各定数に2の何乗かを振り分けていた。
+
+```java
+// Bit field enumeration constants - OBSOLETE!
+public class Text {
+    public static final int STYLE_BOLD          = 1 << 0;  // 1
+    public static final int STYLE_ITALIC        = 1 << 1;  // 2
+    public static final int STYLE_UNDERLINE     = 1 << 2;  // 4
+    public static final int STYLE_STRIKETHROUGH = 1 << 3;  // 8
+ // Parameter is bitwise OR of zero or more STYLE_ constants
+    public void applyStyles(int styles) { ... }
+}
+```
+これらにOR演算をかけることによって、いくつかの要素を集合にまとめていた。（bit field）
+
+```java
+text.applyStyles(STYLE_BOLD | STYLE_ITALIC);
+```
+bit演算によって、結合や交差も実現できるが、この方法はint enum　の悪い点をすべて引き継いでいる。
+
+  定数の集合を作るにおいては、```EnumSet``` クラスを使うべき。性能はbit fieldで処理する場合と遜色ない。
+  上記の例をenum、EnumSetを用いたのが以下。
+
+```java
+// EnumSet - a modern replacement for bit fields
+public class Text {
+    public enum Style { BOLD, ITALIC, UNDERLINE, STRIKETHROUGH }
+ // Any Set could be passed in, but EnumSet is clearly best
+    public void applyStyles(Set<Style> styles) { ... }
+}
+```
+```EnumSet``` インスタンスを渡す、クライアント側のコードは以下のよう。
+
+```java
+text.applyStyles(EnumSet.of(Style.BOLD, Style.ITALIC));
+```
+  上記の```applyStyles``` メソッドでは、```EnumSet``` ではなく、```Set``` を引数に取っている。たいていのユーザは```EnumSet``` を渡すであろうが、引数として実装クラスを受け付けるのではなく、インターフェースを受け付けるべき（Item64）という原則にしたがってこうしている。
+
+# 37. ordinalのかわりにEnumMapを使うべし
+
+  ordinalメソッドをつかう（Item35）例として、以下のPlantクラスをもとに考えていく。
+
+```java
+class Plant {
+    enum LifeCycle { ANNUAL, PERENNIAL, BIENNIAL }
+ final String name;
+    final LifeCycle lifeCycle;
+     Plant(String name, LifeCycle lifeCycle) {
+        this.name = name;
+        this.lifeCycle = lifeCycle;
+    }
+ @Override public String toString() {
+        return name;
+    }
+}
+```
+ここで、各ライフサイクルごとのPlantの配列を作成したいとする。そのために、ordinalを使って以下のようにやってしまうかもしれない。
+
+```java
+// Using ordinal() to index into an array - DON'T DO THIS!
+Set<Plant>[] plantsByLifeCycle =
+    (Set<Plant>[]) new Set[Plant.LifeCycle.values().length];
+for (int i = 0; i < plantsByLifeCycle.length; i++)
+    plantsByLifeCycle[i] = new HashSet<>();
+ for (Plant p : garden)
+    plantsByLifeCycle[p.lifeCycle.ordinal()].add(p);
+ // Print the results
+for (int i = 0; i < plantsByLifeCycle.length; i++) {
+    System.out.printf("%s: %s%n",
+        Plant.LifeCycle.values()[i], plantsByLifeCycle[i]);
+}
+```
+ここでの一番の問題は、配列にアクセスしようとしたときに、enumのordinalで位置を決められた配列に対して、正しい整数値の選択をする必要があることである。もし間違った数字を選んだ場合には、運が良ければArrayIndexOutOfBoundsExceptionが起こるが、そうでない場合には、間違った選択をしたまま処理が進んでしまう。
+
 
 # 7章.ラムダとストリーム
 
