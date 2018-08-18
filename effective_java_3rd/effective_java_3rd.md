@@ -1264,6 +1264,109 @@ for (int i = 0; i < plantsByLifeCycle.length; i++) {
 }
 ```
 ここでの一番の問題は、配列にアクセスしようとしたときに、enumのordinalで位置を決められた配列に対して、正しい整数値の選択をする必要があることである。もし間違った数字を選んだ場合には、運が良ければArrayIndexOutOfBoundsExceptionが起こるが、そうでない場合には、間違った選択をしたまま処理が進んでしまう。
+  同じことを実現するのにもっと良い方法がある。ここでの配列はenumをキーにバリューを得るMapのような役割をしているので、実装もMapを使用したほうが良い。さらに、enumをキーにするMapとしての効率的な実装が、```EnumMap``` ではなされているので、これを使った例を以下で見ていく。
+
+```java
+// Using an EnumMap to associate data with an enum
+Map<Plant.LifeCycle, Set<Plant>>  plantsByLifeCycle =
+    new EnumMap<>(Plant.LifeCycle.class);
+for (Plant.LifeCycle lc : Plant.LifeCycle.values())
+    plantsByLifeCycle.put(lc, new HashSet<>());
+for (Plant p : garden)
+    plantsByLifeCycle.get(p.lifeCycle).add(p);
+System.out.println(plantsByLifeCycle);
+```
+こちらの実装のほうが短く、見やすく、安全である。具体的には以下のメリットがある。
+  * 型安全でないキャストがない
+  * アウトプットの際にキーにラベルを付ける必要がない
+  * 配列のインデックス計算由来のエラーがあり得ない
+  * 内部で配列を使っているので、性能的にも遜色ない
+
+また、EnumMapのコンストラクタではClassオブジェクトを引数に取っているが、これは境界付きの型であり、実行時のジェネリック型の情報を提供する（Item33）。
+  前の例はストリーム（Item45）を使うとさらに短く、以下のようになる。
+
+```java
+// Naive stream-based approach - unlikely to produce an EnumMap!
+System.out.println(Arrays.stream(garden)
+        .collect(groupingBy(p -> p.lifeCycle)));
+```
+この実装の問題点は、EnumMapが使われておらず、パフォーマンスが使った場合より劣ってしまう。これを修正するためには、以下のように明示的に使うMapを示す。
+
+```java
+// Using a stream and an EnumMap to associate data with an enum
+System.out.println(Arrays.stream(garden)
+        .collect(groupingBy(p -> p.lifeCycle,
+            () -> new EnumMap<>(LifeCycle.class), toSet())));
+```
+この最適化はMapを多用するときには重要になってくる。  
+
+2つのenumを、ordinalの値を用いた配列の配列を用いた形で表すことがある。以下のソースコードはその例で、2つの状態間の変化について扱っている。
+
+```java
+public enum Phase {
+    SOLID, LIQUID, GAS;
+    public enum Transition {
+        MELT, FREEZE, BOIL, CONDENSE, SUBLIME, DEPOSIT;
+        // Rows indexed by from-ordinal, cols by to-ordinal
+        private static final Transition[][] TRANSITIONS = { { null, MELT, SUBLIME }, { FREEZE, null, BOIL },
+                { DEPOSIT, CONDENSE, null } };
+
+        // Returns the phase transition from one phase to another
+        public static Transition from(Phase from, Phase to) {
+            return TRANSITIONS[from.ordinal()][to.ordinal()];
+        }
+
+    }
+}
+```
+このプログラムには問題がある。コンパイラはordinal値と配列のインデックスの関係を知る由もなく、もし配列の作成に失敗したり、情報更新にともなう配列の更新を忘れていたら、実行時に失敗するか、```ArrayIndexOutOfBoundsException``` または、```NullPointerException``` が発生するか、誤った挙動をしたまま処理が進んでしまう。  
+  上記のenumは、```EnumMap``` を使うことでもっとうまく書ける。
+
+```java
+// Using a nested EnumMap to associate data with enum pairs
+public enum Phase {
+    SOLID, LIQUID, GAS;
+    public enum Transition {
+        MELT(SOLID, LIQUID), FREEZE(LIQUID, SOLID), BOIL(LIQUID, GAS), CONDENSE(GAS, LIQUID), SUBLIME(SOLID,
+                GAS), DEPOSIT(GAS, SOLID);
+        private final Phase from;
+        private final Phase to;
+
+        Transition(Phase from, Phase to) {
+            this.from = from;
+            this.to = to;
+        }
+
+        // Initialize the phase transition map
+        private static final Map<Phase, Map<Phase, Transition>> m = Stream.of(values())
+                .collect(groupingBy(t -> t.from, () -> new EnumMap<>(Phase.class),
+                        toMap(t -> t.to, t -> t, (x, y) -> y, () -> new EnumMap<>(Phase.class))));
+
+        public static Transition from(Phase from, Phase to) {
+            return m.get(from).get(to);
+        }
+    }
+}
+```
+このコードは初期化部分が少し複雑である。toMap内の第三引数である```(x, y) -> y``` は使用されておらず、EnumMapを得るためだけに必要となっているものである。  
+  いまここで、新たな状態である、plasma を定義したいとする。ここで追加される状態遷移の定義は、ionization と deionization である。配列ベースのenumで、この変更を取り入れようとしたら、新しく1つの定数を```Phase``` に追加し、2つの定数を```Phase.Transition``` に追加し、9つの要素があった2次元配列を16個の要素を持つように書き換える必要がある。一方、```EnumMap``` ベースのenumであれば、以下のように、新しく1つの定数を```Phase``` に追加し、2つの定数を```Phase.Transition``` に追加するのみでよい。
+
+```java
+// Adding a new phase using the nested EnumMap implementation
+public enum Phase {
+    SOLID, LIQUID, GAS, PLASMA;
+     public enum Transition {
+        MELT(SOLID, LIQUID), FREEZE(LIQUID, SOLID),
+        BOIL(LIQUID, GAS),   CONDENSE(GAS, LIQUID),
+        SUBLIME(SOLID, GAS), DEPOSIT(GAS, SOLID),
+        IONIZE(GAS, PLASMA), DEIONIZE(PLASMA, GAS);
+        ... // Remainder unchanged
+    }
+}
+```
+こちらのコードは人為的エラーが起こりえないし、EnumMapの内部では配列の配列を用いているので、性能的にも劣っているところはない。
+
+
 
 
 # 7章.ラムダとストリーム
