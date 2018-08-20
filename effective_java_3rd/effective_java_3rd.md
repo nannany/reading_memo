@@ -1366,7 +1366,143 @@ public enum Phase {
 ```
 こちらのコードは人為的エラーが起こりえないし、EnumMapの内部では配列の配列を用いているので、性能的にも劣っているところはない。
 
+# 38.拡張可能なenumをインターフェースで模倣すべし
 
+  たいていの場合、列挙型を拡張するような考えはよくないことであるが、```operation code``` を書くときだけは切実に必要となる。  
+  これをenumを使って実現する良い方法がある。enumはインターフェースを実装できるので、例えば以下のようにできる。
+
+```java
+// Emulated extensible enum using an interface
+public interface Operation {
+    double apply(double x, double y);
+}
+
+public enum BasicOperation implements Operation {
+    PLUS("+") {
+        public double apply(double x, double y) {
+            return x + y;
+        }
+    },
+    MINUS("-") {
+        public double apply(double x, double y) {
+            return x - y;
+        }
+    },
+    TIMES("*") {
+        public double apply(double x, double y) {
+            return x * y;
+        }
+    },
+    DIVIDE("/") {
+        public double apply(double x, double y) {
+            return x / y;
+        }
+    };
+    private final String symbol;
+
+    BasicOperation(String symbol) {
+        this.symbol = symbol;
+    }
+
+    @Override
+    public String toString() {
+        return symbol;
+    }
+}
+```
+enum型は拡張不可であるが、インターフェースは拡張可能であり、オペレーションのAPIとして使われるのはインターフェースである。このインターフェースを使用して、以下のように新しくoperation codeを定義することもできる。
+
+```java
+// Emulated extension enum
+public enum ExtendedOperation implements Operation {
+    EXP("^") {
+        public double apply(double x, double y) {
+            return Math.pow(x, y);
+        }
+    },
+    REMAINDER("%") {
+        public double apply(double x, double y) {
+            return x % y;
+        }
+    };
+    private final String symbol;
+
+    ExtendedOperation(String symbol) {
+
+        this.symbol = symbol;
+    }
+
+    @Override
+    public String toString() {
+        return symbol;
+    }
+}
+```
+  基盤となるenumのインスタンスが期待されている場所であれば、拡張enumのインスタンスは使用できる。それだけでなく、基盤enumの全要素を渡すような場面でも、代わりに拡張enumの全要素を渡すことができる。以下のソースコードでは、引数に取った2つの値の```ExtendedOperation``` による全演算の結果を表示する。  
+
+```java
+public static void main(String[] args) {
+    double x = Double.parseDouble(args[0]);
+    double y = Double.parseDouble(args[1]);
+    test(ExtendedOperation.class, x, y);
+}
+
+private static <T extends Enum<T> & Operation> void test(Class<T> opEnumType, double x, double y) {
+    for (Operation op : opEnumType.getEnumConstants())
+        System.out.printf("%f %s %f = %f%n", x, op, y, op.apply(x, y));
+
+}
+```
+このコードにおいては、testメソッドの第一引数に```ExtendedOperation.class``` が取られている。これは境界付きの型トークン（Item33）である。
+```<T extends Enum<T> & Operation>``` とあるが、これによってtestの第一引数に与えられるクラスは、enumであり、かつ、```Operation``` のサブクラスであることが保証される。
+  境界付きワイルドカード型(Item31)を使って、以下のように記述することもできる。
+
+```java
+public static void main(String[] args) {
+    double x = Double.parseDouble(args[0]);
+    double y = Double.parseDouble(args[1]);
+    test(Arrays.asList(ExtendedOperation.values()), x, y);
+}
+private static void test(Collection<? extends Operation> opSet, double x, double y) {
+    for (Operation op : opSet) {
+        System.out.printf("%f%s%f=%f%s", x, op, y, op.apply(x, y));
+    }
+}
+```
+このコードは少し簡潔で柔軟性が増しているが、```EnumSet``` （Item36）と```EnumMap``` （Item37）の使用はあきらめなければならない。
+  上記2つのコードは、引数に4 2 を与えたら、以下のように出力する。
+
+```
+4.000000 ^ 2.000000 = 16.000000
+4.000000 % 2.000000 = 0.000000
+```
+  
+この拡張enumのマイナーな欠点は、オペレーションに紐づくシンボルを保存するコードと、検索するコードは```BasicOperation``` と```ExtendedOperation``` の双方で保持しなければならない点である。あまりに多くの共通機能が出てきた場合には、ヘルパークラスなどを用意して、コードの重複を除く必要がある。  
+  この章で語られたパターンは```java.nio.file.LinkOption``` でも使われている。
+
+# 39. 命名パターンよりアノテーションを選ぶべし
+
+ツールやフレームワークが、**命名パターン**に応じて扱いを変えることが過去よくあった。例えば、バージョン4より前のJUnitでは、テストメソッドの名前は、testが先頭にくるようにせねばならない。この方法にはいくつか欠点がある。  
+タイポをしてしまった場合には、暗黙のうちに失敗してしまう。例えば、testSafetyOverrideの代わりにtsetSafetyOverrideと打ってしまったとすると、JUnit3では、失敗とならないが、テストは実行されない。  
+また、命名パターンが適切なプログラムの要素にのみ使用されているか保証するすべがない。
+他にも、引数の値とプログラム要素を紐づける良い方法がないことが欠点である。  
+
+アノテーションによってこれらの欠点は解消されている（JUnit4からはアノテーションが導入されている）。この章では、簡単なテスティングフレームワークを作って、どのようにアノテーションが動作するかを見ていく。
+まず、自動で動き、エラーが送出されたら失敗とするアノテーションを見ていく。
+
+```java
+/**
+ * Indicates that the annotated method is a test method.
+ * Use only on parameterless static methods.
+ */
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface Test {
+}
+```
+Testアノテーションの定義において、```@Retention``` と```@Target``` が付与されているが、これらはメタアノテーションと呼ばれる。
+```@Retention(RetentionPolicy.RUNTIME)``` は、Testアノテーションは実行時に保持されるということを示している。
+```@Target(ElementType.METHOD)``` は、
 
 
 # 7章.ラムダとストリーム
