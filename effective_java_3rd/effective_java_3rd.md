@@ -1502,7 +1502,263 @@ public @interface Test {
 ```
 Testアノテーションの定義において、```@Retention``` と```@Target``` が付与されているが、これらはメタアノテーションと呼ばれる。
 ```@Retention(RetentionPolicy.RUNTIME)``` は、Testアノテーションは実行時に保持されるということを示している。
-```@Target(ElementType.METHOD)``` は、
+```@Target(ElementType.METHOD)``` は、Testアノテーションはメソッド宣言においてのみ有効（フィールドやクラスに適用できない）であるということを示している。
+Testアノテーションの宣言のコメントに、「Use only on parameterless static methods」とあるが、これはアノテーションプロセッサーを書かない限りはコンパイラでは検知できない。さらに知りたい場合には```javax.annotation.processing``` のドキュメントを見るべし。
+以下にTestアノテーションが実際どのように使われるのかを示した。
+
+```java
+// Program containing marker annotations
+public class Sample {
+    @Test public static void m1() { }  // Test should pass
+    public static void m2() { }
+    @Test public static void m3() {     // Test should fail
+        throw new RuntimeException("Boom");
+    }
+    public static void m4() { }
+    @Test public void m5() { } // INVALID USE: nonstatic method
+    public static void m6() { }
+    @Test public static void m7() {    // Test should fail
+        throw new RuntimeException("Crash");
+    }
+    public static void m8() { }
+}
+```
+Testアノテーションは、引数がなく、単に要素にマークを付けるだけであるので、**マーカーアノテーション**と呼ばれる。もし、Testのタイポをしたり、Testアノテーションをメソッド宣言以外に使用したら、コンパイルエラーが発生する。
+```Sample``` クラスのうち、m1は成功、m3、m7は失敗、m5はstaticなメソッドでないので不正、そのほか4つのメソッドはTestアノテーションが付与されていないので、テスティングフレームワークからは無視される。
+Testアノテーションは```Sample```クラスのsemanticsに直接影響を与えず、Testアノテーションを利用するプログラムにのみ情報を与える。
+つまり、アノテーションは付与されたコードのsemanticsには影響を与えず、以下のサンプルテストランナーのようなツールの処理に影響を与える。
+
+```java
+package tryAny.effectiveJava;
+
+//Program to process marker annotations
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
+public class RunTests {
+    public static void main(String[] args) throws Exception {
+        int tests = 0;
+        int passed = 0;
+        Class<?> testClass = Class.forName(args[0]);
+        for (Method m : testClass.getDeclaredMethods()) {
+            if (m.isAnnotationPresent(Test.class)) {
+                tests++;
+                try {
+                    m.invoke(null);
+                    passed++;
+                } catch (InvocationTargetException wrappedExc) {
+                    Throwable exc = wrappedExc.getCause();
+                    System.out.println(m + " failed: " + exc);
+                } catch (Exception exc) {
+                    System.out.println("Invalid @Test: " + m);
+                }
+            }
+        }
+        System.out.printf("Passed: %d, Failed: %d%n", passed, tests - passed);
+    }
+
+}
+```
+テストランナーツールはFQDNを引数に取り、```Method.invoke``` の呼び出しでTestアノテーションが付与されたメソッドを実行する。testメソッドが例外を投げた場合、リフレクションファシリティがその例外をラップして、```InvocationTargetException``` を投げる。本ツールではこの例外をキャッチして、原因となる例外を```getCause```メソッドで得ている。
+2番目のcatch節ではTestアノテーションの不正使用による例外を捕捉し、適切なメッセージをプリントアウトしている。```Sample``` クラスをテストツールにかけた時のアウトプットは以下のよう。
+
+```
+public static void tryAny.effectiveJava.Sample.m3() failed: java.lang.RuntimeException: Boom
+Invalid @Test: public void tryAny.effectiveJava.Sample.m5()
+public static void tryAny.effectiveJava.Sample.m7() failed: java.lang.RuntimeException: Crash
+Passed: 1, Failed: 3
+```
+ここで、特定の例外がスローされた場合には成功とする新しいアノテーションを作成してみる。
+
+```java
+package tryAny.effectiveJava;
+
+//Annotation type with a parameter
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+/**
+ *  * Indicates that the annotated method is a test method that  * must throw
+ * the designated exception to succeed.  
+ */
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface ExceptionTest {
+    Class<? extends Throwable> value();
+}
+```
+このアノテーションの引数には```Class<? extends Throwable>```という境界付き型トークン（Item33）が用いられており、```Throwable```を継承したクラスが引数に取れる、ということを意味する。以下が使用の具体例となる。
+
+```java
+package tryAny.effectiveJava;
+
+//Program containing annotations with a parameter
+public class Sample2 {
+    @ExceptionTest(ArithmeticException.class)
+    public static void m1() { // Test should pass
+        int i = 0;
+
+        i = i / i;
+    }
+
+    @ExceptionTest(ArithmeticException.class)
+    public static void m2() { // Should fail (wrong exception)
+        int[] a = new int[0];
+        int i = a[1];
+    }
+
+    @ExceptionTest(ArithmeticException.class)
+    public static void m3() {
+    } // Should fail (no exception)
+}
+```
+また、テストランナーツールをこれに合わせて、以下のように改修する。
+
+```java
+package tryAny.effectiveJava;
+
+//Program to process marker annotations
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
+public class RunTests {
+    public static void main(String[] args) throws Exception {
+        int tests = 0;
+        int passed = 0;
+        Class<?> testClass = Class.forName(args[0]);
+        for (Method m : testClass.getDeclaredMethods()) {
+            if (m.isAnnotationPresent(Test.class)) {
+                tests++;
+                try {
+                    m.invoke(null);
+                    passed++;
+                } catch (InvocationTargetException wrappedExc) {
+                    Throwable exc = wrappedExc.getCause();
+                    System.out.println(m + " failed: " + exc);
+                } catch (Exception exc) {
+                    System.out.println("Invalid @Test: " + m);
+                }
+            }
+
+            if (m.isAnnotationPresent(ExceptionTest.class)) {
+                tests++;
+                try {
+                    m.invoke(null);
+                    System.out.printf("Test %s failed: no exception%n", m);
+                } catch (InvocationTargetException wrappedEx) {
+                    Throwable exc = wrappedEx.getCause();
+                    Class<? extends Throwable> excType = m.getAnnotation(ExceptionTest.class).value();
+                    if (excType.isInstance(exc)) {
+                        passed++;
+                    } else {
+                        System.out.printf("Test %s failed: expected %s, got %s%n", m, excType.getName(), exc);
+                    }
+                } catch (Exception exc) {
+                    System.out.println("Invalid @Test: " + m);
+                }
+            }
+
+        }
+
+        System.out.printf("Passed: %d, Failed: %d%n", passed, tests - passed);
+    }
+
+}
+```
+このコードでは```ExceptionTest```アノテーションの引数を抽出し、発生した例外がその型と同じかをチェックしている。
+テストプログラムがコンパイルされるということは、アノテーションの引数として指定された例外の型が有効なものであると示している。ただし、コンパイル時にはあった特定の例外の型が実行時にはない場合、テストランナーは```TypeNotPresentException```をスローする。
+
+この例外テストのコードをさらに改良し、指定した複数の例外のうちのいずれかがスローされるかをテストできるようにする。
+この改良は容易に行うことができて、```ExceptionTest```の引数の型を配列にすればよい。
+
+```java
+// Annotation type with an array parameter
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface ExceptionTest {
+    Class<? extends Exception>[] value();
+}
+```
+これでExceptionTestアノテーションには1つの引数でも複数の引数でも取れるようになる。
+複数例外を記述する場合は以下のようになる。
+
+```java
+// Code containing an annotation with an array parameter
+@ExceptionTest({ IndexOutOfBoundsException.class,
+                 NullPointerException.class })
+public static void doublyBad() {
+    List<String> list = new ArrayList<>();
+ // The spec permits this method to throw either
+    // IndexOutOfBoundsException or NullPointerException
+    list.addAll(5, null);
+}
+```
+```ExceptionTest``` を新しくしたことによって、テストランナーツールは以下のようになる。
+
+```java
+package tryAny.effectiveJava;
+
+//Program to process marker annotations
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
+public class RunTests {
+    public static void main(String[] args) throws Exception {
+        int tests = 0;
+        int passed = 0;
+        Class<?> testClass = Class.forName(args[0]);
+        for (Method m : testClass.getDeclaredMethods()) {
+            if (m.isAnnotationPresent(Test.class)) {
+                tests++;
+                try {
+                    m.invoke(null);
+                    passed++;
+                } catch (InvocationTargetException wrappedExc) {
+                    Throwable exc = wrappedExc.getCause();
+                    System.out.println(m + " failed: " + exc);
+                } catch (Exception exc) {
+                    System.out.println("Invalid @Test: " + m);
+                }
+            }
+
+            if (m.isAnnotationPresent(ExceptionTest.class)) {
+                tests++;
+                try {
+                    m.invoke(null);
+                    System.out.printf("Test %s failed: no exception%n", m);
+                } catch (InvocationTargetException wrappedEx) {
+                    Throwable exc = wrappedEx.getCause();
+                    int oldPasses = passed;
+                    Class<? extends Throwable>[] excTypes = m.getAnnotation(ExceptionTest.class).value();
+                    for (Class<? extends Throwable> excType : excTypes) {
+                        if (excType.isInstance(exc)) {
+                            passed++;
+                            break;
+                        }
+                    }
+                    if (passed == oldPasses) {
+                        System.out.printf("Test %s failed: %s%n", m, exc);
+                    }
+                } catch (Exception exc) {
+                    System.out.println("Invalid @Test: " + m);
+                }
+            }
+
+        }
+
+        System.out.printf("Passed: %d, Failed: %d%n", passed, tests - passed);
+    }
+
+}
+```
+
+Java8では、複数の引数をとるアノテーションを別の方法で実現できる。アノテーションを配列引数で宣言する代わりに、```@Repeatable```メタアノテーションを使って、一つの要素に対して複数回アノテーション付与ができるようにする。
+この```@Repeatable```メタアノテーションは、1つの引数をとる。その引数は、containing anotation typeと呼ばれる1つの配列を引数に持つクラスオブジェクトである。
+
+
 
 
 # 7章.ラムダとストリーム
