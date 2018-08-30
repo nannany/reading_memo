@@ -1757,8 +1757,179 @@ public class RunTests {
 
 Java8では、複数の引数をとるアノテーションを別の方法で実現できる。アノテーションを配列引数で宣言する代わりに、```@Repeatable```メタアノテーションを使って、一つの要素に対して複数回アノテーション付与ができるようにする。
 この```@Repeatable```メタアノテーションは、1つの引数をとる。その引数は、containing anotation typeと呼ばれる1つの配列を引数に持つクラスオブジェクトである。
+以下が例となる。
+
+```java
+package tryAny.effectiveJava;
+
+//Annotation type with a parameter
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Repeatable;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+/**
+ *  * Indicates that the annotated method is a test method that  * must throw
+ * the designated exception to succeed.  
+ */
+
+// Repeatable annotation type
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+@Repeatable(ExceptionTestContainer.class)
+public @interface ExceptionTest {
+    Class<? extends Exception> value();
+
+}
+```
+
+```java
+package tryAny.effectiveJava;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface ExceptionTestContainer {
+    ExceptionTest[] value();
+}
+```
+アノテーションの付与の仕方は以下のよう。
+
+```java
+// Code containing a repeated annotation
+@ExceptionTest(IndexOutOfBoundsException.class)
+@ExceptionTest(NullPointerException.class)
+public static void doublyBad() { ... }
+```
+
+```@Repeatable``` を処理する際には注意が必要である。繰り返し使用されるアノテーションは、それを格納するアノテーションと組み合わせて作成される。
+```getAnnotationsByType``` メソッドはこのことを隠ぺいし、繰り返し使用されるアノテーションとそうではないアノテーションの場合の両方にアクセスが可能である。一方で、```isAnnotationsPresent``` メソッドは繰り返し使用されるアノテーションに対して、それを格納するアノテーションであると判断してしまう。つまり、繰り返し使用されているアノテーションの型を```isAnnotationsPresent``` メソッドで、その繰り返し使用されている型であると判断することはできないということだ。
+繰り返し使用されるアノテーションと、そうでないアノテーションのどちらも検知するためには、格納しているアノテーションと要素のアノテーションどちらもチェックする必要がある。
+以下がアノテーション繰り返し使用に耐えうるよう書き直したものとなる。
+
+```java
+// Processing repeatable annotations
+if (m.isAnnotationPresent(ExceptionTest.class) || m.isAnnotationPresent(ExceptionTestContainer.class)) {
+    tests++;
+    try {
+        m.invoke(null);
+        System.out.printf("Test %s failed: no exception%n", m);
+    } catch (Throwable wrappedExc) {
+        Throwable exc = wrappedExc.getCause();
+        int oldPassed = passed;
+        ExceptionTest[] excTests = m.getAnnotationsByType(ExceptionTest.class);
+        for (ExceptionTest excTest : excTests) {
+            if (excTest.value().isInstance(exc)) {
+                passed++;
+                break;
+            }
+        }
+        if (passed == oldPassed)
+            System.out.printf("Test %s failed: %s %n", m, exc);
+    }
+}
+```
+
+```@Repeatable``` の使用が可読性を高めると感じるのであれば使うべきであるが、これを使用した場合には繰り返し使用したアノテーションの処理が煩雑になることを覚えておくべきである。
+
+本章のテスティングフレームワークは簡単なものであるが、アノテーション使用のネーミングパターンに対する優位性を示した。
+
+たいていのプログラマは自身でアノテーションを定義することはない。Java標準のアノテーションやIDEやツールが提供してくれるアノテーションを使うべきである。
+
+# 40.一貫してOverrideアノテーションを使うべし
+
+Javaライブラリはいくつかのアノテーションを提供してるが、多くのプログラマにとって、```@Override``` が一番重要だろう。
+一貫して```@Override``` を使用していれば、バグが起こりにくくなる。
+以下の[bigram](https://www.weblio.jp/content/bigram)を模したクラスを例に見ていく（バグあり）。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.HashSet;
+import java.util.Set;
+
+//Can you spot the bug?
+public class Bigram {
+    private final char first;
+    private final char second;
+
+    public Bigram(char first, char second) {
+        this.first = first;
+        this.second = second;
+    }
+
+    public boolean equals(Bigram b) {
+        return b.first == first && b.second == second;
+    }
+
+    public int hashCode() {
+        return 31 * first + second;
+    }
+
+    public static void main(String[] args) {
+        Set<Bigram> s = new HashSet<>();
+        for (int i = 0; i < 10; i++)
+            for (char ch = 'a'; ch <= 'z'; ch++)
+                s.add(new Bigram(ch, ch));
+        System.out.println(s.size());
+    }
+}
+```
+このプログラムは26を出力すると思いきや、260を出力する。
+原因はequalsをOverrideするつもりがOverloadしてしまっていることにある。```Object.equals```の引数はObject型であり、シグニチャが違う。
+こういった誤りを防ぐために、Overrideするメソッドには```@Override```をつける。そうすると以下のコードはコンパイルエラーとなる。
+
+```java
+@Override public boolean equals(Bigram b) {
+    return b.first == first && b.second == second;
+}
+```
+正しくは以下のようになる。
+
+```java
+@Override
+public boolean equals(Object o) {
+    if (!(o instanceof Bigram))
+        return false;
+    Bigram b = (Bigram) o;
+    return b.first == first && b.second == second;
+}
+```
+
+このようなことから、**親クラスのメソッドをOverrideするときは@Overrideをつけるべきである**。
+これには一つ例外があって、具象クラスにおいて、親の抽象メソッドをOverrideするときは、そもそもOverrideしないとコンパイルエラーが出るので、```@Override```の記述の必要はない（記述による害もない）。
 
 
+# 41.型定義のためにマーカーインターフェースを使うべし
+
+[マーカーインターフェース](https://ja.wikipedia.org/wiki/%E3%83%9E%E3%83%BC%E3%82%AB%E3%83%BC%E3%82%A4%E3%83%B3%E3%82%BF%E3%83%95%E3%82%A7%E3%83%BC%E3%82%B9)とは、メソッド定義を含まず、単にそのインターフェースを実装したクラスが特定の属性を持っていることを示すためのものである。
+例として、```Serializable```インターフェースがあげられる（12章）。このインターフェースを実装することで、そのクラスのインスタンスは```ObjectOutputStream```に書き込み可能であることが示される。
+
+マーカーアノテーション（Item39）の登場で、マーカーインターフェースは時代遅れになったように思えるかもしれないが、それは誤りである。
+マーカーインターフェースはマーカーアノテーションに比べて、2つの点でアドバンテージがある。
+1つ目は**マーカーインターフェースは型を定義するが、マーカーアノテーションはしない**ことである。これによって、マーカーアノテーションでは実行時まで捕捉できないエラーがコンパイル時に捕捉できることとなる。
+Javaのシリアライゼーション機能では、型がシリアライザブルであることを示すために、```Serializable```マーカーインターフェースを使用している。```ObjectOutputStream.writeObject```メソッドでは、渡されたオブジェクトをシリアライズするが、その引数はシリアライザブルであることを求める。このメソッドの引数が```Serializable```であれば（実際にはObjectをとる）、不適切な型の引数が来た場合にコンパイルで検知できる。
+2つ目は**マーカーインターフェースの方がより簡潔に対象を絞れる**ことにある。
+マーカーアノテーションのターゲットが```ElementType.TYPE```である場合は全てのクラスとインターフェースが対象となるが、マーカーインターフェースの場合はそれを実装しているクラスに限られる。
+```Set``` インターフェースは、そのような制限するマーカーインターフェースである。
+SetはCollectionのサブタイプにのみ実装されるが、Collectionで定義されたメソッドに何も付け加えていない。SetはCollectionのメソッドの一部を再定義しているので、一般にマーカーインターフェースとはみなされていない。
+しかし、特定のインターフェースのサブタイプにのみ適用され、インターフェースのメソッドを再定義しないマーカーインターフェースは想像しやすい。そのようなマーカーインターフェースは、オブジェクト全体のある不変値（?）を記述したり、そのインスタンスは他の特定のクラスのメソッドによって処理されるように適合していることを指し示す（この意味では、```Serializable```インターフェースは、そのインスタンスが```ObjectOutputStream```に処理されることに適合していることを指し示している）。
+
+**マーカーアノテーションの利点は、大きなアノテーション機能の一部であるという点にある。**それゆえ、マーカーアノテーションはアノテーションベースのフレームワークで一貫性が考慮されている。
+
+## マーカーアノテーション、マーカーインターフェースをどう使い分けるか？
+まず、クラスとインターフェース以外の要素にマーカーをつけるには、マーカーアノテーションを使用するしかない。
+クラス、インターフェースへのマーカーに関しては、
+***このマーキングをしたオブジェクトのみを対象としたメソッドを1つ以上書くことがあるか？***
+を考えてみる。
+もし書くことがあるなら、マーカーインターフェースを利用するべき。これによって、メソッドの引数の型チェックをコンパイル時に行うことができる。
+もし書かないのであれば、マーカーアノテーションを利用すべき。
+アノテーションをたくさん使うフレームワークにおけるマーキングであれば、マーカーアノテーションを選ぶべき。
 
 
 # 7章.ラムダとストリーム
@@ -1798,7 +1969,7 @@ public class AnonymouseVsLambda {
 * ラムダ式での型は、書くことによってコードが綺麗にならない限り、省略してよい。
 * クラスやメソッドと違って、ラムダ式には名前もドキュメントもないので、自明な処理でなかったり、4行以上となる処理はラムダ式で記述すべきでない。
 * 匿名クラスが必要となる場面は以下。
-  * ラムダ式は関数型インターフェースのインスタンスにしか代入できないので、複数のメソッドを持つインターフェースや、抽象クラスのインスタンスが必要となる場合は匿名クラスを使う
+  * ラムダ式は関数型インターフェースの型にしか代入できないので、複数のメソッドを持つインターフェースや、抽象クラスのインスタンスが必要となる場合は匿名クラスを使う
   * ラムダ式でのthisはエンクロージングクラス（外側のクラス）を指すが、匿名クラスでは匿名クラス自身を指すので、関数オブジェクト自身へのアクセスが必要な場合には、匿名クラスを使う
 
 # 43.ラムダ式よりメソッド参照を使うべし
@@ -1830,21 +2001,21 @@ service.execute(() -> action());
 # 44.標準の関数型インターフェースを使うべし
 * 標準で用意されているものを使うことによって、使いやすさが増し、すでに組み込まれている様々なメソッドの恩恵にあずかれる。
 * java.util.functionに含まれる関数型インターフェースは43個ある。
-  * 中心的なのはUnaryOperator< T >、BinaryOperator< T >、Predicate< T >,Function< T >,Consumer< T >,Supplier< T >の6つ。(6)
-  * 上の6つそれぞれにint、long、doubleのプリミティブ型を扱うための関数型インターフェースがある。（18）
+  * 中心的なのは```UnaryOperator<T>```、```BinaryOperator<T>```、```Predicate<T>```,```Function<T>```,```Consumer<T>```,```Supplier<T>```の6つ。(6)
+  * 上の6つそれぞれに```int```、```long```、```double```のプリミティブ型を扱うための関数型インターフェースがある。（18）
   * Functionには*Src*To*Result*Functionで6つ。*Src*ToObjFucntionで3つある。(9)
   * 引数を2つ取るものが9つある。(9)
   * BooleanSupplierなるものがある。(1)
 * プリミティブ型に対応していない関数型インターフェースでプリミティブ型をボクシングしたオブジェクトを使ってはならない。性能が悪くなる。
 * 自身で関数型インターフェースを書く必要があるのは以下の場合。
   * 引数を3つ取る関数型インターフェースなど標準で用意されていないものが必要となる場合。
-  * 一般的に使われていて記述から恩恵を受けれらる、強い関連性をもった契約がある（**よくわからん**）、defaultメソッドから恩恵が受けられる、といった特徴がある場合。
+  * 一般的に使われていて記述から恩恵を受けれらる、強い関連性をもった契約がある（**よくわからん**）、defaultメソッドから恩恵が受けられる、といった特徴がある場合。(```Comparator<T>```が例に挙げられている)
 * 関数型インターフェースを書く際には、必ず@FunctionalInterfaceをつける。これがあれば、誤った書き方をしていた場合にコンパイルエラーにしてくれる。
 * 関数型インターフェースを引数に取るメソッドはオーバーライドすべきでない。（Item52）
 
 # 45.Streamは気を付けて使うべし
 * Streamパイプラインの処理は終端処理が呼ばれて初めて実行される。
-* 簡単に並列Streamにすることができるが、おおむね並列にするのは適切でない。（Item48）
+* 簡単に並列Streamにすることができるが、たいていの場合、並列にするのは適切でない。（Item48）
 * いつStreamを使うべきかにかっちりしたルールはない。ヒューリスティックな解があるのみ。
 * 指定したファイルに含まれる単語（例1）、行（例2,3）について、アナグラム毎にまとめ、指定した数以上の単語があるアナグラムを表示するプログラムが以下。
 例2はstream処理を使いすぎて読みづらくなっている。例3が適切な使い方。
@@ -1976,6 +2147,123 @@ public class MersennePrimes {
 ```
 
 * streamを使うべきか、繰り返し処理をすべきか迷う処理はたくさんある。迷った場合には、両方試してみてどちらが良いか判断してみるべき。
+
+# 46.副作用のないストリーム処理を選択すべし
+
+## ストリームによるパラダイムの変化
+ストリームは単なるAPIでなく、関数型プログラミングに根ざしたパラダイム（ものの見方？）の変化であり、そのパラダイムに適応しなければならない。
+ストリームのパラダイムで最も重要な部分は、演算を純粋関数による変換の連続の結果、という構造にするところにある。純粋関数とは、結果がそのインプットにのみ依存し、mutableな状態には依存せず、他の状態を変更しないものを指す。
+このパラダイムを達成するために、ストリームにおける中間操作、終端操作は副作用と無縁のものにせねばならない。
+
+以下、ファイルに含まれる単語の頻度を求めるプログラムをみていく。
+
+```java
+// Uses the streams API but not the paradigm--Don't do this!
+Map<String, Long> freq = new HashMap<>();
+try (Stream<String> words = new Scanner(file).tokens()) {
+    words.forEach(word -> {
+        freq.merge(word.toLowerCase(), 1L, Long::sum);
+    });
+}
+```
+ストリーム、ラムダ式、メソッド参照を使い、結果も正しいが、これはストリームAPIの利点を引き出せていない。
+問題は、forEachの中で外部の状態（freq変数）を変更していることにある。一般に、ストリームのforEachで結果の表示以外をしているコードは、状態を変化させているコードなので、悪いコードである可能性がある。
+
+以下が本来あるべき姿。
+
+```java
+// Proper use of streams to initialize a frequency table
+Map<String, Long> freq;
+try (Stream<String> words = new Scanner(file).tokens()) {
+    freq = words
+        .collect(groupingBy(String::toLowerCase, counting()));
+}
+```
+**forEachは、ストリームの演算の結果を示すために使うべきで、演算そのものに使うべきではない。**
+
+## collectorの利用
+上記の改良コードでは、collectorを利用しており、ストリームを使うには欠かせない。
+Collectors APIは39個のメソッドがあり、また、最大で5つの引数をとるメソッドがあり、恐ろしげに見える。しかし、深く入り込まずともこのAPIを利用することはできる。最初はCollectorのインターフェースは無視して、リダクション（ストリームの要素を一つのオブジェクトにまとめる）を行うものと考える。
+
+ストリームの要素をcollectionにするメソッドとして、```toList()```, ```toSet()```, ```toCollection()```がある。これらはそれぞれ、list、set、任意のcollectionを返す。これらを使って頻度表のトップ10を抽出したのが以下になる。
+
+```java
+// Pipeline to get a top-ten list of words from a frequency table
+List<String> topTen = freq.keySet().stream()
+    .sorted(comparing(freq::get).reversed())
+    .limit(10)
+    .collect(toList());
+```
+上記コードでは前提となっているが、ストリームパイプラインの可読性のために、Collectorsのメンバーはstaticインポートしておくべきである。
+
+### toMapメソッド
+上の3つを除いた残りの36メソッドは、ほとんどストリームをMapにするためのものである。
+最もシンプルなのは、```toMap(keyMapper, valueMapper)```で、ストリームをキーにする関数とストリームをバリューにする関数を引数にとる。例は以下のよう。
+
+```java
+// Using a toMap collector to make a map from string to enum
+private static final Map<String, Operation> stringToEnum =
+    Stream.of(values()).collect(
+        toMap(Object::toString, e -> e));
+```
+上記のコードは、同じキーが複数あった場合には```IllegalStateException```をスローする。
+このような衝突を防ぐための方法の1つとして、引数にマージ関数（```BinaryOperator<V>```でVはMapのバリューの型）を持たせることがある。
+以下の例は、Albumオブジェクトのストリームからartist毎に最も売れたAlbumのMapを作成している。
+
+```java
+// Collector to generate a map from key to chosen element for key
+Map<Artist, Album> topHits = albums.collect(
+   toMap(Album::artist, a->a, maxBy(comparing(Album::sales))));
+```
+
+3つの引数を取る```toMap```メソッドのそのほかの使用法は、キーが衝突したときに、最後に書き込まれたものが正となるような使い方である。この時のコード例は以下のようである。
+
+```java
+// Collector to impose last-write-wins policy
+toMap(keyMapper, valueMapper, (oldVal, newVal) -> newVal)
+```
+
+4つの引数を取る```toMap```メソッドもあり、4つ目の引数には返り値の実装となるMapを指定する。
+
+### groupingByメソッド
+Collectors APIには```toMap```メソッドの他にも、```groupingBy```メソッドなるものがある。
+```groupingBy``` メソッドはclassifier関数をもとに要素をカテゴリー分けしたMapを生成する。
+classifier関数とは、要素を受けて、その要素のカテゴリー（Mapのキー）を返す関数である。
+Item45で例示したアナグラムプログラムの中で使われていたものがそれにあたる。
+
+```java
+words.collect(groupingBy(word -> alphabetize(word)))
+```
+
+groupingByメソッドで、バリューがList以外のMapを生成するcollectorを返すには、classifier関数に加えて、downstream collectorを特定してやる必要がある。
+最もシンプルな例では、このパラメータにtoSetを渡してやるとMapのバリューはListでなく、Setになる。
+そのほかのgroupingByメソッドの2つ引数を取るシンプルな例としては、downstream collectorにcounting()を渡すことがある。
+counting()では各カテゴリー内の要素数を集約できる。その実例が本章の最初で提示した頻度テーブルの例である。
+
+```java
+Map<String, Long> freq = words
+        .collect(groupingBy(String::toLowerCase, counting()));
+```
+
+3つ引数を取るgroupingByメソッドでは、生成するMapの型を特定することができる。（ただし、2番目の引数にMapのファクトリが来て、3番目にdownstream collectorが来るようになる）
+
+### その他のメソッド
+countingメソッドはdownstream collectorとしての利用に特化したものであり、同様の機能はStreamから直接得られるので、```collect(counting())```のような呼び出しはしてはならない。
+このような特性のメソッドはCollectorsの中にあと15個あり、それらの内9つはsumming,averaging,summarizingから始まるメソッド名である。
+そのほかに、Streamのメソッドと似た、reducing、filtering, mapping, flatMapping、collectingAndThen メソッドがある。
+
+Collectorsのメソッドでまだ言及していないものが3つあるが、それらはcollectorsとあまり関わりがない。
+最初の2つは```minBy```と```maxBy```メソッドである。これらは引数にComparatorをとり、ストリームの要素から最小、最大の要素を返す。
+
+最後のCollectorsのメソッドは```joining```で、これは```CharSequence```インスタンス（Stringとか）のストリームの操作のみを行う。
+引数なしのjoiningは要素を結合するのみのcollectorを返す。
+引数が1つのjoiningはdelimiterを引数に取り、要素間にdelimiterを挟みこむcollectorを返す。
+引数が3つのjoiningはdelimiterに加え、prefixとsuffixを引数に取る。delimiterがコンマで、prefixが[で、suffixが]だと、
+```
+[came, saw, conquered].
+```
+のようになる。
+
 
 # 8章.メソッド
 
