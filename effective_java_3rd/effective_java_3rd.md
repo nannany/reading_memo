@@ -2264,6 +2264,227 @@ Collectorsのメソッドでまだ言及していないものが3つあるが、
 ```
 のようになる。
 
+# 47.戻り値の型としてストリームよりCollectionを選択すべし
+## 連続した要素をどの型で返すべきか？
+連続した要素の戻り値型としてあり得るのは、collectionインターフェース、Iterable、配列、ストリームである。
+
+### ストリームで返す
+ストリームで返すのが善であると聞くかもしれないが、Item45で述べたように、ストリームとイテレーションをうまくすみ分けることが重要である。
+
+StreamはIterableを継承していないため、ストリームとして返ってきた値をfor-each文でまわすのには、Streamのiteratorメソッドを使うしかない。
+ぱっとみ以下のコードようにiteratorメソッド使ってうまくいくように思える。
+
+```java
+// Won't compile, due to limitations on Java's type inference
+for (ProcessHandle ph : ProcessHandle.allProcesses()::iterator) {
+    // Process the process
+}
+```
+しかし、このコードはコンパイルできず、以下のようにキャストをしてやる必要がある。
+
+```java
+// Hideous workaround to iterate over a stream
+for  (ProcessHandle ph : (Iterable<ProcessHandle>)
+                        ProcessHandle.allProcesses()::iterator)
+```
+このコードは動くものの、乱雑で分かりにくい。
+代替方法としては、アダプターメソッドを使う方法がある。JDKではそのようなメソッドは提供されていないが、以下のように簡単に書ける。
+
+```java
+// Adapter from  Stream<E> to Iterable<E>
+public static <E> Iterable<E> iterableOf(Stream<E> stream) {
+    return stream::iterator;
+}
+```
+このアダプターメソッドを使うことによって、ストリームに対して以下のようにfor-eachを回すことが可能となる。
+
+```java
+for (ProcessHandle p : iterableOf(ProcessHandle.allProcesses())) {
+    // Process the process
+}
+```
+
+### Iterableで返す
+逆に、クライアント側でストリームとして処理しようとしているのに、戻り値はIterableにのみ対応したものであるときも対応が必要である。
+この対応もJDKでは用意されていないが、以下のようなに簡単に対応メソッドを書ける。
+
+```java
+// Adapter from Iterable<E> to Stream<E>
+public static <E> Stream<E> streamOf(Iterable<E> iterable) {
+    return StreamSupport.stream(iterable.spliterator(), false);
+}
+```
+
+### Collectionで返す
+CollectionインターフェースはIterableのサブタイプであり、ストリームのメソッドも持っているので、イテレーション処理でもストリーム処理でも対応できる。
+そのため、**連続した要素を返すメソッドの最適な戻り値型は、たいていの場合、Collectionか適切なCollectionのサブタイプである**と言える。
+もし返却する連続要素が十分小さければ、ArrayListやHashSetなどのCollectionを実装したものを返せばいいのだが、**Collectionとして返却するために、大きな連続要素をメモリに蓄えることはすべきでない。**
+
+返却する連続要素が、大きいけれど簡潔に表現できるものであれば、特別にcollectionを実装してやることを考える。
+例えば、与えられた集合のべき集合を返すような実装を考える。
+べき集合とは、例えば、{a,b,c}のべき集合は、{{}, {a}, {b}, {c}, {a, b}, {a, c}, {b, c}, {a, b, c}}のようであり、n個の要素の集合があれば、２のn乗個のべき集合ができる。
+とても大きな数の集合になるため、べき集合をスタンダードなcollectionの中に入れようと考えてはならない。
+これを実現するカスタムcollectionは、AbstractListを使って簡単に実装することができる。
+仕組みとしては、集合の各要素にインデックスを付して、それらが存在するかしないかをbitで判断する、というものである。コードは以下のようになる。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.AbstractList;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+//Returns the power set of an input set as custom collection
+public class PowerSet {
+    public static final <E> Collection<Set<E>> of(Set<E> s) {
+        List<E> src = new ArrayList<>(s);
+        if (src.size() > 30)
+            throw new IllegalArgumentException("Set too big " + s);
+        return new AbstractList<Set<E>>() {
+            @Override
+            public int size() {
+                return 1 << src.size(); // 2 to the power srcSize
+            }
+
+            @Override
+            public boolean contains(Object o) {
+                return o instanceof Set && src.containsAll((Set) o);
+            }
+
+            @Override
+            public Set<E> get(int index) {
+                Set<E> result = new HashSet<>();
+                for (int i = 0; index != 0; i++, index >>= 1)
+                    if ((index & 1) == 1)
+                        result.add(src.get(i));
+                return result;
+            }
+        };
+    }
+}
+```
+上記のコードでは、集合が30以上の要素を持っている場合には例外をスローさせるようにしている。
+これはCollectionのsizeメソッドで返せる最大値が2の31乗-1であることによる。
+
+
+どの型で返すかを、実装の難易度だけで決めることもある。
+例えば、インプットのlistの全てのサブリストを返却するようなメソッドを書くような場合を考える。
+サブリストを作り出して、それらを標準のcollectionに入れるコードは3行で書けるが、メモリが2次元構造のcollectionを保持しなくてはならない。
+これは指数関数的に増えるべき集合に比べれば悪くないが、受け入れられない。
+べき集合の時のようにカスタムcollectionを実装するのは面倒である。
+
+しかし、リストの全サブリストをストリームで返すのは、少し工夫をすれば直接的に実装できる。
+リストの最初の文字を保持しているサブリスト群をprefixesと呼ぶ。つまり、(a, b, c)のprefixesは(a), (a, b), (a, b, c)になる。
+リストの最後の文字を保持しているサブリスト群をsuffixesと呼ぶ。つまり、(a, b, c)のsuffixesは(a, b, c), (b, c), (c)になる。
+このとき、リストの全サブリストは、リストのprefixesのsuffixesと、空のリストである。実装は以下のようになる。
+
+```java
+package tryAny.effectiveJava;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
+//Returns a stream of all the sublists of its input list
+public class SubLists {
+    public static <E> Stream<List<E>> of(List<E> list) {
+        return Stream.concat(Stream.of(Collections.emptyList()), prefixes(list).flatMap(SubLists::suffixes));
+    }
+
+    private static <E> Stream<List<E>> prefixes(List<E> list) {
+        return IntStream.rangeClosed(1, list.size()).mapToObj(end -> list.subList(0, end));
+    }
+
+    private static <E> Stream<List<E>> suffixes(List<E> list) {
+        return IntStream.range(0, list.size()).mapToObj(start -> list.subList(start, list.size()));
+    }
+}
+```
+このコードは以下のような通常のforループのネストしたものと同様の考え方をしている。
+
+```java
+for (int start = 0; start < src.size(); start++)
+    for (int end = start + 1; end <= src.size(); end++)
+        System.out.println(src.subList(start, end));
+```
+このforループをストリーム処理に直訳した形で表すと、簡潔にはなるが、可読性は落ちる。具体的には以下のようになる。
+
+```java
+// Returns a stream of all the sublists of its input list
+public static <E> Stream<List<E>> of(List<E> list) {
+   return IntStream.range(0, list.size())
+      .mapToObj(start ->
+         IntStream.rangeClosed(start + 1, list.size())
+            .mapToObj(end -> list.subList(start, end)))
+      .flatMap(x -> x);
+}
+```
+どちらの実装も悪くないが、使用するユーザーによってはストリームからイテレートできるように変換するコードが必用となる、または、イテレート処理が自然なところでストリーム処理を行わなければならないかもしれない。
+ストリームからイテレートできるように変換するコードは、クライアントコードが乱雑になるだけでなく、Collectionでの実装に比べて、性能的にも問題がある。
+
+# 48.ストリーム処理を並列で行う際は注意せよ
+
+## 並列処理は依然として困難
+Javaの進化に伴い、並列プログラミングは書きやすくなったものの、正しく、速い並列処理の実装を書くことは依然として難しい。これはストリームのparallelストリームでの処理も例外でない。
+Item45の例をみてみる。
+
+```java
+package tryAny.effectiveJava;
+
+import static java.math.BigInteger.*;
+
+import java.math.BigInteger;
+import java.util.stream.Stream;
+
+public class MersennePrimes {
+    public static void main(String[] args) {
+        primes().map(p -> TWO.pow(p.intValueExact()).subtract(ONE)).filter(mersenne -> mersenne.isProbablePrime(50))
+                .limit(20)
+                // .forEach(System.out::println);
+                .forEach(mp -> System.out.println(mp.bitLength() + ":" + mp));
+    }
+
+    static Stream<BigInteger> primes() {
+        return Stream.iterate(TWO, BigInteger::nextProbablePrime);
+    }
+}
+```
+このプログラムのストリーム処理にparallel()を入れても、処理が速くなるどころか、処理は完了せず、CPUが高止まりし続ける。
+
+ここでは何が起こっているのか？
+簡単には、ストリームのライブラリがこのパイプラインをどのように並列化するか分からず、ヒューリスティックな解が失敗したということが原因である。
+**もともとStream.iterateから来ていたり、limit中間操作が行われる場合は、パイプラインの並列化は性能を上げにくい。**上記のプログラムはこのどちらの要素も持ってしまっている。
+ここでの教訓は、**見境なく並列ストリームを使ってはならない**ということだ。
+
+概して、**並列化でパフォーマンス向上が見込めるのは、ArrayList、HashMap、HashSet、ConcurrentHashMap、配列、intの範囲をもったもの、longの範囲を持ったもののストリームに対しての並列化である。**
+これらの共通点は、サブレンジへの分割が容易であることである。
+これらのデータ構造が持つもう一つの重要な共通点は、逐次処理される時の**[参照の局所性](https://ja.wikipedia.org/wiki/%E5%8F%82%E7%85%A7%E3%81%AE%E5%B1%80%E6%89%80%E6%80%A7)**である。
+
+終端操作も並列処理の性能に響いてくる。
+パイプラインの全体に比して、大量の処理を終端処理で行い、かつ、その終端処理が内部的に逐次処理を行うものであったら、パイプラインの並列化はあまり効果を得られない。
+一番効果を得られる終端処理は、min、max、count、sumといったリダクション処理である。
+また、anyMatch、allMatch、noneMatchといった[短絡評価](https://ja.wikipedia.org/wiki/%E7%9F%AD%E7%B5%A1%E8%A9%95%E4%BE%A1)は並列化の効果を得やすい。
+ストリームのcollectメソッドによって行われる可変リダクション操作は、並列化の恩恵を受けにくい。なぜなら、コレクションを結びつける処理のオーバーヘッドがコストとなるからだ。
+
+### Safety failure 
+**ストリームの並列化によって、liveness failureを含む性能面の問題が起こるだけでなく、間違った結果や予期しない動作を招くこともある。（safety failure）**
+safety failureはストリームの厳しい仕様にのっとっていない関数を使用した場合に発生する。
+例えば、ストリームに渡されるaccumulate（蓄積させる）する関数とコンバインする関数は、[結合的](https://docs.oracle.com/javase/jp/8/docs/api/java/util/stream/package-summary.html#Associativity)で、[非干渉](https://docs.oracle.com/javase/jp/8/docs/api/java/util/stream/package-summary.html#NonInterference)で、[ステートレス](https://docs.oracle.com/javase/jp/8/docs/api/java/util/stream/package-summary.html#Statelessness)な関数でなければならない。
+これを守れずとも、直線的なパイプラインであれば問題は起きないが、並列化されたパイプラインだと悲惨な結果になりうる。
+
+### 並列化して効果があるのか？
+とても良い条件で並列処理ができたとしても、並列化したコストを相殺するような性能を見せなければ意味がない。
+荒く見積もって、(ストリームの要素の数)*(1要素に実行されるコード行数) > 100000 を満たすべきである（リンク元見ると10000のような。。（http://gee.cs.oswego.edu/dl/html/StreamParallelGuidance.html））。
+
+ストリームの並列化はパフォーマンス最適化である、ということは認識しておくべき。
+どのような最適化でも、その変更前後でテストをしてやる価値があるか確かめねばならない。理想的には、テストは本番環境で行うべきである。
+
+### 並列化は正しい状況下で使えばとても有用
+
 
 # 8章.メソッド
 
@@ -2287,7 +2508,7 @@ private static void sort(long a[], int offset, int length) {
 * メソッドで使う引数でなく、後々の利用のために溜めておく引数は特にバリデーションチェックすることが重要（コンストラクタとかの話）。そこで誤った値を落としておかないと、後の処理でエラーになったときにデバッグが難しいため。
 * バリデーションチェックを明示的にすべきでないときもあって、それは、バリデーションチェックのコストが高く、非現実的で、かつ、チェックが処理の中に内包されているとき。例えば、Collections.sort(List)において、Listに内包される値は互いに比較可能なものでなければならないが、それはキャストするときにチェックされる。
 * 内包的チェックがなされた時に、出力されたエラーが適切なものでない場合には、適切なエラーへの変換処理を行う。
-* ここでの指南は、引数の恣意的な制限が良いというわけではなく、メソッドの設計をより汎用的なものに対応できるようにすることを目指すべきであり、制限は少ないほうがよい。
+* ここでの指南は、引数の恣意的な制限が良いというわけではなく、メソッドの設計をより汎用的なものに対応できるようにすることを目指すべきであり、制限は少ないほうがよい。 
 
 # 50.必要に応じて防御的コピー（defensive copies）を作るべし
 * JavaはCやC++のようなメモリに手を加えて起こる脆弱性（バッファオーバラン等）がない、という意味で安全な言語であるが、自分でクラスを実装するにあたっては、攻撃者が不変条件（invariant）を破ってくる、というつもりで実装をすべき。
