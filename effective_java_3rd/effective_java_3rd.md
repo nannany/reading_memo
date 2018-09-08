@@ -2484,6 +2484,63 @@ safety failureはストリームの厳しい仕様にのっとっていない関
 どのような最適化でも、その変更前後でテストをしてやる価値があるか確かめねばならない。理想的には、テストは本番環境で行うべきである。
 
 ### 並列化は正しい状況下で使えばとても有用
+**正しい状況下で並列化を行えば、プロセッサ数と比例するような性能向上が見込める。**
+機械学習やデータ処理の分野ではこれらの性能向上がしやすい。
+
+並列化が効率的に行える、[素数計数関数](https://ja.wikipedia.org/wiki/%E7%B4%A0%E6%95%B0%E8%A8%88%E6%95%B0%E9%96%A2%E6%95%B0)の例を見ていく。
+
+```java
+package tryAny.effectiveJava;
+
+import java.math.BigInteger;
+import java.util.stream.LongStream;
+
+public class ParallelTest1 {
+    // Prime-counting stream pipeline - benefits from parallelization
+    static long pi(long n) {
+        return LongStream.rangeClosed(2, n).mapToObj(BigInteger::valueOf).filter(i -> i.isProbablePrime(50)).count();
+    }
+
+    public static void main(String[] args) {
+        StopWatch sw = new StopWatch();
+        sw.start();
+        System.out.println(pi(10000000));
+        sw.stop();
+        System.out.println(sw.getTime());
+    }
+}
+```
+上記のコードを処理するのに42秒くらいかかった。これを並列化する。
+
+```java
+package tryAny.effectiveJava;
+
+import java.math.BigInteger;
+import java.util.stream.LongStream;
+
+import org.apache.commons.lang3.time.StopWatch;
+
+public class ParallelTest1 {
+    // Prime-counting stream pipeline - benefits from parallelization
+    static long pi(long n) {
+        return LongStream.rangeClosed(2, n).parallel().mapToObj(BigInteger::valueOf).filter(i -> i.isProbablePrime(50))
+                .count();
+    }
+
+    public static void main(String[] args) {
+        StopWatch sw = new StopWatch();
+        sw.start();
+        System.out.println(pi(10000000));
+        sw.stop();
+        System.out.println(sw.getTime());
+    }
+}
+```
+こうすると23秒くらいで終了した。（2コアのマシンで実行）
+
+### ランダム値のストリームを並列化する場合
+ランダム値の生成を並列で行うのならば、ThreadLocalRandomよりもSplittableRandomを使うべき。
+
 
 
 # 8章.メソッド
@@ -2498,10 +2555,10 @@ safety failureはストリームの厳しい仕様にのっとっていない関
 ```java
 // Private helper function for a recursive sort
 private static void sort(long a[], int offset, int length) {
-    assert a != null;
-    assert offset >= 0 && offset <= a.length;
-    assert length >= 0 && length <= a.length - offset;
-    ... // Do the computation
+    assert a != null;
+    assert offset >= 0 && offset <= a.length;
+    assert length >= 0 && length <= a.length - offset;
+    ... // Do the computation
 }
 ```
 
@@ -3049,8 +3106,6 @@ public @interface SuppressWarnings {
 * 従来のfor文のほうが記述すべきことが多くて、ミスが発生する確率が上がる。
 * 入れ子のイテレーションがあるときもfor-eachが使える。
 
-
-
 ```java
 package tryAny.effectiveJava;
 
@@ -3173,10 +3228,92 @@ public class RandomTest {
 * 9桁以下の計算にはintを、18桁以下ならlongを、19桁以上ならBigDecimalを使うべき。
 
 
+# 61.ボクシングされたプリミティブ型（boxed primitive）より、プリミティブ型（primitive）を選択すべし
+## ボクシングされたプリミティブ型とプリミティブ型の違い
+Item6でも述べられれているように、オートボクシングとオートアンボクシングにより、ボクシングされたプリミティブ型（以下boxed primitive）とプリミティブ型（以下primitive）の違いはあいまいになっている。
+しかし、これらの2つには違いがあり、使用時にはその差異に気を付けながら使わなければならない。その違いは3つで、
+* primitiveは値のみを持つが、boxed primitiveは値とは異なる形で参照を持つ。
+* primitiveは機能する値しか持ちえないが、boxed primitiveはnull（nonfunctional value）があり得る。
+* primitiveのほうが、時間的にも省メモリスペース的にも優れている。
+
+## boxed primitiveを使用した場合の誤り例
+
+### primitiveは値のみを持つが、boxed primitiveは値とは異なる形で参照を持つ
+以下のコードは一見うまく比較をしてくれるメソッドにみえる。
+
+```java
+// Broken comparator - can you spot the flaw?
+Comparator<Integer> naturalOrder =
+    (i, j) -> (i < j) ? -1 : (i == j ? 0 : 1);
+```
+しかし、このメソッドを```naturalOrder.compare(new Integer(42), new Integer(42))```のように用いると、想定としては等しいので0を返すはずだが、実際には1を返す。
+1つ目の判定（i < j）は、auto-unboxedされて正しく動作する。
+一方、2つ目の判定（i == j）は、同値であることをみる、つまり、参照が同じであるかをみている。よって、この比較はtrueにはならず、結果として1が返却される。 boxed primitiveに対して==演算子を用いることはたいてい間違っている。
+
+上記の誤りを防ぐためには、```Comparator.naturalOrder()```を用いるか、自身でcomparatorを書くのであれば、以下のようにprimitiveでの比較を行うようにする。
+
+```java
+Comparator<Integer> naturalOrder = (iBoxed, jBoxed) -> {
+    int i = iBoxed, j = jBoxed; // Auto-unboxing
+    return i < j ? -1 : (i == j ? 0 : 1);
+};
+```
+
+### primitiveは機能する値しか持ちえないが、boxed primitiveはnull（nonfunctional value）があり得る
+
+以下のプログラムでは、ヌルポが発生する。
+
+```java
+package tryAny.effectiveJava;
+
+public class BoxedPrimitive {
+    static Integer i;
+
+    public static void main(String[] args) {
+        if (i == 42)
+            System.out.println("Unbelievable");
+    }
+
+}
+```
+i==47のところで、Integerとintを比較している。
+boxed primitiveとprimitiveが混じった処理においては、**たいていの場合boxed primitiveがauto-unboxされる。**
+nullを参照しているオブジェクトをunboxするとヌルポが生じるが、それがここでは起きている。
+
+### primitiveのほうが、時間的にも省メモリスペース的にも優れている
+以下は、Item6で扱ったプログラムである。
+
+```java
+package tryAny.effectiveJava;
+
+public class BoxedPrimitive2 {
+    // Hideously slow program! Can you spot the object creation?
+    public static void main(String[] args) {
+        Long sum = 0L;
+        for (long i = 0; i < Integer.MAX_VALUE; i++) {
+            sum += i;
+        }
+        System.out.println(sum);
+    }
+
+}
+```
+box化、unbox化が繰り返し起こるため、これはローカル変数の型をlongにした場合よりも格段に遅い。
+
+## 総括
+3つの問題点があったが、最初の2つは結果がおかしくなり、最後の1つは性能が悪くなる。
+
+boxed primitiveの使い時としては以下の場合がある。
+* collectionの要素、キー、バリューとして使うとき。primitiveをcollectionに入れることはできないので使わざるを得ない。
+* パラメータ化された型に用いるとき。例えば、```ThreadLocal<int>```という型は宣言できないが、```ThreadLocal<Integer>```は宣言できる。
+* リフレクションでメソッドを参照するときはboxed primitiveを使う（？）。（Item65）
+
+# 62.他の型が適している場合にはStringを避けるべし
+## Stringが適していない場面でもStringが使われがち
+
+
 
 # 10章.例外
-
-
 
 # 69.例外的な状況にのみ、例外は用いるべし
 
