@@ -64,12 +64,6 @@
 
 * googleのAutoValueを使えば、うまくequalsのオーバーライドを行ってくれる。
 
-
-
-
-
-
-
 # 11.equalsをオーバーライドする場合はhashcodeもオーバーライドせよ
 
 
@@ -3335,8 +3329,136 @@ String compoundKey = className + "#" + i.next();
 
 ベターな方法としては、単純に、要素をまとめるクラスを書くことだ。よくprivate staticなメンバークラスが作られる（Item24）。
 
-### 
+### 偽造不可能なキー（capability）として使うべきでない
 Stringは何らかの機能へのアクセス手段として使われることがある。
+例として、ThreadLocalの変数格納機能を考えてみる。
+ThreadLocalはそれぞれのスレッドの固有の値を格納できるものとして機能する。この機能は、Java1.2以降にJavaライブラリに現れたが、それ以前にこういった機能を設計しようとしたら、以下のようにStringを使って実現してしまうかもしれない。
+
+```java
+// Broken - inappropriate use of string as capability!
+public class ThreadLocal {
+    private ThreadLocal() { } // Noninstantiable
+ // Sets the current thread's value for the named variable.
+    public static void set(String key, Object value);
+ // Returns the current thread's value for the named variable.
+    public static Object get(String key);
+}
+```
+上記のようにしたときの問題点は、Stringのキーがグローバルな名前空間として共有されてしまうことにある。
+そのため、意図せず別々のユーザーが1つの変数を共有してしまうかもしれず、エラーを生むことになる。
+
+また、セキュリティの観点からも良くない。
+悪意のあるユーザーがわざと他のユーザーのキーと同じ値でThreadLocalから値を取得する可能性があるからだ。
+
+上記を代替不可能なキー（unforgeable key または、capability）を使って書き換えると以下のようになる。
+
+```java
+public class ThreadLocal {
+    private ThreadLocal() { }    // Noninstantiable
+ public static class Key {    // (Capability)
+        Key() { }
+    }
+ // Generates a unique, unforgeable key
+    public static Key getKey() {
+        return new Key();
+    }
+ public static void set(Key key, Object value);
+    public static Object get(Key key);
+}
+```
+上記でStringのキーを使った場合の問題は解消されているが、さらに良い方法がある。
+staticなメソッドはもう必要なく、インスタンスメソッドがキーとなる（？）。
+その時点でキーはスレッドローカルな変数を指し示すキーではなく、キー自体がスレッドローカルな変数となっている（？）。
+APIとしては以下のよう。
+
+```java
+public final class ThreadLocal {
+    public ThreadLocal();
+    public void set(Object value);
+    public Object get();
+}
+```
+上記のAPIから値を取り出すときはキャストをしなければならないので、このAPIはタイプセーフではない。
+元のStringをキーとしたAPIや、Keyを使ったAPIでもタイプセーフにするのは難しいが、上記のAPIは以下のように、容易にタイプセーフにできる。
+
+```java
+public final class ThreadLocal<T> {
+    public ThreadLocal();
+    public void set(T value);
+    public T get();
+}
+```
+javaライブラリのThreadLocalもざっくりいうと上のようになっている。
+
+
+# 63.文字結合のパフォーマンスに気を付けよ
+文字結合を数多く行う場合には、+演算子による結合ではなく、StringBuilderを使うべし。
+Stringはimmutableなので、文字結合するごとに新しいオブジェクトが作成されてしまう。
+
+Stringを使った文字結合の例が以下。
+
+```java
+// Inappropriate use of string concatenation - Performs poorly!
+public String statement() {
+    String result = "";
+    for (int i = 0; i < numItems(); i++)
+        result += lineForItem(i);  // String concatenation
+    return result;
+}
+```
+
+StringBuilderを使った場合が以下。
+
+```java
+public String statement() {
+    StringBuilder b = new StringBuilder(numItems() * LINE_WIDTH);
+    for (int i = 0; i < numItems(); i++)
+        b.append(lineForItem(i));
+    return b.toString();
+}
+```
+
+# 64.インターフェースを参照するようにせよ
+## インターフェースで型を宣言しといた方が柔軟な設計になる
+**適切なインターフェース型あるならば、引数、戻り値、変数、フィールド全てがインターフェース型で宣言されるべきである。**
+オブジェクトクラスを参照するのはコンストラクタにおいてのみである。
+
+以下、Setインターフェースの実装クラスである、LinkedHashSetを例に見ていく。
+
+```java
+// Good - uses interface as type
+Set<Son> sonSet = new LinkedHashSet<>();
+```
+上記はいい例。
+
+```java
+// Bad - uses class as type!
+LinkedHashSet<Son> sonSet = new LinkedHashSet<>();
+```
+上記は悪い例。
+
+インターフェースで宣言した例だと、以下のように変えるだけで、実装クラスが基本的にエラーなく変えられる（インターフェースで宣言しているメソッドのみ使用しているため）。
+
+```java
+Set<Son> sonSet = new HashSet<>();
+```
+ただし、気を付けなくてはいけないのは、インターフェースでは規定されていない機能に依存したコードである場合には、実装クラスを変える影響があり得るということだ。
+例えば、LinkedHashSetの並び変えのポリシーに依存していた場合には、HashSetに実装を変えた時に影響が出るだろう。
+
+## 適切なインターフェースがない時
+適切なインターフェースがない時は、クラスの型で宣言を行うのが正しい。
+
+### value class
+例えば、StringやBigIntegerなどの値を表すクラス（value class）を考えてみる。
+value classは複数の実装があることがまずない。また、おおむねfinalなクラスであり、対応するインターフェースがない。
+value classは引数、変数、フィールド、戻り値の型として適している。
+
+### クラスベースのフレームワークを使っているとき
+クラスベースのフレームワークを使用しており、適切な基盤の型がインターフェースでなくて、クラスであるときがある。
+そういった場合も適したクラス（だいたいabstract）を継承するのが良い。
+java.ioのOutputStreamなどはこれに当たる。
+
+### 適したインターフェースはないが、実装クラスに適したメソッドが実装されているケース
 
 
 # 10章.例外
