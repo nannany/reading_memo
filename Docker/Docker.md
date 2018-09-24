@@ -371,12 +371,6 @@ Dockerfile内でユーザは必ず設定すべし。さもなくば、すべて�
 
 ## 基本的なWebページの作成
 
+Dockerfileいじったdocker-compose build をする。
 
-
-
-
-
-
-
-
-
+# 7章 イメージの配布
