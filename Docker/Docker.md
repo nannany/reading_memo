@@ -390,7 +390,26 @@ curl -L https://github.com/docker/machine/releases/download/v0.15.0/docker-machi
     sudo cp /tmp/docker-machine /usr/local/bin/docker-machine
 を実行してdocker-machineをインストール。
 
+## 9.1 Docker Machineを使ったリソースのプロビジョニング
+docker-machine create --driver digitalocean --digitalocean-access-token ... identihost-do
 
+作業が終わったらホストマシンは削除する。
+
+実働環境では動作させるコンテナのバージョンに注意する。
+
+docker-compose の指定ymlファイルをCOMPOSE_FILEで指定しているが、うまく行かない。
+-fで指定してやるとうまくいく。
+
+docker run -it コンテナ /bin/bash
+でコンテナの中身見れる。
+
+curl $(docker-machine ip identihost-do)
+
+## 9.3 実行オプション
+
+### 9.3.1 シェルスクリプト
+
+### 9.3.2 プロセスマネージャの利用（もしくはsystemdでまとめて管理）
 
 ## 9.4 ホストの設定
 DigitalOceanでは設定済みのVMを提供してくれる（ドロップレット）が、ホストOSとインフラには多様な選択肢がある。
