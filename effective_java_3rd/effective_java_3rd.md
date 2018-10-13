@@ -4791,7 +4791,607 @@ private void readObjectNoData()
 合成フィールドに対するシリアライズの形式は不定なので、インナークラスでのSerializable実装は避けるべき。
 ただし、staticなメンバークラスはSerializable実装可。
 
-# 87.改良serialized formの利用を考慮せよ
+# 87.カスタムserialized formの利用を考慮せよ
 通常のserialized formを選択した場合、将来修正するということはできなくなると考えねばならない。
 
 ## 適切か否か考慮せずにデフォルトのserialized formを選択してはならない
+一般に、カスタムserialized formを設計することを選んだ時のエンコーディング結果とほとんど変わらない場合の時だけ、デフォルトserialized formを選ぶべき。
+デフォルトserialized formはオブジェクトグラフの物理表現を効率的にエンコーディングしたものである。
+つまり、
+
+### デフォルトserialized formでいい場合
+**デフォルトserialized formはオブジェクトの物理表現と論理コンテンツが一致している場合に適切であることが多い。**
+例えば以下のような、シンプルに人の名前を表現したクラスは、デフォルトserialized formが向いている。
+
+```java
+// Good candidate for default serialized form
+public class Name implements Serializable {
+
+    /**
+     * must be non-null
+     * @serial
+     */
+    private final String lastName;
+
+    /**
+     * must be non-null
+     * @serial
+     */
+    private final String firstName;
+
+    /**
+     * Middle name, or null if there is none
+     * @serial
+     */
+    private final String middleName;
+
+    public Name(String lastName, String firstName, String middleName) {
+        super();
+        this.lastName = lastName;
+        this.firstName = firstName;
+        this.middleName = middleName;
+    }
+
+}
+```
+
+Nameのインスタンスフィールドが論理的内容と対応している。
+
+**デフォルトserialized formが適切だと判断した場合でも、不変条件やセキュリティを確保するためにreadObjectメソッドを提供せねばならないときもある。**
+上記のNameの場合であれば、lastNameとfirstNameがnullでないことを、readObjectメソッドが保証せねばならない。このことはItem88,90で詳細に述べる。
+
+NameのlastName,firstName,middleNameはprivateなフィールドであるにもかかわらず、ドキュメントが付されている。
+その理由は、これらのprivateフィールドは、クラスのserialized formとして公開されるからである。
+@serialというタグをつけると、生成されるJavadocでserialized formに関する専用ページを作れる。
+
+### デフォルトserialized formが向いてない場合
+Nameクラスとは真逆に位置するものとして、以下のような文字列のリストを表すクラスを考える。
+
+```java
+// デフォルトserialized formにしてはならない！
+public final class StringList implements Serializable {
+    private int size = 0;
+    private Entry head = null;
+
+    private static class Entry {
+        String data;
+        Entry previous;
+        Entry next;
+    }
+}
+```
+論理的には、このクラスは文字列のシーケンスを表している。物理的には、双方向リストとしてのシーケンスを表している。
+デフォルトserialized formを受け入れるとすると、serialized formは、連結リストの全要素と、entry間の全リンクを反映したものとなる。
+
+**物理的な表現と論理的な内容の間で乖離がある場合に、デフォルトserialized formを使うことには4つのディスアドバンテージがある。**
+* 公開APIとその時の内部表現が、永続的に蜜結合となってしまう
+* メモリ空間をめっちゃ食う
+* 時間めっちゃ食う
+* スタックオーバーフロー起きうる
+（**難しくてよくわからん**）
+
+### 改訂版StringList
+
+StringListの合理的なserialized formは、数個の文字列で構成されたlistである。
+この構成は、StringListの論理的なデータの表し方である。
+以下がwriteObjectとreadObjectを使った、改訂版のStringListである。
+
+```java
+package tryAny.effectiveJava;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+
+// 改良を加えたStringList
+public final class StringList2 implements Serializable {
+    private transient int size = 0;
+    private transient Entry head = null;
+
+    // No longer Serializable
+    private static class Entry {
+        String data;
+        Entry previous;
+        Entry next;
+    }
+
+    // listに文字列を加える
+    public final void add(String s) {
+
+    }
+
+    private void writeObject(ObjectOutputStream s) throws IOException {
+        s.defaultWriteObject();
+        s.writeInt(size);
+
+        for (Entry e = head; e != null; e = e.next) {
+            s.writeObject(e.data);
+        }
+    }
+
+    private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
+        s.defaultReadObject();
+        int numElements = s.readInt();
+
+        for (int i = 0; i < numElements; i++) {
+            add((String) s.readObject());
+        }
+    }
+}
+```
+
+上記のクラスにおいて、writeObjectはまずdefaultWriteObjectメソッドを呼び出し、readObjectはまずdefautlReadObjectメソッドを呼び出している。
+クラスの全フィールドがtransientである場合には、defaultWriteObjectメソッド、defautlReadObjectメソッドを呼び出す必要がないといわれることがあるが、そんなことはなく、呼び出さねばならない。
+これらの呼び出しがあることで、のちのリリースでtransientでないフィールドを、互換性を保ちながら追加することが可能となる。
+
+性能面に関して、10文字の文字列が10個連なったリストで計測したとき、改訂版StringListは、以前のメモリ量の半分程度になり、シリアライズの速さも倍となり、スタックオーバーフローの心配もなくなった。
+
+
+### Objectの不変条件が実装と結びつかない場合
+hashテーブルの物理的な実装は、hash bucketsの中にキーのハッシュ値が連なったものである。
+キーのhash値は実装によって異なるので、デフォルトのserialized formを用いると深刻なバグを生む。
+
+### transient
+デフォルトserialized formを利用するかどうかに関わらず、defaultWriteObject を呼び出すと transient 指定されたフィールド以外のフィールドはすべてシリアライズされる。不必要なシリアライズを避けるために、できるだけtransient修飾子をつけるようにする。
+
+transientが付されたフィールドはデシリアライズされたときに、デフォルトの初期値になっている。つまり、参照型変数であればnull、intなどなら0、booleanであればfalseになっている。
+それが許容できないのであれば、readObjectメソッドにて設定をするか（Item88）、使用時に遅延初期化する（Item83）。
+
+### 他のメソッドで同期をとっている場合は、シリアライズ時も同期をとる
+シリアライズ時も同期をとる必要があるので、writeObjectにもsynchronizedをつける必要がある。
+
+###　serialVersionUIDを明示する
+明示することによって、ソースの非互換を防ぐことができる（Item86）。また、serialVersionUIDを実行時に生成しなくてよいので、ちょっとだけ性能が良くなる。
+新しくクラスを書く場合には、この番号は何でもよく、別に一意な値でなくともよい。
+
+現存するクラスにUIDを付与し、互換性も保とうとする場合は、古いバージョンのUIDにしてやる必要がある。
+
+
+# 88.防御的にreadObjectメソッドを書くべし
+Item50では、ミュータブルなprivate Dateフィールドを持った、イミュータブルな日付のレンジクラスがあった。
+そこでは、コンストラクタとアクセサでDateオブジェクトの防御的コピーを用いることでイミュータブルであることを守っていた。
+
+```java
+package tryAny.effectiveJava;
+
+import java.io.Serializable;
+import java.util.Date;
+
+public final class Period implements Serializable {
+    private final Date start;
+    private final Date end;
+
+    /**
+     * @param start
+     *            the beginning of the period
+     * @param end
+     *            the end of the period; must not precede start
+     * @throws IllegalArgumentException
+     *             if start is after end
+     * @throws NullPointerException
+     *             if start or end is null
+     */
+    public Period(Date start, Date end) {
+        this.start = new Date(start.getTime());
+        this.end = new Date(end.getTime());
+        if (this.start.compareTo(this.end) > 0)
+            throw new IllegalArgumentException(this.start + " after " + this.end);
+    }
+
+    public Date start() {
+        return new Date(start.getTime());
+    }
+
+    public Date end() {
+        return new Date(end.getTime());
+    }
+
+    public String toString() {
+        return start + "-" + end;
+    }
+
+}
+```
+
+このクラスをSerializableにすることを考える。
+物理的な構造と、論理的なデータ内容に齟齬がないため、デフォルトのserialized formを用いる、すなわち、Serializableを実装するだけでよいように思えるが、そのようにすると、不変条件が保たれなくなる。
+
+readObjectメソッドは実質的にpublicなコンストラクタであり、その他のコンストラクタと同様のケアが必要であるという点で問題がある。
+コンストラクタでは引数をチェックする必要がある（Item49）のと、必用に際して引数のディフェンシブコピーが要る（Item50）。そのため、readObjectでも同様の考慮がいる。
+readObjectでこれらの考慮をし忘れると、攻撃者は不変条件を破ることが可能となる。
+
+
+## 悪いバイトストリームを流し込むケース
+大雑把に言うと、readObjectはバイトストリームを一つの引数として扱うコンストラクタである。
+通常、バイトストリームは普通に構築されたインスタンスをシリアライズすることによって生み出されたものである。
+問題となるのは、不変条件を犯すために人為的に構築されたバイトストリームである。そのようなバイトストリームは、通常あり得ないオブジェクトの生成を行ってしまう。
+下記がその一例（Periodのendがstartよりも前に来てしまう）であるが、自分の環境だと、
+```
+Exception in thread "main" java.lang.IllegalArgumentException: java.lang.ClassNotFoundException: Period
+	at tryAny.effectiveJava.BogusPeriod.deserialize(BogusPeriod.java:31)
+	at tryAny.effectiveJava.BogusPeriod.main(BogusPeriod.java:20)
+```
+が出てしまう。。
+
+```java
+package tryAny.effectiveJava;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+
+public class BogusPeriod {
+    // Byte stream could not have come from real Period instance
+    private static final byte[] serializedForm = new byte[] { (byte) 0xac, (byte) 0xed, 0x00, 0x05, 0x73, 0x72, 0x00,
+            0x06, 0x50, 0x65, 0x72, 0x69, 0x6f, 0x64, 0x40, 0x7e, (byte) 0xf8, 0x2b, 0x4f, 0x46, (byte) 0xc0,
+            (byte) 0xf4, 0x02, 0x00, 0x02, 0x4c, 0x00, 0x03, 0x65, 0x6e, 0x64, 0x74, 0x00, 0x10, 0x4c, 0x6a, 0x61, 0x76,
+            0x61, 0x2f, 0x75, 0x74, 0x69, 0x6c, 0x2f, 0x44, 0x61, 0x74, 0x65, 0x3b, 0x4c, 0x00, 0x05, 0x73, 0x74, 0x61,
+            0x72, 0x74, 0x71, 0x00, 0x7e, 0x00, 0x01, 0x78, 0x70, 0x73, 0x72, 0x00, 0x0e, 0x6a, 0x61, 0x76, 0x61, 0x2e,
+            0x75, 0x74, 0x69, 0x6c, 0x2e, 0x44, 0x61, 0x74, 0x65, 0x68, 0x6a, (byte) 0x81, 0x01, 0x4b, 0x59, 0x74, 0x19,
+            0x03, 0x00, 0x00, 0x78, 0x70, 0x77, 0x08, 0x00, 0x00, 0x00, 0x66, (byte) 0xdf, 0x6e, 0x1e, 0x00, 0x78, 0x73,
+            0x71, 0x00, 0x7e, 0x00, 0x03, 0x77, 0x08, 0x00, 0x00, 0x00, (byte) 0xd5, 0x17, 0x69, 0x22, 0x00, 0x78 };
+
+    public static void main(String[] args) {
+        Period p = (Period) deserialize(serializedForm);
+        System.out.println(p);
+    }
+
+    // Returns the object with the specified serialized form
+    public static Object deserialize(byte[] sf) {
+        try {
+            InputStream is = new ByteArrayInputStream(sf);
+            ObjectInputStream ois = new ObjectInputStream(is);
+            return ois.readObject();
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e.toString());
+        }
+    }
+
+}
+```
+
+上のクラスは本来だと、endの日付がstartの日付より前になったものが表示されるはずであり、これはクラスの不変条件を破っている。
+
+この攻撃を防ぐためには、下記のようにreadObjectメソッドでバリデーションチェックをかけてやる必要がある。
+```java
+    private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
+        s.defaultReadObject();
+
+        if (start.compareTo(end) > 0) {
+            throw new InvalidObjectException(start + "after" + end);
+        }
+    }
+```
+
+## 悪い参照を付け加える
+上の攻撃は防げたとしても、Periodの条件を守りながらインスタンスを作成し、末尾にPeriodのprivateフィールドのDateへの参照を付け加えることも可能である。
+
+つまり、攻撃者はObjectInputStreamからPeriodインスタンスを読み込み、そのストリームに付与された「悪いオブジェクト参照」を読み込む。
+これらの参照によって、攻撃者は、Periodオブジェクト内のDateインスタンスへの参照を得られ、Periodインスタンスを変更することが可能となる。
+以下がその例。
+
+```java
+package tryAny.effectiveJava;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.Date;
+
+public class MutablePeriod {
+    public final Period period;
+
+    public final Date start;
+    public final Date end;
+
+    public MutablePeriod() {
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ObjectOutputStream out = new ObjectOutputStream(bos);
+            // Period インスタンスの書き込み
+            out.writeObject(new Period(new Date(), new Date()));
+            // Period インスタンスの特定のプロパティへの参照を作成
+            byte[] ref = { 0x71, 0, 0x7e, 0, 5 };
+            bos.write(ref);
+            ref[4] = 4;
+            bos.write(ref);
+
+            // 可変な Period インスタンスの生成
+            ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(bos.toByteArray()));
+            period = (Period) in.readObject();
+            start = (Date) in.readObject();
+            end = (Date) in.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    public static void main(String[] args) {
+        MutablePeriod mp = new MutablePeriod();
+        Period p = mp.period;
+        Date pEnd = mp.end;
+
+        // Let's turn back the clock
+        pEnd.setYear(78);
+        System.out.println(p);
+
+        // Bring back the 60s!
+        pEnd.setYear(69);
+        System.out.println(p);
+    }
+}
+```
+
+このプログラムを実行すると、以下のように出力される。
+
+```
+Mon Oct 08 18:43:49 JST 2018-Sun Oct 08 18:43:49 JST 1978
+Mon Oct 08 18:43:49 JST 2018-Wed Oct 08 18:43:49 JST 1969
+```
+
+Periodインスタンスをそのままにしておくと、内部のコンポーネントを自由に操作されてしまう。
+そうなると、Periodのimmutabilityにセキュリティ面で依存しているシステムは、攻撃をされうる。
+
+原因としては、PeriodのreadObjectメソッドにおいて、防御的コピーを取れていなかったことにある。
+**オブジェクトがデシリアライズされる時、クライアントが保持してはならないオブジェクト参照を含むフィールドについては、防御的コピーを取ることが必須である。**
+具体的には、以下のようなreadObjectにしておくべき。（このとき、startとendはfinalではなくなる）
+
+```java
+    private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
+        s.defaultReadObject();
+
+        start = new Date(start.getTime());
+        end = new Date(end.getTime());
+
+        if (start.compareTo(end) > 0) {
+            throw new InvalidObjectException(start + "after" + end);
+        }
+    }
+```
+
+こうすることで、MutablePeriodの実行においても以下のようになり、不正は起こらない。
+
+```java
+Mon Oct 08 20:19:56 JST 2018-Mon Oct 08 20:19:56 JST 2018
+Mon Oct 08 20:19:56 JST 2018-Mon Oct 08 20:19:56 JST 2018
+```
+
+## readObjectがデフォルトのままでよいか否かのリトマス紙：コンストラクタでどうか
+transientでないフィールドを引数にとるpublicなコンストラクタを作ること、また、その引数をバリデーションかけずともよいかどうかを問うべき。
+もしそれがだめならば、readObjectにおいても防御的コピーを取り、バリデーションチェックをかける必要がある。
+代替手段としては、serialization proxy pattern（Item90）を使用するべき。
+
+そのほかのreadObjectとコンストラクタの類似点として、readObjectメソッドの内部で、直接的であれ間接的であれoverrideされうるメソッドを利用してはならない（Item19）。
+利用した場合には、オーバーライドされたメソッドが呼び出され、サブクラスの状態がデシリアライズされないまま実行され、エラーとなりうる。
+
+## まとめ
+readObjectを書く時のガイドラインを以下にまとめる。
+
+* オブジェクト参照を持つフィールドはprivateにし、防御的コピーを取る。immutableなクラスのmutableなコンポーネントはこれに当たる。
+* 不変条件をチェックし、破られた場合はInvalidObjectExceptionをなげる。
+* デシリアライズされた後に、オブジェクトグラフ全体にバリデーションをかける必要があるならば、ObjectInputValidationインターフェースを使う。（本書では語らない）
+* オーバーライドされうるメソッドは直接的にも間接的にも呼ばない。
+
+# 89.インスタンス制御に対しては、readResolve より enum 型を選ぶべし
+Item3で以下のような例でシングルトンパターンを紹介した。
+
+```java
+public class Elvis {
+    public static final Elvis INSTANCE = new Elvis();
+
+    private Elvis() {
+    ...
+    }
+
+    public void leaveTheBuilding() {
+    ...
+    }
+}
+```
+
+このクラスはSerializableを実装すると、シングルトンではなくなってしまう。
+デフォルトserialized formであるかカスタムserialized form であるかに関わらず、また、readObjectメソッドを提供するか（Item87）に関わらず、シングルトンではなくなってしまう。
+readObjectメソッドはデフォルトのものであれ、そうでないものであれ、クラス初期化時に作られたものとは違う、新しく作成したインスタンスを返すようになっている。
+
+## readResolve
+readResolveメソッドを使うことで、readObjectで作成されたオブジェクトとは別のインスタンスを返すことができる。
+
+もし、デシリアライズされるクラスが適切にreadResolveメソッドを定義していたら、このメソッドは新しく作成されたオブジェクトに対して、デシリアライズされた後に呼び出される。
+このメソッドによって返される参照は、新しく作成されたオブジェクトの代わりとなるものである。この機能を用いると、大体の場合新しく作成されたオブジェクトに対する参照はなくなり、新しく作成されたオブジェクトはすぐにガベージコレクションによって処理可能となる。
+
+上記のElvisクラスがSerializableを実装した場合、以下のようにreadResolveメソッドを付ければシングルトンであることを保証できる。
+
+```java
+public class Elvis {
+    public static final Elvis INSTANCE = new Elvis();
+
+    private Elvis() {
+    ...
+    }
+
+    public void leaveTheBuilding() {
+    ...
+    }
+    private Object readResolve() {
+        return INSTANCE;
+    }
+}
+```
+
+このreadResolveメソッドでは、デシリアライズされたオブジェクトを無視し、クラス初期化時に作成されたインスタンスを返却する。
+そのため、シリアライズされたElvisインスタンスは何らかのデータを持ってはならない。つまり、すべてのフィールドはtransientで宣言されていなければならない。
+
+**もしreadResolveでインスタンスのコントロールをしようとするならば、参照を持つすべてのフィールドにはtransientをつけねばならない**。
+そうでなければ、Item88で見せた例のような攻撃が、readResolveが走る前に行われる可能性がある。
+
+攻撃は少し複雑だが、そのアイデアはシンプルなものである。
+
+まず、stealerクラスを書く。
+stealerクラスには、readResolveメソッドと、stealerが隠ぺいするシングルトンのフィールドがある。
+シリアライゼーションストリームの中で、シングルトンのtransientでないフィールドをstealerのインスタンスで置き換える。
+この時、シングルトンのインスタンスはstealerを含み、stealerはシングルトンの参照を持っている。
+
+シングルトンはstealerを含んでいるので、シングルトンがデシリアライズされる時、最初にstealerのreadResolveメソッドが流れる。
+結果として、stealerのreadResolveメソッドが流れるときには、そのインスタンスフィールドには一部デシリアライズされたシングルトンが参照されることとなる。
+
+stealerのreadResolveメソッドは、その参照をインスタンスフィールドからstaticフィールドにコピーし、該当の参照はreadResolveメソッドが流れた後でもアクセス可能となる。
+そのあと、readResolveメソッドは、隠したシングルトンのフィールドの正しい型を返す。このようにしないと、シリアライゼーションシステムがシングルトンのフィールドの中にstealerの参照を格納するときに、VMがCastExceptionをスローする。
+
+具体例を示す。以下のような壊れたシングルトンクラスについて考える。
+
+```java
+package tryAny.effectiveJava;
+
+import java.io.Serializable;
+import java.util.Arrays;
+
+//非 transient プロパティを含む不完全なシングルトン実装
+public class Elvis implements Serializable {
+    public static final Elvis INSTANCE = new Elvis();
+
+    private Elvis() {
+    }
+
+    // 非 transient なプロパティ
+    private String[] favoriteSongs = { "Hound Dog", "Heartbreak Hotel" };
+
+    public void printFavorites() {
+        System.out.println(Arrays.toString(favoriteSongs));
+    }
+
+    private Object readResolve() {
+        return INSTANCE;
+    }
+}
+```
+stealerクラスは以下のよう。
+
+```java
+package tryAny.effectiveJava;
+
+import java.io.Serializable;
+
+//Elvis クラスを攻撃するクラス
+public class ElvisStealer implements Serializable {
+    // シングルトン以外のインスタンスを保持しておくための static フィールド
+    static Elvis impersonator;
+
+    // もう一つの Elvis インスタンス
+    private Elvis payload;
+
+    private Object readResolve() {
+        // payload に保持されている Elvis インスタンスを impersonator に保持しておく
+        impersonator = payload;
+
+        // このプロパティを文字列配列として偽装するので文字列配列を返す
+        return new String[] { "A Fool Such as I" };
+    }
+
+    private static final long serialVersionUID = 0;
+}
+```
+欠陥シングルトンの2つのインスタンスを生成するお手製ストリームをデシリアライズするクラスが以下になる。（Java10だと動かない？）
+
+```java
+package tryAny.effectiveJava;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+
+public class ElvisImpersonator {
+    // 改変した Elvis ストリーム
+    private static final byte[] serializedForm = new byte[] { (byte) 0xac, (byte) 0xed, 0x00, 0x05, 0x73, 0x72, 0x00,
+            0x05, 0x45, 0x6c, 0x76, 0x69, 0x73, (byte) 0x84, (byte) 0xe6, (byte) 0x93, 0x33, (byte) 0xc3, (byte) 0xf4,
+            (byte) 0x8b, 0x32, 0x02, 0x00, 0x01, 0x4c, 0x00, 0x0d, 0x66, 0x61, 0x76, 0x6f, 0x72, 0x69, 0x74, 0x65, 0x53,
+            0x6f, 0x6e, 0x67, 0x73, 0x74, 0x00, 0x12, 0x4c, 0x6a, 0x61, 0x76, 0x61, 0x2f, 0x6c, 0x61, 0x6e, 0x67, 0x2f,
+            0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x3b, 0x78, 0x70, 0x73, 0x72, 0x00, 0x0c, 0x45, 0x6c, 0x76, 0x69, 0x73,
+            0x53, 0x74, 0x65, 0x61, 0x6c, 0x65, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x01,
+            0x4c, 0x00, 0x07, 0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x74, 0x00, 0x07, 0x4c, 0x45, 0x6c, 0x76, 0x69,
+            0x73, 0x3b, 0x78, 0x70, 0x71, 0x00, 0x7e, 0x00, 0x02 };
+
+    public static void main(String[] args) {
+        Elvis elvis = (Elvis) deserialize(serializedForm);
+        Elvis impersonator = ElvisStealer.impersonator;
+        elvis.printFavorites();
+        impersonator.printFavorites();
+    }
+
+    static Object deserialize(byte[] sf) {
+        try {
+            return new ObjectInputStream(new ByteArrayInputStream(sf)).readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+
+    }
+}
+```
+
+このプログラムを実行すると、
+```
+[Hound Dog,Heartbreak Hotel]
+[A Fool Such as I]
+```
+のように表示されるらしい。（Java10で実行したところ動かず。以下の感じになる）
+
+```
+Exception in thread "main" java.lang.IllegalArgumentException: java.lang.ClassNotFoundException: Elvis
+	at tryAny.effectiveJava.ElvisImpersonator.deserialize(ElvisImpersonator.java:29)
+	at tryAny.effectiveJava.ElvisImpersonator.main(ElvisImpersonator.java:19)
+Caused by: java.lang.ClassNotFoundException: Elvis
+	at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:582)
+	at java.base/jdk.internal.loader.ClassLoaders$AppClassLoader.loadClass(ClassLoaders.java:190)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:499)
+	at java.base/java.lang.Class.forName0(Native Method)
+	at java.base/java.lang.Class.forName(Class.java:374)
+	at java.base/java.io.ObjectInputStream.resolveClass(ObjectInputStream.java:685)
+	at java.base/java.io.ObjectInputStream.readNonProxyDesc(ObjectInputStream.java:1877)
+	at java.base/java.io.ObjectInputStream.readClassDesc(ObjectInputStream.java:1763)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2051)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1585)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:422)
+	at tryAny.effectiveJava.ElvisImpersonator.deserialize(ElvisImpersonator.java:27)
+	... 1 more
+```
+
+
+想定通りの結果になったとすると、シングルトンであるにも関わらず、異なる2つのインスタンスが存在していることになるので問題である。
+
+この問題はfavoriteSongsフィールドをtransientにすることで解消できる。
+
+## single-element enum
+しかし、Elvisクラスを1つの要素をもつenumとして作るほうが筋が良い（Item3）。
+
+もし、シリアライザブルでインスタンスコントロールが必要なクラスをenumで書いたとしたら、Javaによって、宣言されたもの以外のインスタンスはあり得ないということが保証される。
+Elvisの例では以下のようになる。
+
+```java
+public enum Elvis {
+    INSTANCE;
+    private String[] favoriteSongs =
+            {"Hound Dog", "Heartbreak Hotel"};
+
+    public void printFavorites() {
+        System.out.println(Arrays.toString(favoriteSongs));
+    }
+}
+```
+
+enumによって、readResolveによるインスタンスコントロールが時代遅れになったわけではない。
+コンパイル時には確定していない、シリアライザブルでインスタンスコントロールが必要なクラスに関しては、enumでは対処することができない。
+
+## readResolveのアクセシビリティ
+readResolveをfinalクラスに置くのであれば、privateにすべき。
+
+finalではないクラスに置くのであれば、考慮が必要となる。
+privateであれば、サブクラスからはアクセスできない。
+package-privateであれば、同じパッケージのサブクラスしかアクセスできない。
+protected または publicであれば、全てのサブクラスで使える。
+
+protected または publicの場合で、サブクラスがreadResolveをオーバーライドしない場合、サブクラスをデシリアライズするときにスーパークラスのインスタンスを返すことになるので、ClassCastExceptionを発生させる可能性が高い。
+
+# 90.シリアライズされたインスタンスの代わりに、シリアライズ・プロキシを検討する
