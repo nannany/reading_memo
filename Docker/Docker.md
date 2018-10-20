@@ -542,3 +542,87 @@ docker-machine create -d virtualbox identidock-host
 
 eval $(docker-machine env redis-host)
 docker run -d --name real-redis redis:3
+
+
+
+## 11.2 サービスディスカバリ
+
+### 11.2.1 etcd
+Docker Machineで新しいホスト
+
+docker-machine create -d virtualbox etcd-1
+
+docker-machine create -d virtualbox etcd-2
+
+HOSTA=$(docker-machine ip etcd-1)
+HOSTB=$(docker-machine ip etcd-2)
+
+1番目のVM
+eval $(docker-machine env etcd-1)
+
+docker run -d -p 2379:2379 -p 2380:2380 -p 4001:4001 \
+--name etcd quey.io/coreos/etcd \
+-name etcd-1 -initial-advertise-peer-urls http://${HOSTA}:2380 \
+-listen-peer-urls http://0.0.0.0:2380 \
+-listen-client-urls http://0.0.0.0:2379,http://0.0.0.0:4001 \
+-advertise-client-urls http://${HOSTA}:2379 \
+-initial-clustre-token etcd-cluster-1 \
+-initial-cluster \
+    etcd-1=http://${HOSTA}:2380,etcd-2=http://${HOSTB}:2380 \
+-initial-cluster-state new
+
+
+2番目のVM
+eval $(docker-machine env etcd-2)
+
+docker run -d -p 2379:2379 -p 2380:2380 -p 4001:4001 \
+--name etcd quey.io/coreos/etcd \
+-name etcd-1 -initial-advertise-peer-urls http://${HOSTB}:2380 \
+-listen-peer-urls http://0.0.0.0:2380 \
+-listen-client-urls http://0.0.0.0:2379,http://0.0.0.0:4001 \
+-advertise-client-urls http://${HOSTB}:2379 \
+-initial-clustre-token etcd-cluster-1 \
+-initial-cluster \
+    etcd-1=http://${HOSTA}:2380,etcd-2=http://${HOSTB}:2380 \
+-initial-cluster-state new
+
+
+メンバーのリストを返してもらうcurl。
+
+curl -s http://$HOSTA:2379/v2/members | jq '.'
+
+キーバリューストアに登録するcurl
+
+curl -s http://$HOSTA:2379/v2/keys/service_name -XPUT -d value="service_address" | jq '.'
+
+保存したデータを取得しなおすcurl
+curl -s http://$HOSTA:2379/v2/keys/service_name
+
+
+etcdctlというコマンドラインクライアントでetcdクラスタとやり取りできる
+
+docker run binocarlos/etcdctl -C ${HOSTB}:2379 get service_name
+
+### 11.2.2 SkyDNS
+kubernetesのサービスディスカバリで使われている。
+
+etcdにSkyDNSの設定をする。起動時に行う処理を知らせる。
+curl -XPUT http://${HOSTA}:2379/v2/keys/skydns/config -d value='{"dns_addr":"0.0.0.0:53", "domain":"identidock.local."}' | jq .
+
+etcd-1上でskydnsを立ち上げる。
+
+eval $(docker-machine env etcd-1)
+docker run -d -e ETCD_MACHINES="http://${HOSTA}:2379,http://${HOSTB}:2379 --name dns skynetservices/skydns:2.5.2a
+
+etcd-2上でredisを立ち上げる。それをSkyDNSに追加する。
+
+eval $(docker-machine env etcd-2)
+docker run -d -p 6379:6379 --name redis redis:3
+curl -XPUT http://${HOSTA}:2379/v2/keys/skydns/local/identidock/redis -d value='{"host":"'${HOSTB'","port":6379}' | jq .
+
+etcd-1で--dnsを使って、ルックアップするDNSコンテナを指定し、新しいコンテナを立ち上げる。
+
+eval $(docker-machine env etcd-1)
+docker run --dns $(docker inspect -f {{.NetworkSettings.IPAddress}} dns) -it redis:3 bash
+
+

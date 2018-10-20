@@ -44,15 +44,7 @@
 
 # 3章.全オブジェクト共通のメソッド
 
-
-
 * この章ではObjectsのメソッドオーバーライド方法を中心にまとめられている。
-
-
-
-
-
-
 
 # 10.equalsのoverrideは一般契約（general contracts）に従うべし
 
@@ -5395,3 +5387,131 @@ protected または publicであれば、全てのサブクラスで使える。
 protected または publicの場合で、サブクラスがreadResolveをオーバーライドしない場合、サブクラスをデシリアライズするときにスーパークラスのインスタンスを返すことになるので、ClassCastExceptionを発生させる可能性が高い。
 
 # 90.シリアライズされたインスタンスの代わりに、シリアライズ・プロキシを検討する
+本章で述べられてきたリスクを大きく低減させる技法として、シリアライゼーションプロキシパターンがある。
+
+## シリアライゼーションプロキシパターン
+シリアライゼーションプロキシパターンでは、まず、private static なインナークラスを作る。
+このインナークラス（シリアライゼーションプロキシと呼ばれる）はエンクロージングクラスのインスタンスの論理状態を簡潔に表すようにする。
+
+シリアライゼーションプロキシは1つのコンストラクタをもち、その引数はエンクロージングクラスである。
+このコンストラクタでは、単に引数からデータをコピーしてくるのみであり、バリデーションチェックや防御的コピーを取る必要はない。
+
+意図的に、シリアライゼーションプロキシのデフォルトserialized formはエンクロージングクラスの完全なSerialized formとなるようにする。
+エンクロージングクラスとシリアライゼーションプロキシの双方とも、Serializableを実装するようにする。
+
+Item50とItem88でみたPeriodクラスのシリアライゼーションプロキシの例は以下である。
+
+```java
+// ネストしたクラス。シリアライズ用の専用。
+private static class SerializationProxy implements Serializable {
+    // フィールドは final にできる
+    private final Date start;
+    private final Date end;
+
+    SerializationProxy(Period period) {
+        // 防御的コピーは必要はない
+        this.start = period.start;
+        this.end = period.end;
+    }
+
+    // UID を設定（Item87）
+    private static final long serialVersionUID = 234098243823485285L;
+}
+```
+
+次に、エンクロージングクラスにwriteReplaceメソッドを加える。例は以下。
+
+```java
+private Object writeReplace() {
+    return new SerializationProxy(this);
+}
+```
+
+このメソッドによって、エンクロージングクラスは、シリアライゼーションシステムに対して、シリアライズ対象はシリアライゼーションプロキシであることを明示している。
+
+上記のwriteReplaceがエンクロージングクラスに置かれることで、エンクロージングクラスのインスタンスがシリアライズされることはなくなるはずだが、攻撃者が不変条件を破って、エンクロージングクラスを読み込んでくる場合について防御する必要がある。
+
+そのために、エンクロージングクラスに以下のreadObjectメソッドを置いておく。
+
+```java
+// シリアライズ対象クラスの readObject メソッド
+private void readObject(ObjectInputStream stream) throw InvalidObjectException {
+    throw new InvalidObjectException("Proxy required");
+}
+```
+こうすることで、エンクロージングクラスのシリアライズされたものが読み込まれることはなくなる。
+
+最後に、readResolveメソッドをシリアライゼーションプロキシに配置する。
+このreadResolveメソッドでは、エンクロージングクラスと論理的に等しいインスタンスを返すようにする。
+本メソッドの存在によって、シリアライズ時にシリアライゼーションプロキシに変換されていたものが、デシリアライズ時にエンクロージングクラスの形に戻されることになる。
+
+readResolveメソッドではエンクロージングクラスのpublicAPIのみを使用して、エンクロージングクラスのインスタンスを生成するが、そこにこのパターンの良さが現れている。
+これによって、シリアライゼーションの特徴の多くが消されることになる。なぜなら、デシリアライズされたインスタンスは、コンストラクタ、staticなファクトリ等と同じ方法で作成されることになるからだ。
+コンストラクタ、staticファクトリ等が不変条件を守れていれば、デシリアライズされたインスタンスも不変条件を守れていることとなる。
+
+PeriodのシリアライゼーションプロキシのreadResolveメソッドは以下のよう。
+
+```java
+private Object readResolve() {
+    return new Period(start, end);
+}
+```
+
+防御的コピーの手法と同様に、シリアライゼーションプロキシでも、偽のバイトストリームによる攻撃、フィールドを盗む攻撃は防ぐことができる。
+前述の方法とは違い、シリアライゼーションプロキシでは、	フィールドをfinalにすることができ、クラスをimmutableなものにすることができる（Item17）。
+また、シリアライゼーションプロキシを用いれば、どのフィールドが攻撃をうけることを許容してもよいかについて、また、デシリアライズ時の明示的なバリデーションチェックについて考えなくてもよくなる。
+
+
+本パターンのもう一つの利点として、シリアライズされたときのインスタンスと、デシリアライズされたときのインスタンスで、持つクラスが別のものでよいという点がある。
+EnumSet（Item36）について考えてみる。
+このクラスでは、コンストラクタはなく、ファクトリメソッドのみがある。
+クライアントの立場からみると、そのファクトリメソッドははEnumSetを返すものの、サブクラスであるRegularEnumSetかJumboEnumSetかのいずれかが返ってくることとなる（要素数で変わり、64以下ならRegular）。
+ここで、60個の要素を持った
+
+```java
+    private static class SerializationProxy<E extends Enum<E>>
+        implements java.io.Serializable
+    {
+
+        private static final Enum<?>[] ZERO_LENGTH_ENUM_ARRAY = new Enum<?>[0];
+
+        /**
+         * The element type of this enum set.
+         *
+         * @serial
+         */
+        private final Class<E> elementType;
+
+        /**
+         * The elements contained in this enum set.
+         *
+         * @serial
+         */
+        private final Enum<?>[] elements;
+
+        SerializationProxy(EnumSet<E> set) {
+            elementType = set.elementType;
+            elements = set.toArray(ZERO_LENGTH_ENUM_ARRAY);
+        }
+
+        /**
+         * Returns an {@code EnumSet} object with initial state
+         * held by this proxy.
+         *
+         * @return a {@code EnumSet} object with initial state
+         * held by this proxy
+         */
+        @SuppressWarnings("unchecked")
+        private Object readResolve() {
+            // instead of cast to E, we should perhaps use elementType.cast()
+            // to avoid injection of forged stream, but it will slow the
+            // implementation
+            EnumSet<E> result = EnumSet.noneOf(elementType);
+            for (Enum<?> e : elements)
+                result.add((E)e);
+            return result;
+        }
+
+        private static final long serialVersionUID = 362491234563181265L;
+    }
+```
