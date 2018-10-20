@@ -408,8 +408,17 @@ curl $(docker-machine ip identihost-do)
 ## 9.3 実行オプション
 
 ### 9.3.1 シェルスクリプト
+docker-machine scp deploy.sh identihost-do:~/deploy.sh
+docker-machine ssh identihost-do
 
+chmod +x deploy.sh
+./deploy.sh
 ### 9.3.2 プロセスマネージャの利用（もしくはsystemdでまとめて管理）
+
+### 9.3.3 設定管理ツールの利用
+Ansibleの使用
+docker run -it -v ${HOME/.ssh:/root/.ssh:ro} -v $(pwd)/identidock.yml:/ansible/identidock.yml -v $(pwd)/hosts:/etc/ansible/hosts --rm=true generik/ansible ansible-playbook identidock.yml
+
 
 ## 9.4 ホストの設定
 DigitalOceanでは設定済みのVMを提供してくれる（ドロップレット）が、ホストOSとインフラには多様な選択肢がある。
@@ -491,5 +500,45 @@ json-file、syslog、journald、gelf、fluentd、none
 
 ### 10.1.3 ELKを使ったロギング
 
+### 10.1.4 syslogを使ったDockerのロギング
+ID=$(docker run -d --log-driver=syslog debian sh -c 'i=0; while true; do i=$((i+1)); echo "docker $i"; sleep 1; done;')
+
+## 10.2 rsyslogへのログのフォワード
+
+### 10.2.1 ファイルからのログの取得
+
+## 10.3 モニタリングとアラート
+
+### 10.3.1 Dockerのツールでのモニタリング
+docker stats
+docker statsで取得できる値はAPIで取れるけど割と使いづらい。
+runcやカーネルコールを直接行ってメトリクスを得ることもできる。
+
+statd, influxDB, OpenTSDB, Graphite, Grafanaと言ったツールがある。
+
+### 10.3.2 cAdvisor
+docker run -d --name cadvisor -v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys:ro -v /var/lib/docker/:/var/lib/docker:ro -p 8080:8080 google/cadvisor:latest
+
+### 10.3.3 クラスタのソリューション
+Prometheus
+
+docker run -d --name prometheus -p 9090:9090 -v $(pwd)/prometheus.conf:/prometheus.conf --link cadvisor:cadvisor prom/prometheus -config.file=/prometheus.conf
+
+## 10.4 モニタリング及びロギングの商用ソリューション
+たくさんあるので要チェック
+
+## 10.5 まとめ
 
 
+# 三部 ツールとテクニック
+
+# 11章 ネットワーキングとサービスディスカバリ
+
+## 11.1 アンバサダー
+
+docker-machine create -d virtualbox redis-host
+ 
+docker-machine create -d virtualbox identidock-host
+
+eval $(docker-machine env redis-host)
+docker run -d --name real-redis redis:3
