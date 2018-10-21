@@ -48,17 +48,10 @@
 
 # 10.equalsのoverrideは一般契約（general contracts）に従うべし
 
-
-
 * 一般契約とは、反射性（reflexive）,対照性（symmetric）,推移性（transitive）,整合性（consistent）,非 null 性（non-null）のこと。
-
-
-
 * googleのAutoValueを使えば、うまくequalsのオーバーライドを行ってくれる。
 
 # 11.equalsをオーバーライドする場合はhashcodeもオーバーライドせよ
-
-
 
 * hashCodeの一般契約によると、等しい2つのオブジェクトは等しいhashCodeの値を返さねばならない。よって、equalsをオーバーライドして、論理的に等しいが同じ参照ではない場合も等しいとする場合には、hashCodeをオーバーライドしないままだと異なった値を返すことになってしまう。
 
@@ -85,11 +78,7 @@
 
 # 13.cloneをオーバーライドするときは注意せよ
 
-
-
 * super.cloneを呼んでキャストをする。mutableな変数がある場合はdeepcopyして対応する。
-
-
 
 * 大体の場合において、cloneメソッドでオブジェクトのコピーを作るよりも、コンストラクタやファクトリメソッドで作るほうが容易である。唯一、配列のコピーはcloneのほうがうまくやれる。
 
@@ -134,7 +123,7 @@ class PhoneNum implements Comparable<PhoneNum> {
     public int compareTo(PhoneNum pn) {
 	return COMPARATOR.compare(this, pn);
     }
-    
+
     @Override
     public String toString() {
 	StringBuilder sb = new StringBuilder();
@@ -146,20 +135,10 @@ class PhoneNum implements Comparable<PhoneNum> {
 
 # 4章.クラスとインターフェース
 
-
-
 # 15.クラス、メンバ変数のアクセシビリティは最小限にせよ
 
-
-
 * 情報を隠す第一の目的は、システム構成から独立したものに切り分けておき、独立に開発、テスト、最適化、理解、変更等ができるようにしておくことである。
-
-
-
 * classのアクセシビリティには、publicかpackage-private（アクセス修飾子なし）しかない。
-
-
-
 * package-privateなクラスが1つのクラスからのみ呼ばれているのであれば、private static な入れ子クラスにすることを検討して、アクセスされる可能性を低くするべき。
 
 
@@ -298,7 +277,7 @@ public interface PhysicalConstants {
 
 ```
 
-  *   * ユーティリティクラスからたくさん定数を利用する場合はstatic importを使う。
+* ユーティリティクラスからたくさん定数を利用する場合はstatic importを使う。
 
 ```java
 
@@ -320,6 +299,82 @@ import static com.effectivejava.science.PhysicalConstants.*;
 
 ```
 
+# 24.staticでないメンバクラスより、staticメンバクラスを選択すべし
+
+
+
+# 25.1ファイルあたり1つのトップレベルクラスに制限せよ
+
+1ファイルに複数のトップレベルクラスを定義することは可能だが、メリットは何もなく、リスクは存在する。
+
+## 1ファイルに複数のトップレベルクラスを定義することの問題点
+
+リスクとは、1つのクラス定義を複数してしまうというものである。複数定義されたうちのどれが使われるかは、ソースファイルがコンパイラーに渡された順に影響を受ける。
+以下のような、2つのトップレベルクラスを参照するMainクラスを考える。
+
+```java
+public class Main {
+    public static void main(String[] args) {
+        System.out.println(Utensil.NAME + Dessert.NAME);
+    }
+}
+```
+
+Utensil.java という1つのファイルの中にUtensilクラスとDessertクラスを作る。
+
+```java
+class Utensil {
+    static final String NAME = "pan";
+}
+
+class Dessert {
+    static final String NAME = "cake";
+}
+```
+この時Mainを実行すると、pancakeと表示が出る。
+
+ここで、Dessert.java に以下のようなクラスを定義したとする。
+
+```java
+class Utensil {
+    static final String NAME = "pot";
+}
+
+class Dessert {
+    static final String NAME = "pie";
+}
+```
+
+ここで、javac Main.java Dessert.java というコマンドでコンパイルを実行した場合、コンパイルは失敗し、UtensilとDessertというクラスが重複していることを教えてくれる。
+この時、コンパイラはMain.javaをまず見に行き、Utensilへの参照を見たときに、Utensil.javaを見に行き、UtensilとDessertクラスを見つける。コンパイラーがDessert.javaを見に行くときには、再びUtensilとDessertの定義を見つける。
+もし、javac Main.java または、javac Main.java Utensil.javaとした場合には、Dessert.javaを書く前と同様の結果（pancake表示）になる。
+しかし、javac Dessert.java Main.javaとした場合には、potpieと表示される。
+
+このように、プログラムの挙動はコンパイルされる順番に影響されてしまうようになる。
+
+## 解決法
+解決策としては、シンプルに1つのソースファイルには1つのトップレベルクラスしか定義しないようにすることである。
+
+もしくは、staticなメンバクラス（Item24）として定義してやる。
+そのクラスが他の1つのクラスへの補助的な役割をするものであるなら、staticなメンバークラスにすることによって、可読性が向上し、無駄なアクセスを抑制することができる（staticメンバクラスをprivateにする）。
+以下がその具体例である。
+
+```java
+public class TestStaticMember {
+
+    public static void main(String[] args) {
+        System.out.println(Utensil.NAME + Dessert.NAME);
+    }
+
+    private static class Utensil {
+        static final String NAME = "pan";
+    }
+
+    private static class Dessert {
+        static final String NAME = "cake";
+    }
+}
+```
 
 # 5章.ジェネリクス
 
@@ -1078,7 +1133,7 @@ static <T> List<T> flatten(List<List<? extends T>> lists) {
   型パラメータの数が固定されていることは、大概の場合において、ユーザが望んでいることだが、時にはもっと柔軟性が必要となるときがある。こういった時の対応方法としては、コンテナをパラメータ化するのではなく、キーをパラメータ化する。
   このアプローチのシンプルな例として、クライアントに任意で複数の型のインスタンスを格納、検索をさせる```Favorites``` クラスを考える。
   ```Favorites``` クラスのAPIは以下のよう。Mapのキーが```Class<T>``` になっている。
-  
+
 ```java
 // Typesafe heterogeneous container pattern - API
 public class Favorites {
@@ -5466,7 +5521,9 @@ private Object readResolve() {
 EnumSet（Item36）について考えてみる。
 このクラスでは、コンストラクタはなく、ファクトリメソッドのみがある。
 クライアントの立場からみると、そのファクトリメソッドははEnumSetを返すものの、サブクラスであるRegularEnumSetかJumboEnumSetかのいずれかが返ってくることとなる（要素数で変わり、64以下ならRegular）。
-ここで、60個の要素を持った
+ここで、60個の要素を持ったenum setをシリアライズし、そのenum型に5つの要素を追加し、そのenum setをデシリアライズすることを考える。
+シリアライズしたときはRegularEnumSetインスタンスであったが、デシリアライズされる時にはJumboEnumSetのほうが適したサイズになっている。
+この実装に関して、実際にEnumSetでシリアライゼーションプロキシの仕組みが使われている。具体的には以下のよう。
 
 ```java
     private static class SerializationProxy<E extends Enum<E>>
@@ -5515,3 +5572,9 @@ EnumSet（Item36）について考えてみる。
         private static final long serialVersionUID = 362491234563181265L;
     }
 ```
+
+シリアライゼーションプロキシパターンには2つの制限がある。
+* ユーザによって拡張可能なクラス（Item19）とは互換性がない。
+* オブジェクトグラフに循環を含むようなクラスとの互換性はない。シリアライゼーションプロキシのreadResolveから、そのようなオブジェクトにあるメソッドを呼び出そうとしても、まだオブジェクトがないのでClassCastExceptionが発生してしまう。
+
+また、シリアライゼーションプロキシパターンを使うと、性能的には若干劣化する。
