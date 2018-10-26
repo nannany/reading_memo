@@ -317,7 +317,42 @@ import static com.effectivejava.science.PhysicalConstants.*;
 ### staticメンバクラス
 staticメンバクラスはエンクロージングクラスのstaticなメンバの一つで、そのほかのstaticなメンバと同じアクセシビリティのルールに従う。
  
-よくあるstaticメンバクラスの使い方の1つは、public なヘルパークラスとしてである。
+よくあるstaticメンバクラスの使い方の1つは、アウタークラスと伏せて使用した場合にのみ有効なpublic なヘルパークラスとしてである。
+例として、計算機のオペレーションを表すenumを考える（Item34）。
+オペレーションenumはCalculatorクラスのpublic staticなメンバークラスであるべき。
+Calcuratorの利用者は、オペレーションを Calculator.Operation.PLUSや Calculator.Operation.PLUS のように参照できる。
+
+### 非staticメンバクラス
+非staticなメンバクラスのインスタンスは、暗黙的にエンクロージングインスタンスへの参照を持つ。
+非staticなメンバクラスの中のインスタンスメソッドにおいて、エンクロージングインスタンスのメソッドを呼ぶことができ、qualified thisを使用してエンクロージングインスタンスへの参照を得ることができる。
+（qualified thisはエンクロージングクラス.thisのことを指している）
+エンクロージングインスタンス抜きで非staticなメンバクラスのインスタンスを生成することは不可能、つまり、独立にさせたいのならstaticメンバクラスを選択する必要がある。
+ 
+非staticメンバクラスのインスタンスと、エンクロージングインスタンスの参照が形成されるのは、メンバクラスのインスタンスが生成されたときであり、そのあとに変更されることはない。
+通常、エンクロージングクラスのインスタンスメソッドから、非staticなメンバクラスのコンストラクタが呼ばれることによって、参照が形成される。
+
+非staticメンバクラスのよくある使い方は、Adapterである。
+Adapterを用いると、エンクロージングクラスのインスタンスが別のクラスのインスタンスであるかのように見せることができる。
+具体的には、MapのkeySetやvaluesメソッドで返されるcollection的な見た目のものは、非staticメンバクラスを使用している。
+ListのIteratorなんかもそう。
+
+```java
+    public Iterator<E> iterator() {
+        return new Itr();
+    }
+
+    /**
+     * An optimized version of AbstractList.Itr
+     */
+    private class Itr implements Iterator<E> {
+    ...
+    }
+```
+
+
+もし、メンバクラスがエンクロージングインスタンスにアクセスする必要がないのであれば、常にstaticとして宣言しておくべきである。
+なぜなら、この間の参照を生成するのに時間とメモリが食われるということと、この参照がなければガベージコレクションの対象となっているかもしれないからである（Item7)
+
 
 
 
