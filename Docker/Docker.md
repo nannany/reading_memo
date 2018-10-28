@@ -536,23 +536,61 @@ docker run -d --name prometheus -p 9090:9090 -v $(pwd)/prometheus.conf:/promethe
 
 ## 11.1 アンバサダー
 
-docker-machine create -d virtualbox redis-host
- 
-docker-machine create -d virtualbox identidock-host
+* virtualBoxをインストール
+以下を/etc/apt/sources.list に加える。
+deb https://download.virtualbox.org/virtualbox/debian wheezy contrib
+wget -q https://www.virtualbox.org/download/oracle_vbox.asc -O- | sudo apt-key add -
+sudo apt-get update
+sudo apt-get install virtualbox-5.2
 
+virtualboxの使用は諦める。。。
+
+プロビジョニング
+docker-machine create --driver digitalocean --digitalocean-access-token ~~~~~ redis-host
+docker-machine create --driver digitalocean --digitalocean-access-token ~~~~~ identidock-host
+
+レディスが動くサーバを対象にする。
 eval $(docker-machine env redis-host)
+
 docker run -d --name real-redis redis:3
 
+docker run -d --name real-redis-ambassador \
+       -p 6379:6379 \
+       --link real-redis:real-redis \
+       amouat/ambassador
 
+レディスが動くサーバを対象にする。
+eval $(docker-machine env identidock-host)
+
+docker run -d --name redis_ambassador --expose 6379 \
+       -e REDIS_PORT_6379_TCP=tcp://$(docker-machine ip redis-host):6379 \
+       amouat/ambassador
+
+docker run -d --name dnmonster amouat/dnmonster:1.0
+
+docker run -d --link dnmonster:dnmonster \
+           --link redis_ambassador:redis \
+           -p 80:9090 \
+           amouat/identidock:1.0
+
+確認コマンド
+curl $(docker-machine ip identidock-host)
+
+後処理
+docker-machine stop redis-host
+docker-machine stop identidock-host
+docker-machine rm redis-host
+docker-machine rm identidock-host
 
 ## 11.2 サービスディスカバリ
 
 ### 11.2.1 etcd
 Docker Machineで新しいホスト
 
-docker-machine create -d virtualbox etcd-1
+プロビジョニング
+docker-machine create -d digitalocean --digitalocean-access-token ~~~ etcd-1
+docker-machine create -d digitalocean --digitalocean-access-token ~~~ etcd-2
 
-docker-machine create -d virtualbox etcd-2
 
 HOSTA=$(docker-machine ip etcd-1)
 HOSTB=$(docker-machine ip etcd-2)
@@ -561,12 +599,12 @@ HOSTB=$(docker-machine ip etcd-2)
 eval $(docker-machine env etcd-1)
 
 docker run -d -p 2379:2379 -p 2380:2380 -p 4001:4001 \
---name etcd quey.io/coreos/etcd \
+--name etcd quay.io/coreos/etcd:v2.2.0 \
 -name etcd-1 -initial-advertise-peer-urls http://${HOSTA}:2380 \
 -listen-peer-urls http://0.0.0.0:2380 \
 -listen-client-urls http://0.0.0.0:2379,http://0.0.0.0:4001 \
 -advertise-client-urls http://${HOSTA}:2379 \
--initial-clustre-token etcd-cluster-1 \
+-initial-cluster-token etcd-cluster-1 \
 -initial-cluster \
     etcd-1=http://${HOSTA}:2380,etcd-2=http://${HOSTB}:2380 \
 -initial-cluster-state new
@@ -576,16 +614,15 @@ docker run -d -p 2379:2379 -p 2380:2380 -p 4001:4001 \
 eval $(docker-machine env etcd-2)
 
 docker run -d -p 2379:2379 -p 2380:2380 -p 4001:4001 \
---name etcd quey.io/coreos/etcd \
--name etcd-1 -initial-advertise-peer-urls http://${HOSTB}:2380 \
+--name etcd quay.io/coreos/etcd:v2.2.0 \
+-name etcd-2 -initial-advertise-peer-urls http://${HOSTB}:2380 \
 -listen-peer-urls http://0.0.0.0:2380 \
 -listen-client-urls http://0.0.0.0:2379,http://0.0.0.0:4001 \
--advertise-client-urls http://${HOSTB}:2379 \
--initial-clustre-token etcd-cluster-1 \
+-advertise-client-urls http://${HOSTA}:2379 \
+-initial-cluster-token etcd-cluster-1 \
 -initial-cluster \
     etcd-1=http://${HOSTA}:2380,etcd-2=http://${HOSTB}:2380 \
 -initial-cluster-state new
-
 
 メンバーのリストを返してもらうcurl。
 
@@ -596,7 +633,7 @@ curl -s http://$HOSTA:2379/v2/members | jq '.'
 curl -s http://$HOSTA:2379/v2/keys/service_name -XPUT -d value="service_address" | jq '.'
 
 保存したデータを取得しなおすcurl
-curl -s http://$HOSTA:2379/v2/keys/service_name
+curl -s http://$HOSTA:2379/v2/keys/service_name | jq '.'
 
 
 etcdctlというコマンドラインクライアントでetcdクラスタとやり取りできる
