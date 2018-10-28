@@ -649,7 +649,7 @@ curl -XPUT http://${HOSTA}:2379/v2/keys/skydns/config -d value='{"dns_addr":"0.0
 etcd-1上でskydnsを立ち上げる。
 
 eval $(docker-machine env etcd-1)
-docker run -d -e ETCD_MACHINES="http://${HOSTA}:2379,http://${HOSTB}:2379 --name dns skynetservices/skydns:2.5.2a
+docker run -d -e ETCD_MACHINES="http://${HOSTA}:2379,http://${HOSTB}:2379" --name dns skynetservices/skydns:2.5.2a
 
 etcd-2上でredisを立ち上げる。それをSkyDNSに追加する。
 
@@ -657,7 +657,7 @@ eval $(docker-machine env etcd-2)
 
 docker run -d -p 6379:6379 --name redis redis:3
 
-curl -XPUT http://${HOSTA}:2379/v2/keys/skydns/local/identidock/redis -d value='{"host":"'${HOSTB'","port":6379}' | jq .
+curl -XPUT http://${HOSTA}:2379/v2/keys/skydns/local/identidock/redis -d value='{"host":"'$HOSTB'","port":6379}' | jq .
 
 etcd-1で--dnsを使って、ルックアップするDNSコンテナを指定し、新しいコンテナを立ち上げる。
 
@@ -666,6 +666,11 @@ eval $(docker-machine env etcd-1)
 docker run --dns $(docker inspect -f {{.NetworkSettings.IPAddress}} dns) -it redis:3 bash
 
 pingを投げてテスト
+どうやらサーバ内にpingがないようなので、
+apt-get update
+apt-get install iputils-ping net-tools
+をしてやる必要がある。
+
 ping redis.identidock.local
 
 redis-cli -h redis.identidock.local ping
@@ -690,4 +695,55 @@ DNM_IP=$(docker inspect -f {{.NetworkSettings.IPAddress}} dnmonster)
 
 curl -XPUT http://$HOSTA:2379/v2/keys/sykdns/local/identidock/dnmonster -d value='{"host": "'$DNM_IP'","port":8080'}
 
+docker run -d -p 80:9090 amouat/identidock:1.0
+curl $HOSTA
+
+
+11.2.3 Consul
+プロビジョニング
+docker-machine create -d digitalocean --digitalocean-access-token ~~~~ consul-1
+docker-machine create -d digitalocean --digitalocean-access-token ~~~~ consul-2
+
+HOSTA=$(docker-machine ip consul-1)
+HOSTB=$(docker-machine ip consul-2)
+
+eval $(docker-machine env consul-1)
+
+docker run -d --name consul -h consul-1 \
+       -p 8300:8300 -p 8301:8301 -p 8301:8301/udp \
+       -p 8302:8302/udp -p 8400:8400 -p 8500:8500 \
+       -p 172.17.0.1:53:8600/udp \
+       gliderlabs/consul agent -data-dir /data -server \
+                  -client 0.0.0.0 \
+                  -advertise $HOSTA -bootstrap-expect 2
+
+２つめのサーバを立ち上げる。
+eval $(docker-machine env consul-2)
+
+docker run -d --name consul -h consul-2 \
+       -p 8300:8300 -p 8301:8301 -p 8301:8301/udp \
+       -p 8302:8302/udp -p 8400:8400 -p 8500:8500 \
+       -p 172.17.0.1:53:8600/udp \
+       gliderlabs/consul agent -data-dir /data -server \
+                  -client 0.0.0.0 \
+                  -advertise $HOSTB -join $HOSTA
+
+クラスタに加わったことを確認
+docker exec consul consul members
+キ/ーバリューストアの動作確認
+curl -XPUT http://$HOSTA:8500/v1/kv/loo -d bar
+curl http://$HOSTA:8500/v1/kv/foo | jq .
+
+curl -s http://$HOSTA:8500/v1/kv/foo | jq -r '.[].Value' | base64 -d
+
+
+eval $(docker-machine env consul-2)
+
+docker run -d -p 6379:6379 --name redis redis:3
+curl -XPUT http://$HOSTA:8500/v1/agent/service/register -d '{"name":"redis", "address":"'$HOSTB'","port":6379}'
+docker run amouat/network-utils dig @172.17.0.1 +short redis.service.consul
+
+サーバ内のファイルを編集
+docker-machine ssh consul-1
+/var/lib/boot2docker/profileに--dns、 --dns-searchフラグを追加する。
 
