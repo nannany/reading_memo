@@ -617,12 +617,40 @@ docker run -d -e ETCD_MACHINES="http://${HOSTA}:2379,http://${HOSTB}:2379 --name
 etcd-2上でredisを立ち上げる。それをSkyDNSに追加する。
 
 eval $(docker-machine env etcd-2)
+
 docker run -d -p 6379:6379 --name redis redis:3
+
 curl -XPUT http://${HOSTA}:2379/v2/keys/skydns/local/identidock/redis -d value='{"host":"'${HOSTB'","port":6379}' | jq .
 
 etcd-1で--dnsを使って、ルックアップするDNSコンテナを指定し、新しいコンテナを立ち上げる。
 
 eval $(docker-machine env etcd-1)
+
 docker run --dns $(docker inspect -f {{.NetworkSettings.IPAddress}} dns) -it redis:3 bash
+
+pingを投げてテスト
+ping redis.identidock.local
+
+redis-cli -h redis.identidock.local ping
+
+
+検索ドメインにidentidockを追加
+docker run --dns $(docker inspect -f {{.NetworkSettings.IPAddress}} dns) --dns-search identidock.local -it redis:3 redis-cli -h redis ping
+
+サーバetcd-1に入り、/etc/resolv.confファイルに追記
+docker-machine ssh etcd-1
+
+echo -e "domain identidock.local \nnameserver " $(docker inspect -f {{.NetworkSettings.IPAddress}} dns) > /etc/resolv.conf
+
+cat /etc/resolv.conf
+
+動作させる
+docker run redis:3 redis-cli -h redis ping
+
+docker run -d --name dnmonster amouat/dnmonster:1.0
+
+DNM_IP=$(docker inspect -f {{.NetworkSettings.IPAddress}} dnmonster)
+
+curl -XPUT http://$HOSTA:2379/v2/keys/sykdns/local/identidock/dnmonster -d value='{"host": "'$DNM_IP'","port":8080'}
 
 
