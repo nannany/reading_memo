@@ -747,3 +747,86 @@ docker run amouat/network-utils dig @172.17.0.1 +short redis.service.consul
 docker-machine ssh consul-1
 /var/lib/boot2docker/profileに--dns、 --dns-searchフラグを追加する。
 
+### 11.2.4 登録
+GliderLabsのRegistratorはコンテナの自動登録機能を提供する。
+
+### 11.2.5 その他のソリューション
+
+#### ZooKeeper
+Javaで書かれている。
+主な利点は成熟度、安定度、現場での活用例の多さ。
+
+#### SmartStack
+
+#### Eureka
+
+#### WeaveDNS
+
+#### docker-discover
+
+## 11.3 ネットワーキングの選択肢
+デフォルトのDockerのネットワーキングの選択肢を見ていく。
+
+### 11.3.1 ブリッジ
+開発時に最適。実働環境には向かない。
+
+### 11.3.2 ホスト
+
+### 11.3.3 コンテナ
+kubernetesが使っている方法。
+
+### 11.3.4 なし
+
+## 11.4 Dockerの新しいネットワーキング
+
+docker network ls
+
+以下のコマンドは動かなくなっている。docker swarm init なるものを実行しないと動かないらしい。。。
+docker run -d --name redis1 --net=bridge db.bridge redis
+
+## 11.5 ネットワーキングのソリューション
+
+### 11.5.1 Overlay
+
+docker公式にいいのがある。
+
+### 11.5.2 Weave
+
+docker-machine create -d digitalocean --digitalocean-access-token ~~~ weave-redis
+
+docker-machine ssh weave-redis
+
+sudo curl -sL git.io/weave -o /usr/local/bin/weave
+sudo chmod a+x /usr/local/bin/weave
+weave launch
+
+どっかークライアントがweaveproxyを指すようにする
+eval $(weave env)
+docker run --name redis -d redis:3
+
+docker-machine create -d digitalocean --digitalocean-access-token ~~~ weave-identidock
+
+docker-machine ssh weave-identidock "sudo curl -sL https://git.io/weave -o /usr/local/bin/weave && sudo chmod a+x /usr/local/bin/weave"
+
+docker-machine ssh weave-identidock "weave launch $(docker-machine ip weave-redis)"
+
+あとのコマンドも書いてあるとおりにやればうまく行く。
+
+### 11.5.3 Flannel
+docker-machine create -d digitalocean --digitalocean-access-token ~~~ flannel-1
+docker-machine create -d digitalocean --digitalocean-access-token ~~~ flannel-2
+
+docker-machine ip flannel-1 flannel-2
+
+docker-machine ssh flannel-1
+sudo /usr/loca/etc/init.d/docker stop
+sudo ip link delete docker0
+
+curl -sL https://github.com/coreos/etcd/releases/download/v2.0.13/etcd-v2.0.13-linux-amd64.tar.gz -o etcd.tar.gz
+
+tar xzvf etcd.tar.gz
+
+
+
+
+
