@@ -819,14 +819,112 @@ docker-machine create -d digitalocean --digitalocean-access-token ~~~ flannel-2
 docker-machine ip flannel-1 flannel-2
 
 docker-machine ssh flannel-1
-sudo /usr/loca/etc/init.d/docker stop
+sudo /usr/local/etc/init.d/docker stop
 sudo ip link delete docker0
 
 curl -sL https://github.com/coreos/etcd/releases/download/v2.0.13/etcd-v2.0.13-linux-amd64.tar.gz -o etcd.tar.gz
 
 tar xzvf etcd.tar.gz
 
+HOSTA=159.65.42.249
+HOSTB=165.227.66.248
+
+nohup etcd-v2.0.13-linux-amd64/etcd \
+  -name etcd-1 -initial-advertise-peer-urls http://$HOSTA:2380 \
+  -listen-peer-urls http://$HOSTA:2380 \
+  -listen-client-urls http://$HOSTA:2370,http://127.0.0.1:2379 \
+  -advertise-client-urls http://$HOSTA:2379 \
+  -initial-cluster-token etcd-cluster-1 \
+  -initial-cluster \
+etcd-1=http://$HOSTA:2380,etcd-2=http://$HOSTB:2380 \
+  -initial-cluster-state new &
+
+もうひとつのサーバでも同じようなことをやる
 
 
+docker-machine ssh flannel-2
+sudo /usr/local/etc/init.d/docker stop
+sudo ip link delete docker0
+
+curl -sL https://github.com/coreos/etcd/releases/download/v2.0.13/etcd-v2.0.13-linux-amd64.tar.gz -o etcd.tar.gz
+
+tar xzvf etcd.tar.gz
+
+HOSTA=159.65.42.249
+HOSTB=165.227.66.248
+
+nohup etcd-v2.0.13-linux-amd64/etcd \
+  -name etcd-2 -initial-advertise-peer-urls http://$HOSTB:2380 \
+  -listen-peer-urls http://$HOSTB:2380 \
+  -listen-client-urls http://$HOSTB:2370,http://127.0.0.1:2379 \
+  -advertise-client-urls http://$HOSTB:2379 \
+  -initial-cluster-token etcd-cluster-1 \
+  -initial-cluster \
+etcd-1=http://$HOSTA:2380,etcd-2=http://$HOSTB:2380 \
+  -initial-cluster-state new &
+
+
+curl -sL https://github.com/coreos/flannel/releases/download/v0.5.1/flannel-0.5.1-linux-amd64.tar.gz -o flannel.tar.gz
+
+tar xzvf flannel.tar.gz
+
+./etcd-v2.0.13-linux-amd64/etcdctl set /coreos.com/network/config '{ "Network": "10.1.0.0/16" }'
+上のコマンドがうまくいかない。。
+
+### 11.5.4 Calico
+docker-machine create -d digitalocean --digitalocean-access-token=~~~  --digitalocean-private-networking calico-1
+docker-machine create -d digitalocean --digitalocean-access-token=~~~  --digitalocean-private-networking calico-2
+
+HOSTA=159.203.161.184
+HOSTB=45.55.51.113
+
+eval $(docker-machine env calico-1)
+docker run -d -p 2379:2379 -p 2380:2380 -p 4001:4001 \
+--name etcd quay.io/coreos/etcd:v2.2.0 \
+-name etcd-1 -initial-advertise-peer-urls http://${HOSTA}:2380 \
+-listen-peer-urls http://0.0.0.0:2380 \
+-listen-client-urls http://0.0.0.0:2379,http://0.0.0.0:4001 \
+-advertise-client-urls http://${HOSTA}:2379 \
+-initial-cluster-token etcd-cluster-1 \
+-initial-cluster \
+etcd-1=http://${HOSTA}:2380,etcd-2=http://${HOSTB}:2380 \
+-initial-cluster-state new 
+
+
+eval $(docker-machine env calico-2)
+docker run -d -p 2379:2379 -p 2380:2380 -p 4001:4001 \
+--name etcd quay.io/coreos/etcd:v2.2.0 \
+-name etcd-2 -initial-advertise-peer-urls http://${HOSTB}:2380 \
+-listen-peer-urls http://0.0.0.0:2380 \
+-listen-client-urls http://0.0.0.0:2379,http://0.0.0.0:4001 \
+-advertise-client-urls http://${HOSTB}:2379 \
+-initial-cluster-token etcd-cluster-1 \
+-initial-cluster \
+etcd-1=http://${HOSTA}:2380,etcd-2=http://${HOSTB}:2380 \
+-initial-cluster-state new 
+
+
+docker-machine ssh calico-1
+curl -sSL -o calicoctl https://github.com/Metaswitch/calico-docker/releases/download/v0.5.2/calicoctl
+chmod +x calicoctl
+
+modprobe xt_set
+
+sudo ./calicoctl pool add 192.168.0.0/16 --ipip --nat-outgoing
+
+sudo ./calicoctl node --ip=159.203.161.184
+上のコマンド動かない。。
+
+# 12章
+
+## 12.2.1 Swarm
+SWARM_TOKEN=$(docker run swarm create)
+echo $SWARM_TOKEN
+しょっぱなからうまくいかない。
+
+フィルタの設定と実行戦略の設定ができるらしい
+
+## 12.2.2 fleet
+バーチャルボックスのバージョンが合わないため撤退
 
 
