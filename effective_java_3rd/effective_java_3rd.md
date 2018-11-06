@@ -299,6 +299,131 @@ import static com.effectivejava.science.PhysicalConstants.*;
 
 ```
 
+# 23.タグ付きクラスよりクラス階層を選ぶ
+
+## タグ付きクラス
+2種類以上の特性を示し、その特性をフィールドに有しているタグで切り替えるクラスをタグ付きクラスと呼ぶ。
+以下のクラスはその実例で、円と長方形を表現することが可能である。
+
+```java
+package tryAny.effectiveJava;
+
+class Figure {
+    enum Shape {
+        RECTANGLE, CIRCLE
+    }
+
+    // 図形タイプを保持する
+    final Shape shape;
+
+    // shape が RECTANGLE の場合だけ利用する
+    double length;
+    double width;
+
+    // shape が CIRCLE の場合だけ利用する
+    double radius;
+
+    // 円のためのコンストラクタ
+    Figure(double radius) {
+        shape = Shape.CIRCLE;
+        this.radius = radius;
+    }
+
+    // 長方形のためのコンストラクタ
+    Figure(double length, double width) {
+        shape = Shape.RECTANGLE;
+        this.length = length;
+        this.width = width;
+    }
+
+    double area() {
+        switch (shape) {
+        case RECTANGLE:
+            return length * width;
+        case CIRCLE:
+            return Math.PI * (radius * radius);
+        default:
+            throw new AssertionError();
+        }
+    }
+}
+```
+
+このようなタグ付きクラスは欠点がたくさんある。
+以下、欠点一覧。
+
+* タグ付きクラスの定型文には、enum、タグフィールド、switchさせる文があり、たくさんの実装が1つのクラスに混ざるので、可読性が落ちる
+* 利用している特性に関係ないフィールドも保持せねばならず、メモリ使用量が大きくなる
+* コンストラクタが無関係なフィールドも初期化しない限りは、フィールドをfinalとして生成することができない（？）
+* コンストラクタでタグフィールドを初期化し、コンパイラの補助なしで正しくフィールドを初期化する必要がある。できないとプログラムは実行時に落ちる
+* ソースをいじらない限り、タグクラスに新しい特性を追加することはできない。また、追加したときに、switch文にケースを追加しないと実行時に失敗する
+* インスタンスのデータ型がその特性に関して手掛かりを与えてくれない
+
+## タグ付きクラスの代替法：クラス階層
+オブジェクト指向言語であれば、クラス階層を用いることで改良できる。
+
+タグ付きクラスからクラス階層に修正する手順としては、
+
+1. abstract なクラスを作成し、その中にタグの値で動作を切り替えていたメソッド(上の例だとareaメソッド)を、abstract メソッドとして定義する
+2. タグの値に依存しないメソッド、フィールド値は abstract クラスに入れる（上の例だとそのようなものは無い）
+3. タグ付きクラスの特性に当たる部分について、サブクラスを作成する。（上記例だとcircle,rectangle）
+4. 特性独自のフィールドを各サブクラスに入れる。（circleならradius、rectangleならlength,width）
+
+上記の修正結果は以下のようになる。
+
+```java
+package tryAny.effectiveJava;
+
+abstract class Figure {
+    abstract double area();
+}
+
+class Circle extends Figure {
+    final double radius;
+
+    Circle(double radius) {
+        this.radius = radius;
+    }
+
+    @Override
+    double area() {
+        return Math.PI * (radius * radius);
+    }
+}
+
+class Rectangle extends Figure {
+    final double length;
+    final double width;
+
+    Rectangle(double length, double width) {
+        this.length = length;
+        this.width = width;
+    }
+
+    @Override
+    double area() {
+        return length * width;
+    }
+}
+```
+
+こうすることによって上記であげたタグ付きクラスの欠点は解消されている。
+
+### その他クラス階層の良い点
+クラス階層は、型の間の本来の階層関係について反映できるため、柔軟性を改良したり（？）、コンパイル時のエラーチェックをより良いものにすることができる。
+
+上記例で正方形の型について追加することになったときは、クラス階層の特性を使って以下のように記述することができる。
+
+```java
+class Square extends Rectangle {
+
+    Square(double side) {
+        super(side, side);
+    }
+}
+```
+
+
 # 24.staticでないメンバクラスより、staticメンバクラスを選択すべし
 ネストしたクラスはエンクロージングクラスを補助する目的のために存在すべきである。
 もしネストしたクラスをそれ以外の文脈で使用したいなら、トップレベルクラスとして定義するべき。
