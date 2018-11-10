@@ -85,12 +85,32 @@ Masterが持つAPIにリクエストを送ることでいろいろできる。
 
 ### 4.5.1 認証情報とContext（config）
 
+認証情報の設定ができる。
+
 kubectl config set-cluster prd-cluster --server=https://localhost:6443
 
 kubectl config set-credentials admin-user ^
   --client-certificate=./sample.crt ^
   --client-key=./sample.key ^
   --embed-certs=true
+
+crtファイル等作らなければならないのでいったん飛ばす
+
+
+### 4.5.2 kubectx/kubensによる切り替え
+
+kubectx/kubensを用いればContext、Namespaceの切り替えが素早くできる。
+
+### 4.5.3 マニフェストとリソースの作成/削除/更新（create/delete/apply）
+
+ポッドの作成、削除、更新コマンドを紹介。
+
+### 4.5.4 リソース作成においてもapplyを使うべき理由
+
+リソースの作成においても、createコマンドではなく、applyコマンドを使用したほうがよい。
+差分が見えやすいためらしい。
+
+### 
 
 
 
