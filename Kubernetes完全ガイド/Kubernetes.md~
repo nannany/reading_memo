@@ -1,0 +1,89 @@
+# 3章 Kubernetes環境の選択肢
+
+## 3.1 Kubernetes環境の種別
+3種類があり得る。
+
+ローカルkubernetes
+Kubernetes構築ツール
+マネージドKubernetes
+
+## 3.2 ローカルKubernetes
+
+### 3.2.1 Minikube
+
+ハイパーバイザが必用。windowsだとVirtualBox等。
+
+homebrewを使用したMinikube環境構築が始まる。。
+windowsユーザはしれっと無視される。
+
+以下独自で。
+https://github.com/kubernetes/minikube/releases
+に行って、installerを取得。
+
+なんか動いたけど、どうやってVirtualBox認識したんだ？？
+
+
+### 3.2.2 Docker for Mac
+
+Macでないので無視
+
+## 3.3 Kubernetes構築ツール
+
+できなさそうなのでとばす
+オンプレミスでのKubernetes環境構築がいろいろ書いてある。
+
+## 3.4 パブリッククラウド上のマネージドKubernetesサービス
+
+### 3.4.1 GKE（Google Kubernetes Engine）
+
+gcloudは普通にググってインストーラからインストール。
+gcloud components install kubectl
+でkubectlはインストールできる。
+
+マスターのバージョンは 1.11.2-gke.15 にした。
+gcloud container clusters create k8s ^
+--cluster-version 1.11.2-gke.15 ^
+--zone asia-northeast1-a ^
+--num-nodes 3
+
+kubectl create --save-config clusterrolebinding iam-cluster-admin-binding ^
+--clusterrole=cluster-admin ^
+--user=ymym1990ymym@gmail.com
+
+# 4章 APIリソースとkubectl
+
+## 4.2 Kubernetesの基礎
+
+Kubernetes MasterとKubernetes Nodeの2種類のノードから、Kubernetesは成り立っている。
+Masterが持つAPIにリクエストを送ることでいろいろできる。
+
+## 4.3 Kubernetesとリソース
+
+大きく分けて5種のリソースがある。(リソース？？)
+
+### 4.3.1 Workloadsリソース
+
+クラスタ上でコンテナを起動させるためのリソース。workloadリソースの中にも8種類の分類があるらしい。
+
+### 4.3.2 Discovery&LBリソース
+
+コンテナのサービスディスカバリ、クラスタ外部からのアクセス可能なエンドポイントの提供などをするリソース。
+
+### 4.3.3 Config&Storageリソース
+
+永続ボリュームを提供するリソース。
+
+### 4.3.4 Clusterリソース
+
+### 4.3.5 Metadataリソース
+
+## 4.4 Namespaceによる仮想的なクラスタの分離
+
+ユーザ毎（一般とadminみたいな）にアクセスできるクラスタを制御することが可能らしい。
+
+## 4.5 CLIツールkubectl
+
+
+
+
+
