@@ -42,9 +42,11 @@ gcloud components install kubectl
 
 マスターのバージョンは 1.11.2-gke.15 にした。
 gcloud container clusters create k8s ^
---cluster-version 1.11.2-gke.15 ^
+--cluster-version 1.11.2-gke.18 ^
 --zone asia-northeast1-a ^
 --num-nodes 3
+
+gcloud container clusters get-credentials k8s --zone asia-northeast1-a
 
 kubectl create --save-config clusterrolebinding iam-cluster-admin-binding ^
 --clusterrole=cluster-admin ^
@@ -209,5 +211,42 @@ DockerのENTRYPOINTやCMDをk8sから上かくことが可能
 アンダーバーとか使えない
 
 ### 5.2.7 PodのDNS設定とサービスディスカバリ
+
+### 5.2.8 静的な名前解決の設定
+
+## 5.3 ReplicaSet/ReplicationController
+
+### 5.3.2 Podの停止とセルフヒーリング
+障害が発生しても、指定したpod数を満たすようにコンテナ起動してくれる
+
+### 5.3.4 ReplicaSetのスケーリング
+基本的にはapplyでのスケーリングがおすすめ。インフラasコードを実剣するため。
+
+## 5.4 Deployment
+Deploymentの中にReplicaSetがあり、その中にPodがあるイメージ
+
+### 5.4.3 変更のrollback
+rolloutを使う機会は少ない。applyを使って戻すことのほうが多い
+
+### 5.4.9 マニフェストファイルを書かずにDeploymentを作成する
+マニフェストファイルを書かずにDeploymentを作成することもできるが、できるだけ作成してやったほうがいい
+
+## 5.5 DaemonSet
+ReplicaSetの特殊形。
+1ノードに1Podずつ配置される。
+ログ収集など必ず各ノードで動作させたいプロセスのために使われることが多い。
+
+### 5.5.2 DaemonSetのアップデート戦略
+基本はRollingupdate
+
+## 5.6 StatefulSet
+データベースなどステートフルなワークロードに対応するリソース。
+デフォルトでは順次起動する
+
+### 5.6.4 StatefulSetのアップデート戦略
+
+
+## 5.7 Job
+バッチ処理的なものに向いているリソース。
 
 
