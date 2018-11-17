@@ -249,4 +249,47 @@ ReplicaSetの特殊形。
 ## 5.7 Job
 バッチ処理的なものに向いているリソース。
 
+## 5.8 CronJob
+CronJobとJobの関係は、DeploymentとReplicaSetの関係に似ている。
+CronJobがJobを管理する。
+
+# 6章 Discovery&LBリソース
+
+コンテナのエンドポイント提供や、コンテナのディスカバリに利用される。
+ServiceはL4ロードバランシングを行い、IngressはL7ロードバランシングをおこなう。
+
+Serviceの利用で得られるメリットは
+* Pod宛のトラフィックのロードバランシング
+* サービスディスカバリとクラスタ内DNS
+
+### 6.2.1 Pod宛トラフィックのロードバランシング
+
+### 6.2.2 クラスタ内DNSとサービスディスカバリ
+immutableに保つために、IPではなく、Service名での名前解決を試みるべし。
+
+## 6.3 ClusterIP Service
+
+### 6.3.2 ClusterIP仮想IPの静的な指定
+
+## 6.4 ExternalIP Service
+
+## 6.5 NodePort Service
+ExternalIP Serviceでは指定したノードからの転送を行っていたが、全ノードでうけたトラフィックがコンテナに転送される。
+
+### 6.5.3 ノード間通信の排除
+externalTrafficPolicyがLocalにすると、特定のノードのPodにトラフィックを送ることができる。
+
+## 6.6 LoadBalancer Service
+
+### 6.6.5 GKEやクラウドプロバイダでの注意点
+Serviceを作成したままクラスタを削除すると、GCLBの課金は残ってしまうので注意。
+
+
+## 6.7 Headless Service
+
+## 6.8 ExternalName Service
+これを用いることにより、外部サービスとの連携を疎に保つことができる。
+
+## 6.9 Non-Selector Service
+
 
