@@ -40,7 +40,7 @@ gcloudは普通にググってインストーラからインストール。
 gcloud components install kubectl
 でkubectlはインストールできる。
 
-マスターのバージョンは 1.11.2-gke.15 にした。
+マスターのバージョンは 1.11.2-gke.18 にした。
 gcloud container clusters create k8s ^
 --cluster-version 1.11.2-gke.18 ^
 --zone asia-northeast1-a ^
@@ -291,5 +291,14 @@ Serviceを作成したままクラスタを削除すると、GCLBの課金は残
 これを用いることにより、外部サービスとの連携を疎に保つことができる。
 
 ## 6.9 Non-Selector Service
+正直よくわからん。。
 
+## 6.10 Ingress
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=sample.example.com"
+k create secret tls --save-config tls-sample --key tls.key --cert tls.crt
 
+# 7章 config&Storageリソース
+設定ファイル、パスワード等機密情報のインジェクト、永続化ボリュームの提供のために使われる。
+
+## 7.2 環境変数の利用
+コンテナに対する設定の渡し方は、環境変数、ファイルが置かれた領域のマウントで行うことが多い。
