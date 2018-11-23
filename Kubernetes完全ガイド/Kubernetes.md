@@ -302,3 +302,108 @@ k create secret tls --save-config tls-sample --key tls.key --cert tls.crt
 
 ## 7.2 環境変数の利用
 コンテナに対する設定の渡し方は、環境変数、ファイルが置かれた領域のマウントで行うことが多い。
+
+## 7.3 Secret
+ユーザ名、パスワード等の機密情報を保持するリソース
+スキーマレス？？
+
+### 7.3.5 Secretの利用
+Secretの情報を利用する方法としては、環境変数として渡す方式と、Volumeとしてマウントする方式の2種類がある。
+環境変数として渡した場合には、動的に変更することはできない。
+
+### 7.3.6 kubesecの利用
+Google Cloud KMS等で暗号鍵を作成して、kubesecを利用してSecretの暗号化を行う。
+Secretのデータ構造を保ったまま、値だけ暗号化してくれるので可読性が高い。
+
+### 7.3.7 SecretとConfigMapの使い分け
+
+## 7.4 ConfigMap
+
+### 7.4.1 ConfigMapの作成
+* kubectlでファイルから値を参照して作成
+* kubectlで直接値を渡して作成
+* マニフェストから作成
+
+### 7.4.2 ConfigMapの利用
+* 環境変数として渡す
+* Volumeとしてマウント
+
+環境変数として渡した場合には、動的に変更することはできない。
+
+## 7.5 PersistentVolumeClaim
+
+### 7.5.1 Volume,PersistentVolume,PersistentVolumeの違い
+
+* Volume：NFS、ホスト等のあらかじめ用意された利用可能なボリュームを指す。ここではボリュームの削除、新規作成等はできない
+* PersistentVolume：外部の永続ボリュームを提供するシステムと連携し、新規ボリューム作成、ボリューム削除を行うことができる
+* PersistentVolumeClaim：PersistentVolumeリソースをアサインするためのリソース
+
+## 7.6 Volume
+
+### 7.6.1 emptyDir
+Pod用の一時的なディスク領域。PodがTerminateされると削除される。
+
+### 7.6.2 hostPath
+k8sNode上の領域をコンテナにマッピングする。
+セキュリティ的に、信頼できないコンテナが乗る場合は使用すべきでない。
+
+### 7.6.3 downwardAPI
+
+### 7.6.4 projected
+Secret,ConfigMap,downwardAPI,serviceAccountTokenのボリュームマウントを一か所に集約するプラグイン。
+
+## 7.7 PersistentVolume（PV）
+
+### 7.7.1 PersistentVolumeの種類
+
+### 7.7.2 PersistentVolumeの作成
+ボリュームの種類についてラベルを付けておくことが望ましい。
+アクセスモードとしては、
+
+* ReadWriteOnce:単一ノードからRW可能
+* ReadOnlyMany:複数ノードからR可能
+* ReadWriteMany:複数ノードからRW可能
+がある。
+
+ReclaimPolicy（PersistentVolumeを使い終わった後の処理）も以下3つから決められる。
+
+* Delete：削除する
+* Retain：保持する。ほかのpvcによって再度マウントされることはない。
+* Recycle：データ削除し、pvcによって再度マウントされる。（推奨されてない）
+
+## 7.8 PersistentClaim（PVC）
+
+### 7.8.1 PersistentVolumeClaimの設定
+PersistentVolumeClaimでの要求容量がPersistentVolumeの容量より小さければ、割り当てが行われてしまうことに注意。
+
+### 7.8.2 PersistentVolumeClaimの作成
+
+### 7.8.3 Podからの利用
+
+### 7.8.4 Dynamic Provisioning
+pvcが発行されたタイミングでpvが作成されるので容量の無駄が生じない。
+
+### 7.8.5 PersistentVolumeClaimResizeによるボリュームの拡張
+alphaクラスタを作成して確認。
+
+gcloud beta container clusters create k8s-alpha ^
+--zone asia-northeast1-a ^
+--cluster-version 1.11.2-gke.18 ^
+--enable-kubernetes-alpha
+↑のコマンドで謎エラーが出てうまくアルファクラスタを作れない。
+
+"ERROR: (gcloud.beta.container.clusters.create) ResponseError: code=400, message=Auto_upgrade and auto_repair are not supported for clusters with enable_kubernetes_alpha = true"
+
+resizeは大きくすることのみ可能。
+
+### 7.8.6 StatefulSetでのPersistentVolumeClaim（volumeClaimTemplate)
+volumeChaimTemlateを利用すると、別途PersistentVolumeClaimを定義する必要がなくなる
+
+## 7.9 volumeMountsで利用可能なオプション
+
+
+
+
+
+
+
