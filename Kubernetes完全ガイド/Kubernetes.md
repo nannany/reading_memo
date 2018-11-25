@@ -401,6 +401,85 @@ volumeChaimTemlateを利用すると、別途PersistentVolumeClaimを定義す�
 
 ## 7.9 volumeMountsで利用可能なオプション
 
+### 7.9.1 ReadOnlyマウント
+ReadOnlyでマウントすれば、書き込みはできない。
+
+### 7.9.2 subPath
+
+# 8章 ClusterリソースとMetadataリソース
+
+## 8.1 ClusterリソースとMetadataリソースの概要
+Clusterリソースはセキュリティまわりの設定やクォータ設定などクラスタの挙動を制御するためのリソース。
+Metadataリソースはクラスタ上にコンテナを起動させるために利用するリソース。
+
+## 8.2 Node
+
+## 8.3 Namespace
+
+# 9章 リソース管理とオートスケーリング
+
+## 9.1 リソースの制限
+Requestsはリソースの下限を示す。Limitsは上限。
+Requestsに示した分のリソースがノードにあれば、スケジューリングは行われる。
+
+### 9.1.1 GPUなどのリソース制限
+
+### 9.1.2 オーバーコミットとリソース不足
+
+## 9.2 ClusterAutoscalerとリソース不足
+Pending状態のPodができたときに初めてスケールする。
+基本方針として、RequestsとLimitsの差をつけすぎない、Requestsを大きくしすぎない、ようにする。
+
+
+## 9.3 LimitRangeによるリソース制限
+Pod、Container、PersistentVolumeClaimでLimitRange（Metadataのうちの１つ）を設定可能
+
+### 9.3.1 デフォルトで作成されているLimitRange
+デフォルトではCPUのdefaultRequestが100mに設定されている。
+
+### 9.3.2 Containerに対するLimitRange
+
+### 9.3.3 Podに対するLimitRange
+
+### 9.3.3 Podに対するLimitRange
+クラウド環境ではDynamicprovisioningで簡単にPersistentVolumeを作成することができるが、LimitRangeを作成しておくことで、一定容量以上のボリュームを作成させないようにできる。
+
+
+## 9.4 QoS Class
+Podに設定される。BestEffort,Guaranteed,Burstableの3種があり、自動で設定される。
+
+## 9.5 ResourceQuotaによるNamespaceのリソースクォータ制限
+ネームスペースごとに利用可能なリソース数、量の制限を書けることが可能。
+
+### 9.5.1 作成可能なリソース数の制限
+
+### 9.5.2 リソース使用量の制限
+
+## 9.6 HorizontalPodAutoscaler（HPA)
+Metadataの一種。
+Deployment、ReplicaSetのレプリカ数をCPU負荷等に応じて自動的にスケーリングさせるリソース。
+30秒に一回、オートスケーリングするかチェックする。
+
+
+## 9.7 VerticalPodAutoscaler（VPA)
+HPAがスケールアウトであったのに対して、こちらはPodのスケールアップ
+
+## 9.8 まとめ
+オートスケーリングの方式には3種類ある。
+* Cluster Autoscaler：Podを起動できるノードが存在しない場合に、ノードを新規追加
+* HorizontalPodAutoscaler：Podのレプリカ数を負荷に応じて自動的に増減
+* VerticalPodAutoscaler：Podに割り当てられているリソースを負荷に応じて自動的に増減
+
+
+# 10章 ヘルスチェックとコンテナのライフサイクル
+
+## 10.1 ヘルスチェック
+
+### 10.1.1 LivenessProbeとReadinessProbe2種類のヘルスチェック機構
+
+
+
+
 
 
 
