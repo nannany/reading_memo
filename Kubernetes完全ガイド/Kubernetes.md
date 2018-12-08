@@ -530,3 +530,87 @@ kubectl cordonコマンドで切り替えられる
 該当ノード上のPodを退避できる。（Deploymentとかの場合）
 
 ## 11.4 PodDisruptionBudget（PDB）による安全な退避
+PodDisruptionBudgetリソースを使うことで、Podの最小起動数、最大停止数を指定してノード上からのPodの追い出しができる。
+
+# 12章 高度で柔軟なスケジューリング
+
+## 12.1 高度なスケジューリングとAffinity/Anti-Affinity
+Affinty：特定の条件に一致するところにスケジューリングすることを意味する。
+Anti-Affinity：特定の条件に一致しないところにスケジューリングすることを意味する。
+
+## 12.2 ビルトインノードラベルとラベルの追加
+ビルトインノードラベル：ノードにあらかじめ付与されているラベル。
+
+## 12.3 nodeSelector(Simplest Node Affinity)
+nodeSelectorを使用することで特定のノードにPodを配置できるが、それほど柔軟に条件指定はできない。
+
+## 12.4 Node Affinity
+requiredDuringSchedulingIgnoredDuringExecutionで必須のスケジューリングポリシーを指定
+preferredDuringSchedulingIgnoredDuringExecutionで優先的に考慮されるスケジューリングポリシーを指定
+
+## 12.5 matchExpressionsのオペレータとset-based条件
+matchExpressionsの定義について
+
+### 12.5.1 In/NotInオペレータ
+In:keyラベルの値がvaluesラベルのいずれかに一致する。
+NotIn:keyラベルの値がvaluesラベルのいずれにも一致しない。
+
+### 12.5.2 Exists/DoesNotExistsオペレータ
+Exists：keyラベルが存在するかどうか。
+DoesNotExists：keyラベルが存在しないかどうか。
+
+### 12.5.3 Gt/Ltオペレータ
+Gt:keyラベルの値が、valuesラベルで指定された値より大きいかどうか。
+Lt:keyラベルの値が、valuesラベルで指定された値より小さいかどうか。
+
+## 12.6 Node Anti Affinity
+
+## 12.7 Inter-Pod Affinity
+
+### 12.7.1 特定のPodと同じノードで必ず起動する 
+k8sのスケジューラは基本的にスケジューリング時の配置を制御するのみ。
+
+### 12.7.2 特定のPodと必ず同じゾーン上で起動し、可能な限り同じノード上で起動する
+
+## 12.8 Inter-Pod Anti-Affinity
+
+## 12.9 複数の条件を組み合わせたPodのスケジューリング 
+
+## 12.10 TaintsとTolerations 
+Nodeに対して汚れ（Taints）をつけておき、それを許容（Tolerations）できるPodのみスケジューリングできる仕組み。
+対象のノードを特定の用途に向けた専用ノードにする場合などに用いる。例えば、プロダクション用ノードにはその他のワークロードを混在させたくないなど。
+
+
+### 12.10.1 Taintsの付与 
+kubectl taint コマンドでノードにTaintsを付与できる。Key=Value:Effect形式で構成される。Key、Valueは任意の値で、Effectは以下3種類の値。
+
+#### PreferNoSchedule
+可能な限りスケジューリングを行わない。ここしかないってなったら候補になる。
+
+#### NoSchedule
+スケジューリングは行われないが、条件にマッチするノードですでに動いているPodには影響がない。
+
+#### NoExecute
+マッチするノード上ではPodを決して動作させない。
+
+### 12.10.2 Tolerationsを指定したPodの起動 
+
+### 12.10.3 NoExecuteの一定時間の許容 
+NoExecuteの場合において、条件が一致する場合に、一定時間だけ稼働を許容する設定をすることもできる。
+
+### 12.10.4 複数のTaintとTolerations 
+ノードが複数のTaintを持っている場合は、Tolerationsはそれらすべての条件を満たさねば、スケジューリングされない。
+
+## 12.11 PriorityClassによるPodの優先度と退避
+Podに優先度をつけて、その値で比較して既存のPodを退避させることができる。
+Podに優先度を付与するためには、PriorityClassを作成する必要がある。
+Pod側の定義のpriorityClassNameでそのPriorityClassを指定してやる。
+
+Inter-Pod Affinityを設定してあるPodを追い出さないために、Inter-Pod Affinityに設定しているPodは優先度を高くしておく。
+
+## 12.12 その他のスケジューリング
+独自実装したスケジューラプログラムを使用することも可能。
+
+# 13章 セキュリティ
+
+## 13.1 ServiceAccount
