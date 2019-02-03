@@ -52,4 +52,15 @@ RUN apt-get update && apt-get install -y \
 書き方は下記をまねて、レイヤの数の最小化、apt-get updateとinstallを同時にやることを意識した。
 http://docs.docker.jp/engine/articles/dockerfile_best-practice.html
 
+# 動かす
+
+上記で作成したイメージを、以下のコマンドで動作させてみる。
+```
+docker run simple-application-cmd
+```
+
+以下のように表示され、うまくいった。
+
+![hello](hello.gif)
+
 
