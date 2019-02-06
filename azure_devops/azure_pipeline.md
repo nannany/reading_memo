@@ -84,6 +84,8 @@ steps:
   displayName: 'docker build'
 ```
 
+---
+
 ```
 trigger:
 - master
