@@ -100,10 +100,42 @@ pool:
 variables:
   imageName: 'your-container-image-name:$(build.buildId)'
 ```
-の部分で、
+の部分で、imageNameという変数に、your-container-image-name:$(build.buildId)を入れている。
+build.buildIdはAzure DevOps側で事前に定義されている値。
+
+事前定義されている値は以下参照。
+https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops
+
+```
+steps:
+- script: docker build -f Dockerfile -t $(imageName) .
+  displayName: 'docker build'
+```
+の部分で、ここでは`docker build -f Dockerfile -t $(imageName) .`というコマンドを流しますよ、このジョブはコンソールやログに`docker build`という名前で表示させますよ、と言っている。
 
 # azure-pipelines.ymlを編集
 
 現状だと、作成されたイメージのDocker HubへのPUSHはないので、azure-pipelines.ymlを編集する。
+下記資料のPush an imageの部分を参考にして、以下のように変更する。
+
+https://docs.microsoft.com/en-us/azure/devops/pipelines/languages/docker?view=azure-devops&tabs=yaml#push-an-image
+
+```
+
+```
+
+Docker Hubのパスワードはそのまま記述せずに、PipelinesのLibrary機能を用いて変数に格納された値を使用している。
+
+![⑫](library.bmp)
+
+
+# 結果確認
+
+設定した通り、masterブランチに変更が入るたびにパイプラインが流れる。
+結果の確認は、PipelinesのBuildsからみることができる。
+
+![⑬](build_result.bmp)
+
+
 
 
