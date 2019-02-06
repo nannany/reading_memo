@@ -123,7 +123,28 @@ steps:
 https://docs.microsoft.com/en-us/azure/devops/pipelines/languages/docker?view=azure-devops&tabs=yaml#push-an-image
 
 ```
+# Docker image
+# Build a Docker image to deploy, run, or push to a container registry.
+# Add steps that use Docker Compose, tag images, push to a registry, run an image, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
 
+trigger:
+- master
+
+pool:
+  vmImage: 'Ubuntu-16.04'
+
+variables:
+- group: nannany_secret
+- name: imageName
+  value: 'simple-application-azure:$(build.buildId)'
+
+steps:
+- script: |
+    docker build -f Dockerfile.maven -t nannany/$(imageName) .
+    docker login -u nannany -p $(DOCKER_HUB_PWD)
+    docker push nannany/$(imageName)
+  displayName: 'docker build'
 ```
 
 Docker Hubのパスワードはそのまま記述せずに、PipelinesのLibrary機能を用いて変数に格納された値を使用している。
@@ -137,6 +158,10 @@ Docker Hubのパスワードはそのまま記述せずに、PipelinesのLibrary
 結果の確認は、PipelinesのBuildsからみることができる。
 
 ![⑬](build_result.bmp)
+
+また、Docker Hubにも登録されていることが確認できた。
+
+![⑭](dockerhub.bmp)
 
 
 
