@@ -35,3 +35,9 @@
 * データベースをバージョン管理することができる
 
 ## SpringSecurity
+
+* `spring-boot-starter-security`に依存した段階でBasic認証が有効になる。`security.basic.enabled=false`で外せる
+* 外部キー参照しているentityの読み込みを、`fetch=FetchType.LAZY`で遅延ロードさせることができる
+* JpaRepository。。。？
+* User、UserDetailsServiceなどのデフォルト実装がある
+
