@@ -114,8 +114,21 @@ Difficulty: medium
 ```
 
 * Flaskに対する攻撃は[このページ](https://qiita.com/koki-sato/items/6ff94197cf96d50b5d8f)に載っていた。
+
 * これをもとに、[このコード](https://github.com/nannany/python/blob/master/src/ctf/tamu2019/flask_session.py)でcookieにsessionがキーで、 { 'username': 'admin' }がバリューに入れてアクセスしてみる。→ダメ。
 
+* SSTI（サーバーサイドテンプレートインジェクション）と呼ばれる脆弱性のようだ。
+
+* `{{''.__class__.__mro__[2].__subclasses__()[40]('flag.txt').read()}}`という文字列を与えてやるとフラグが得られる。
+  * `''.__class__`で空文字の型が得られる。→str
+  * mroはMethod Resolution Order（メソッド解決順序）とよばれるもので、`__mro__`の中にはobject型が入っている
+  * `__subclasses()`メソッドでobjectのサブクラスが全取得できる。その中の41番目はfile型
+  * fileの引数にフラグファイルをとってやり、読み込むとフラグが出てくる。
+
+## 得られた学び
+
+* pythonの知識
+* SSTIについて。(ここが参考になりそう)[https://www.we45.com/blog/server-side-template-injection-a-crash-course-]
 
 # Robots Rule
 
@@ -133,9 +146,17 @@ User-agent: *
 WHAT IS UP, MY FELLOW HUMAN! HAVE YOU RECEIVED SECRET INFORMATION ON THE DASTARDLY GOOGLE ROBOTS?! YOU CAN TELL ME, A FELLOW NOT-A-ROBOT!
 ```
 
-* 
+* User-agentをGooglebotにしてやって、`http://web5.tamuctf.com/robots.txt`にアクセスするとフラグが表示される。
 
+## 得られた学び
 
+* fiddlerの使い方。
+  * 起動させると勝手に8888ポートでプロキシとして作動する。
+  * F11をおすと、通信にブレークポイントはれるようになる。
+  * Shift-F11でブレークポイント解除できる。
+* robots.txtの役割
+  * 検索エンジンのクローラへのアクセス制限をかけるためのファイル。
+  * だいたい、User-Agentで判断してアクセスを拒否するか許可するかきめる。
 
 # Many Gig'ems to you!
 
@@ -144,6 +165,11 @@ http://web7.tamuctf.com
 ```
 
 * クッキーがいっぱい出てくるページに行くと、JS経由でクッキーが4つブラウザに保存される
+* それぞれのページのaltに含まれている値と、cookieのキーの値で、重複がないものを集めて類推するとフラグが導かれる。
+
+## 得られた学び
+
+* あんまりないな
 
 # Buckets
 
@@ -156,3 +182,15 @@ Difficulty: easy
 
 * htmlソース内に他のWebページのURLが貼ってある。
 `http://ctfdevbucket.s3-website.us-east-2.amazonaws.com`
+
+* S3の一覧が`http://tamuctf.s3.amazonaws.com/`で得られる。そこからたどっていけばフラグが得られる。
+
+## 得られた学び
+
+* S3配下にあるファイルのリストは、
+http://s3.amazonaws.com/[bucket_name]/
+http://[bucket_name].s3.amazonaws.com/
+のいずれかにある模様。
+
+
+# Login App
