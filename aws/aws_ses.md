@@ -18,4 +18,12 @@ https://docs.aws.amazon.com/ja_jp/ses/latest/DeveloperGuide/send-an-email-using-
 * awsの認証情報を取得、認証情報の共有ファイルを作成
 * EclipseにAWS Toolkit for Eclipseをインストールする。
   * Help→Install new SoftwareのWork withの中に https://aws.amazon.com/eclipse を入れる。あとはぽちぽちやる。
-* 
+
+
+
+
+# ベストプラクティス調査
+
+https://aws.amazon.com/jp/whitepapers/amazon-ses-best-practices/
+
+

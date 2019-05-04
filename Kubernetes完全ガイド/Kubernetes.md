@@ -42,7 +42,7 @@ gcloud components install kubectl
 
 マスターのバージョンは 1.11.2-gke.18 にした。
 gcloud container clusters create k8s ^
---cluster-version 1.11.2-gke.18 ^
+--cluster-version 1.12.7-gke.10 ^
 --zone asia-northeast1-a ^
 --num-nodes 3
 
@@ -57,9 +57,9 @@ kubectl create --save-config clusterrolebinding iam-cluster-admin-binding ^
 ## 4.2 Kubernetesの基礎
 
 Kubernetes MasterとKubernetes Nodeの2種類のノードから、Kubernetesは成り立っている。
-Masterが持つAPIにリクエストを送ることでいろいろできる。
+masterが持つapiにリクエストを送ることでいろいろできる。
 
-## 4.3 Kubernetesとリソース
+## 4.3 kubernetesとリソース
 
 大きく分けて5種のリソースがある。(リソース？？)
 
