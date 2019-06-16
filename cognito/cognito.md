@@ -86,3 +86,10 @@ exp(expiration time)クレームはJWTの有効期限を示しています。
 iat(issued at)クレームはJWTが発行された日時を示しています。
 
 ---
+
+### Cognitoにユーザーを作成
+以下のようなコマンドを実行してCognitoにユーザーを登録することができます。
+```
+aws cognito-idp sign-up --client-id xxxxxxxxxxxxx --username nannany --password xxxxxxxxx
+aws cognito-idp admin-confirm-sign-up --user-pool-id ap-northeast-1_xxxxxxxx --username nannany
+```
