@@ -4,3 +4,12 @@
   * もし、実態はcurlだとしたら、https通信が発生するはずなので、Cognitoに証明書を持たせなければならない。
   * awscliによる通信だとしたら、credentialをクライアントアプリケーションで持たなければならないのでは。
     * これはなさそうだな。
+* cognitoでいうところの、アプリクライアントとはいったい
+
+# Spring Securityとcognito
+
+https://www.baeldung.com/spring-security-oauth-cognito
+
+
+# cognitoのログインページ
+

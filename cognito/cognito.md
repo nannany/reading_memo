@@ -12,8 +12,6 @@
 
 認可(Authorization:AuthZ)はリソースへのアクセス権限を与える行為を指します。
 
-
-
 ## Cognitoを利用した認証
 
 ## Cognitoを利用した認可
@@ -93,3 +91,9 @@ iat(issued at)クレームはJWTが発行された日時を示しています。
 aws cognito-idp sign-up --client-id xxxxxxxxxxxxx --username nannany --password xxxxxxxxx
 aws cognito-idp admin-confirm-sign-up --user-pool-id ap-northeast-1_xxxxxxxx --username nannany
 ```
+
+Cognitoにあらかじめ組み込まれているUIを使用することができます。
+該当のWebページには、以下のようなURLを指定することで遷移できます。
+
+https://nannany.auth.ap-northeast-1.amazoncognito.com/login?response_type=token&client_id=xxxxxxxxx&redirect_uri=http://localhost:8080/login/oauth2/code/cognito
+
