@@ -97,3 +97,5 @@ Cognitoにあらかじめ組み込まれているUIを使用することがで�
 
 https://nannany.auth.ap-northeast-1.amazoncognito.com/login?response_type=token&client_id=xxxxxxxxx&redirect_uri=http://localhost:8080/login/oauth2/code/cognito
 
+
+https://qiita.com/nannany_tis/items/52d322be4522a2a8f3f9
