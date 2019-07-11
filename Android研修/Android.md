@@ -8,8 +8,8 @@
 * 自分で新しいクラスを作ることはほとんどない
 * 作ったandroidアプリはJavaではない？
   * Java→classファイル→dexファイル（Android Runtime(ART)で動作する）
-* Darvik → Android Runtime
-* JVMは重すぎるのでDarvik作った
+* Dalvik → Android Runtime
+* JVMは重すぎるのでDalvik作った
 * apkファイルは実質zipファイル
 * google play に乗っかっているのはapkファイル
 * APIレベルに注意する
