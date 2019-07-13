@@ -1,7 +1,6 @@
 # 概要
 
-KubernetesのPodの死活監視について、
-
+KubernetesのPodのヘルスチェックについて、
 * KubernetesのLiveness・Readiness
 * Spring Boot Actuator
 を用いて実施してみます。
@@ -153,7 +152,7 @@ $ curl 192.168.99.100:8080/actuator/health -v
 
 # Liveness Probe
 
-意図的にLiveness Probe が失敗するような状況を作り、コンテナが再作成されることを確認します。
+意図的に Liveness Probe が失敗するような状況を作り、コンテナが再作成されることを確認します。
 
 以下のようなクラスを作成し、アプリケーションの起動から30秒まではヘルスチェックに200を返し、30秒経った後は503を返すようにします。
 
@@ -177,6 +176,10 @@ public class CustomHealthIndicator implements HealthIndicator {
     }
 }
 ```
+
+Podの設定は以下のようにします。
+Readiness Probe のヘルスチェックはコンテナ作成の10秒後から3秒間隔で実施され、
+Liveness Probe のヘルスチェックはコンテナ作成の20秒後から8秒間隔で実施されます。
 
 ```
 apiVersion: v1
@@ -207,14 +210,16 @@ spec:
         failureThreshold: 1
 ```
 
+`kubectl describe pod liveness-probe` のEventsを確認すると以下のようになっており、Readiness Probe に失敗した後に、Liveness Probe に失敗し、コンテナが再作成されていることが分かります。
+
 ```
-Normal   Created    75s (x3 over 2m46s)  kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Created container
-Normal   Started    75s (x3 over 2m46s)  kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Started container
-Warning  Unhealthy  33s (x4 over 84s)    kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Readiness probe failed: HTTP probe failed with statuscode: 503
-Normal   Pulling    30s (x4 over 3m3s)   kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  pulling image "nannany/liveness-probe-example:latest"
-Warning  Unhealthy  30s (x3 over 2m6s)   kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Liveness probe failed: HTTP probe failed with statuscode: 503
-Normal   Killing    30s (x3 over 2m6s)   kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Killing container with id docker://liveness-probe:Container failed liveness probe.. Container will be killed and recreated.
-Normal   Pulled     27s (x4 over 2m50s)  kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Successfully pulled image "nannany/liveness-probe-example:latest"
+Warning  Unhealthy  7s (x2 over 10s)  kubelet, gke-standard-cluster-1-default-pool-1623186d-sfjm  Readiness probe failed: HTTP probe failed with statuscode: 503
+Normal   Pulling    5s (x2 over 52s)  kubelet, gke-standard-cluster-1-default-pool-1623186d-sfjm  pulling image "nannany/liveness-probe-example:latest"
+Warning  Unhealthy  5s                kubelet, gke-standard-cluster-1-default-pool-1623186d-sfjm  Liveness probe failed: HTTP probe failed with statuscode: 503
+Normal   Killing    5s                kubelet, gke-standard-cluster-1-default-pool-1623186d-sfjm  Killing container with id docker://liveness-probe:Container failed liveness probe.. Container will be killed and recreated.
+Normal   Pulled     2s (x2 over 49s)  kubelet, gke-standard-cluster-1-default-pool-1623186d-sfjm  Successfully pulled image "nannany/liveness-probe-example:latest"
+Normal   Created    2s (x2 over 49s)  kubelet, gke-standard-cluster-1-default-pool-1623186d-sfjm  Created container
+Normal   Started    2s (x2 over 49s)  kubelet, gke-standard-cluster-1-default-pool-1623186d-sfjm  Started container
 ```
 
 # Readiness Probe
@@ -242,6 +247,10 @@ public class CustomHealthIndicator implements HealthIndicator {
 
 }
 ```
+
+Podの設定は以下のようにします。
+Readiness Probe のヘルスチェックはコンテナ作成の40秒後から3秒間隔で実施され、
+Liveness Probe のヘルスチェックはコンテナ作成の100秒後から8秒間隔で実施されます。
 
 ```
 apiVersion: v1
@@ -272,147 +281,24 @@ spec:
         failureThreshold: 1
 ```
 
+Readiness Probe の失敗が数回起きていることが分かります。コンテナ起動からSpringが立ち上がるまでにタイムラグがあるためだと考えられます。
 
 ```
-Events:
-  Type     Reason     Age                From                                                        Message
-  ----     ------     ----               ----                                                        -------
-  Normal   Scheduled  115s               default-scheduler                                           Successfully assigned default/readiness-probe to gke-standard-cluster-1-default-pool-b350d2ec-svw3
-  Normal   Pulling    115s               kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  pulling image "nannany/readiness-probe-example:latest"
   Normal   Pulled     110s               kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Successfully pulled image "nannany/readiness-probe-example:latest"
   Normal   Created    110s               kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Created container
   Normal   Started    110s               kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Started container
   Warning  Unhealthy  63s (x3 over 68s)  kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Readiness probe failed: HTTP probe failed with statuscode: 503
 ```
 
+# まとめ
+
+本記事では Kubernetes のヘルスチェック機能と Spring Boot Actuator を使用してアプリケーションのヘルスチェックチェックを行いました。
+使用したソースコード、YAMLファイルは下記に配置しています。
+https://github.com/nannany/spring-actuator-sample
+
+
 # 参考URL
 
 https://www.baeldung.com/spring-boot-kubernetes-self-healing-apps
 https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-endpoints.html
 
--- 
-
-Spring boot actuator でデフォルトで設定できるのはHTTP通信だと、
-
-* health
-* info
-
-のみ。
-
-
----
-
-Name:         liveness-probe
-Namespace:    default
-Priority:     0
-Node:         gke-standard-cluster-1-default-pool-b350d2ec-svw3/10.146.0.3
-Start Time:   Wed, 10 Jul 2019 21:15:28 +0900
-Labels:       app=liveness-probe
-Annotations:  kubectl.kubernetes.io/last-applied-configuration:
-                {"apiVersion":"v1","kind":"Pod","metadata":{"annotations":{},"labels":{"app":"liveness-probe"},"name":"liveness-probe","namespace":"defaul...
-              kubernetes.io/limit-ranger: LimitRanger plugin set: cpu request for container liveness-probe
-Status:       Running
-IP:           10.0.1.7
-Containers:
-  liveness-probe:
-    Container ID:   docker://f5f4f6e2eb4ab43fccf018590248a92279312eaab32d1153c0f5c9a5fb94007c
-    Image:          nannany/liveness-probe-example:latest
-    Image ID:       docker-pullable://nannany/liveness-probe-example@sha256:e8151a7fbb1d6c323b244d04b01526eadb0d51096338ca7a2e7f5935bb373d1d
-    Port:           <none>
-    Host Port:      <none>
-    State:          Running
-      Started:      Wed, 10 Jul 2019 21:18:37 +0900
-    Last State:     Terminated
-      Reason:       Error
-      Exit Code:    143
-      Started:      Wed, 10 Jul 2019 21:17:49 +0900
-      Finished:     Wed, 10 Jul 2019 21:18:34 +0900
-    Ready:          True
-    Restart Count:  4
-    Requests:
-      cpu:        100m
-    Liveness:     http-get http://:8080/actuator/health delay=20s timeout=2s period=8s #success=1 #failure=1
-    Readiness:    http-get http://:8080/actuator/health delay=10s timeout=2s period=3s #success=1 #failure=1
-    Environment:  <none>
-    Mounts:
-      /var/run/secrets/kubernetes.io/serviceaccount from default-token-rvgsx (ro)
-Conditions:
-  Type              Status
-  Initialized       True
-  Ready             True
-  ContainersReady   True
-  PodScheduled      True
-Volumes:
-  default-token-rvgsx:
-    Type:        Secret (a volume populated by a Secret)
-    SecretName:  default-token-rvgsx
-    Optional:    false
-QoS Class:       Burstable
-Node-Selectors:  <none>
-Tolerations:     node.kubernetes.io/not-ready:NoExecute for 300s
-                 node.kubernetes.io/unreachable:NoExecute for 300s
-Events:
-  Type     Reason     Age                    From                                                        Message
-  ----     ------     ----                   ----                                                        -------
-  Normal   Scheduled  3m47s                  default-scheduler                                           Successfully assigned default/liveness-probe to gke-standard-cluster-1-default-pool-b350d2ec-svw3
-  Normal   Created    2m14s (x3 over 3m44s)  kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Created container
-  Normal   Started    2m14s (x3 over 3m43s)  kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Started container
-  Normal   Pulling    89s (x4 over 3m47s)    kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  pulling image "nannany/liveness-probe-example:latest"
-  Warning  Unhealthy  89s (x3 over 3m5s)     kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Liveness probe failed: HTTP probe failed with statuscode: 503
-  Normal   Killing    89s (x3 over 3m5s)     kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Killing container with id docker://liveness-probe:Container failed liveness probe.. Container will be killed and recreated.
-  Warning  Unhealthy  89s (x5 over 2m20s)    kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Readiness probe failed: HTTP probe failed with statuscode: 503
-  Normal   Pulled     86s (x4 over 3m44s)    kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Successfully pulled image "nannany/liveness-probe-example:latest"
-
----
-Name:         liveness-probe
-Namespace:    default
-Priority:     0
-Node:         gke-standard-cluster-1-default-pool-b350d2ec-svw3/10.146.0.3
-Start Time:   Wed, 10 Jul 2019 21:21:03 +0900
-Labels:       app=liveness-probe
-Annotations:  kubectl.kubernetes.io/last-applied-configuration:
-                {"apiVersion":"v1","kind":"Pod","metadata":{"annotations":{},"labels":{"app":"liveness-probe"},"name":"liveness-probe","namespace":"defaul...
-              kubernetes.io/limit-ranger: LimitRanger plugin set: cpu request for container liveness-probe
-Status:       Running
-IP:           10.0.1.8
-Containers:
-  liveness-probe:
-    Container ID:   docker://60d512acdf9005759b85ab2b21af860376db03f5bc218258bbb81ca0bf622269
-    Image:          nannany/liveness-probe-example:latest
-    Image ID:       docker-pullable://nannany/liveness-probe-example@sha256:e8151a7fbb1d6c323b244d04b01526eadb0d51096338ca7a2e7f5935bb373d1d
-    Port:           <none>
-    Host Port:      <none>
-    State:          Running
-      Started:      Wed, 10 Jul 2019 21:21:07 +0900
-    Ready:          True
-    Restart Count:  0
-    Requests:
-      cpu:        100m
-    Liveness:     http-get http://:8080/actuator/health delay=20s timeout=2s period=8s #success=1 #failure=1
-    Readiness:    http-get http://:8080/actuator/health delay=10s timeout=2s period=3s #success=1 #failure=1
-    Environment:  <none>
-    Mounts:
-      /var/run/secrets/kubernetes.io/serviceaccount from default-token-rvgsx (ro)
-Conditions:
-  Type              Status
-  Initialized       True
-  Ready             True
-  ContainersReady   True
-  PodScheduled      True
-Volumes:
-  default-token-rvgsx:
-    Type:        Secret (a volume populated by a Secret)
-    SecretName:  default-token-rvgsx
-    Optional:    false
-QoS Class:       Burstable
-Node-Selectors:  <none>
-Tolerations:     node.kubernetes.io/not-ready:NoExecute for 300s
-                 node.kubernetes.io/unreachable:NoExecute for 300s
-Events:
-  Type    Reason     Age   From                                                        Message
-  ----    ------     ----  ----                                                        -------
-  Normal  Scheduled  24s   default-scheduler                                           Successfully assigned default/liveness-probe to gke-standard-cluster-1-default-pool-b350d2ec-svw3
-  Normal  Pulling    23s   kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  pulling image "nannany/liveness-probe-example:latest"
-  Normal  Pulled     21s   kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Successfully pulled image "nannany/liveness-probe-example:latest"
-  Normal  Created    20s   kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Created container
-  Normal  Started    20s   kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Started container
