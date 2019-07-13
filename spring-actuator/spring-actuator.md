@@ -1,22 +1,22 @@
 # 概要
 
-KubernetesのPodのヘルスチェックについて、
-* KubernetesのLiveness・Readiness
+Kubernetes の Pod のヘルスチェックについて、
+
+* Kubernetes の Liveness Probe・Readiness Probe
 * Spring Boot Actuator
+
 を用いて実施してみます。
 おおむね[この記事](https://www.baeldung.com/spring-boot-kubernetes-self-healing-apps)の翻訳となります。
 
 
 # Kubernetesによるヘルスチェック
 
-Kubernetesでは Liveness Probe と Readiness Probe という2種のヘルスチェックがあります。
+Kubernetes では Liveness Probe と Readiness Probe という2種のヘルスチェックがあります。
 これらのヘルスチェックを駆使して、アプリケーションのダウンタイムを極力小さくするようにしています。
 
-各ヘルスチェックの内容はマニフェストファイルにて設定することができます。
 Liveness Probe と Readiness Probe ではヘルスチェックで問題があった場合の挙動が異なります。
-
 Liveness Probe で問題を検知した場合には、コンテナの再起動をします。
-一方、Readiness Probe で問題を検知した場合には、該当のPodにはリクエストが送られないようになります。
+一方、Readiness Probe で問題を検知した場合には、該当の Pod にはリクエストが送られないようになります。
 
 ## レイヤ4での設定
 
@@ -55,15 +55,13 @@ spec:
 
 ヘルスチェックについて、設定している各フィールドの意味は以下のようです。
 
+* tcpSocket : ヘルスチェック方法として、TCP接続ができるかどうかで判断しているということを表す
+* tcpSocket.port : ヘルスチェックとしてTCP接続しにいくポート番号
 * initialDelaySeconds : コンテナが作成されてから、ヘルスチェックを開始するまでに待機する秒数
 * periodSeconds : ヘルスチェックを実施する間隔。デフォルトは10sで最小値は1s
 * timeoutSeconds : ヘルスチェックがタイムアウトとなる秒数。デフォルトは1sで最小値は1s
-* failureThreshold : ヘルスチェック失敗とみなすまでに施行する回数。readiness の場合はPodが not ready となる。liveness の場合はPodを再起動する。デフォルトは3回で、最小値は1回
+* failureThreshold : ヘルスチェック失敗とみなすまでに施行する回数。Readiness の場合は Pod が not ready となる。Liveness の場合は Pod を再起動する。デフォルトは3回で、最小値は1回
 * successThreshold : ヘルスチェックが失敗した後に成功したと見なされるための最小連続成功回数。デフォルトは1回で最小値は1回
-
-つまり、上記のマニフェストにおいて、Readiness Probe は、コンテナ作成から5s後に、10秒間隔でTCPの8080に接続できるかチェックし、
-2秒で接続できなかったらタイムアウトとみなし、ヘルスチェックが1回失敗したらPodを not ready にし、失敗後に1回成功したら ready にする、
-というようなことをします。
 
 ## レイヤ7でヘルスチェック
 
@@ -88,8 +86,8 @@ Spring Boot Actuator を使用すれば簡単にヘルスチェック用のエ�
 
 # Spring Boot Actuatorについて
 
-Spring Boot Actuator を用いることで、監査・死活監視・メトリクス収集のためのエンドポイントをアプリケーションに組み込むことができます。
-今回は死活監視の用途で使用します。
+Spring Boot Actuator を用いることで、監査・ヘルスチェック・メトリクス収集のためのエンドポイントをアプリケーションに組み込むことができます。
+今回はヘルスチェックの用途で使用します。
 
 Spring Boot Actuator を導入する方法は、Mavenで依存関係を制御しているのであれば、dependencyに下記を加えるだけです。
 
@@ -210,7 +208,7 @@ spec:
         failureThreshold: 1
 ```
 
-`kubectl describe pod liveness-probe` のEventsを確認すると以下のようになっており、Readiness Probe に失敗した後に、Liveness Probe に失敗し、コンテナが再作成されていることが分かります。
+`kubectl describe pod liveness-probe` を実行して出力した情報の Events を確認すると以下のようになっており、Readiness Probe に失敗した後に、Liveness Probe に失敗し、コンテナが再作成されていることが分かります。
 
 ```
 Warning  Unhealthy  7s (x2 over 10s)  kubelet, gke-standard-cluster-1-default-pool-1623186d-sfjm  Readiness probe failed: HTTP probe failed with statuscode: 503
@@ -281,7 +279,7 @@ spec:
         failureThreshold: 1
 ```
 
-Readiness Probe の失敗が数回起きていることが分かります。コンテナ起動からSpringが立ち上がるまでにタイムラグがあるためだと考えられます。
+Readiness Probe の失敗が数回起きていることが分かります。コンテナ起動から Spring が立ち上がるまでにタイムラグがあるためだと考えられます。
 
 ```
   Normal   Pulled     110s               kubelet, gke-standard-cluster-1-default-pool-b350d2ec-svw3  Successfully pulled image "nannany/readiness-probe-example:latest"
@@ -301,4 +299,3 @@ https://github.com/nannany/spring-actuator-sample
 
 https://www.baeldung.com/spring-boot-kubernetes-self-healing-apps
 https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-endpoints.html
-
