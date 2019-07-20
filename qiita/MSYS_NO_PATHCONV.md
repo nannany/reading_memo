@@ -1,6 +1,45 @@
 # トラブル内容
 
-Windows上の Git Bash で開発をしていると、コマンドに渡した引数が
+Windows上の Git Bash で開発をしていると、コマンドに渡した引数が意図しない形でパス変換されてしまうことがあります。
+
+## 例1) 起動中のコンテナの中身をみようとして失敗！
+
+`docker exec -it ${起動中コンテナID} /bin/sh` のようにしてコンテナの中身に入りたい場合があります。
+この時に、`/bin/sh` 部分が `${Git Bashのルートディレクトリ}/bin/sh` と変換されて docker コマンドに渡されてしまい失敗することがあります。
+
+```
+$ docker exec -it 9295d32adf71 /bin/sh
+OCI runtime exec failed: exec failed: container_linux.go:348: starting container process caused "exec: \"C:/Program Files/Git/usr/bin/sh\": stat C:/Program Files/Git/usr/bin/sh: no such file or directory": unknown
+```
+
+この場合の対応としては `/bin/sh` 部分を `//bin/sh` と記述し、変換させないようにします。
+
+```
+$ docker exec -it 9295d32adf71 //bin/sh
+/ # ls
+bin    dev    etc    home   lib    media  mnt    opt    proc   root   run    sbin   srv    sys    tmp    usr    var
+```
+
+または、環境変数 `MSYS_NO_PATHCONV` を 1 に設定してやることで変換を抑制することができます。
+
+```
+$ MSYS_NO_PATHCONV=1 docker exec -it 9295d32adf71 /bin/sh
+/ # uname
+Linux
+```
+
+## 例2) envsubst で作成したファイルを kubectl の --from-file で読み込めなくて失敗！
+
+設定値のテンプレートファイルを用意しておき、`envsubst` コマンドでテンプレートファイルに環境変数を埋め込んだファイルをリダイレクトし、
+リダイレクトで作成されたファイルを `kubectl create secret --from-file=${作成されたファイルのパス}` のようにして Secret のもとに使う場合があります。
+
+この時に、envsubst のリダイレクト先のパスと --from-file で指定したパスが全く同じであったとしても、Penvsubstではパスの変換がなされる一方で、kubectl
+
+```sh:env.template
+HOGE=$HOGE
+```
+
+```
 
 # 解決策
 
