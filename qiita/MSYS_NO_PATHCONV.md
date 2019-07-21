@@ -1,6 +1,7 @@
 # トラブル内容
 
 Windows上の Git Bash で開発をしていると、コマンドに渡した引数が意図しない形でパス変換されてしまうことがあります。
+以下、遭遇して困った具体的な2例をあげます。
 
 ## 例1) 起動中のコンテナの中身をみようとして失敗！
 
@@ -31,22 +32,77 @@ Linux
 ## 例2) envsubst で作成したファイルを kubectl の --from-file で読み込めなくて失敗！
 
 設定値のテンプレートファイルを用意しておき、`envsubst` コマンドでテンプレートファイルに環境変数を埋め込んだファイルをリダイレクトし、
-リダイレクトで作成されたファイルを `kubectl create secret --from-file=${作成されたファイルのパス}` のようにして Secret のもとに使う場合があります。
+リダイレクトで作成されたファイルを `kubectl create secret --from-file=${作成されたファイルのパス}` のようにして Secret に格納するデータとして使う場合があります。
 
-この時に、envsubst のリダイレクト先のパスと --from-file で指定したパスが全く同じであったとしても、Penvsubstではパスの変換がなされる一方で、kubectl
+例1での失敗を活かして、`MSYS_NO_PATHCONV=1` を設定していたとします。
+このような時に、envsubst のリダイレクト先のパスと --from-file で指定したパスを `/tmp/env` とすると、
+envsubst では `C:\Users\${ユーザー名}\AppData\Local\Temp\env` にファイルが出力される一方で、
+kubectl ではそもそも `/tmp/env` などというファイルがないと怒られます。
+
+つまり、以下のようなシェルを実行した場合に、
+
+```sh:envsubst-k8s-sample.sh
+cd $(dirname $0)
+
+# MSYS_NO_PATHCONVを設定しておき、勝手にパス変換させないようにする
+export MSYS_NO_PATHCONV=1
+export HOGE=FOOBAR
+
+envsubst < env.template > /tmp/env
+
+echo $(cat /tmp/env-sample)
+
+kubectl create secret generic my.secret --from-file=/tmp/env
+```
+
+(※env.templateは以下のようです)
 
 ```sh:env.template
 HOGE=$HOGE
 ```
 
+以下のようなエラーが出てしまうということです。
+
+```
+$ ./envsubst-k8s-sample.sh
+HOGE=FOOBAR
+error: error reading /tmp/env: The system cannot find the path specified.
+```
+
+この場合は、kubectl の --from-file で指定したパスを Git Bash 側で変換してもらう必要があります。
+変換を再度有効にするには、`MSYS_NO_PATHCONV` 環境変数を削除してやればよいです。
+下記のようにシェルを修正すれば想定通りに動作するようになります。
+
+```sh:envsubst-k8s-sample.sh
+cd $(dirname $0)
+
+# MSYS_NO_PATHCONVを設定しておき、勝手にパス変換させないようにする
+export MSYS_NO_PATHCONV=1
+export HOGE=FOOBAR
+
+envsubst < env.template > /tmp/env
+
+echo $(cat /tmp/env-sample)
+
+# パス変換を有効にするために、MSYS_NO_PATHCONV環境変数を削除!
+unset MSYS_NO_PATHCONV
+kubectl create secret generic my.secret --from-file=/tmp/env
+```
+
+```
+$ ./envsubst-k8s-sample.sh
+HOGE=FOOBAR
+secret/my.secret created
 ```
 
 # 解決策
 
-* パス変換が起きてほしくない場合は、`export MSYS_NO_PATHCONV=1`のようにして`MSYS_NO_PATHCONV`環境変数を設定しておく
-* パス変換をしてほしい場面では、`MSYS_NO_PATHCONV`環境変数を削除しておく(すでに設定しているなら、`unset -v MSYS_NO_PATHCONV`を実行する)
+Git Bash にて行われるパス変換について、解決策をまとめます。
 
-# 捕捉
+* パス変換が起きてほしくない場合は、`export MSYS_NO_PATHCONV=1` のようにして `MSYS_NO_PATHCONV` 環境変数を設定する
+* パス変換をしてほしい場合は、`unset MSYS_NO_PATHCONV` のようにして `MSYS_NO_PATHCONV` 環境変数を削除する
+
+# 補足
 
 パスの変換が起きるのは、msys-1.0.dll や msys-2.0.dll に依存していないEXEファイルの引数においてです。
 
@@ -73,7 +129,7 @@ File Type: EXECUTABLE IMAGE
         6000 .text
 ```
 
-一方で、ls.exe や echo.exe は msys-2.0.dll に依存しています。
+一方で、envsubst.exe や ls.exe や echo.exe は msys-2.0.dll に依存しています。
 
 ```
 $ dumpbin //DEPENDENTS "C:\Program Files\Git\usr\bin\cat.exe"
@@ -107,6 +163,6 @@ File Type: EXECUTABLE IMAGE
 このため、kubectl や docker の引数に渡した値が変換されていることに気づいたときに、
 `ls /foo`や`echo /bar`のようなコマンドで変換されていることを確かめようとしてもうまくはいきません。
 
-## 参考
+# 参考
 
 http://www.mingw.org/wiki/Posix_path_conversion
