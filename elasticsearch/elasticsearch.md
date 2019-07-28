@@ -50,3 +50,20 @@ beats
 * elasticsearchが外部から来たHTTP通信にどう返しているかの流れについて
 * coordinating node が受ける⇒coordinating nodeが他のnodeにきく ⇒ 返ってきた情報をマージしてクライアントに返す
 
+
+## 15
+
+* Routingにおいて、シャーディングの数の剰余で判断しているため、シャーディングする数の変更は困難になっている
+
+## 16
+
+* 2章まとめ
+
+## 17
+
+* [Elastic Cloud](https://www.elastic.co/jp/cloud/) を使用してみる
+
+## 18 
+
+* Mac、Linuxのインストール手順なのでとばす
+
