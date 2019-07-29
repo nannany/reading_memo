@@ -67,3 +67,11 @@ beats
 
 * Mac、Linuxのインストール手順なのでとばす
 
+
+## 26 
+
+* Kibana の dev tool を使用してみる。
+
+## 27
+
+* indexの作り方
