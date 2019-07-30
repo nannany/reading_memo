@@ -215,4 +215,299 @@ PUT /product/default/_mapping
 ## 52
 
 * Character fileter ⇒ tokenizer ⇒ token filter
+
+## 53 
+
+* こんなかんじでやると解析してくれる
+
+```
+POST _analyze
+{
+  "tokenizer": "standard",
+  "text": "I'm in the mood for drinking."
+}
+
+POST _analyze
+{
+  "filter": [ "lowercase" ],
+  "text": "I'm in the mood for drinking."
+}
+```
+
+## 54
+
+* inverted index = 転置インデックス を使用して検索している
+
+## 55
+
+* Character Filter
 * 
+
+======
+形態素解析系はいったん飛ばす
+======
+
+# Intro Searching
+
+## 65
+
+* elasticsearchでの検索クエリについて
+
+## 66 
+
+* `GET product/default/_search?q=* `全部とれる
+* `GET product/default/_search?q=name:Lobster`ロブスターだけとれる
+* `GET product/default/_search?q=tags:Meat AND name:Tuna`タグMeat で 名前Tuna
+
+## 67
+
+* 全部とれる
+
+```
+GET product/default/_search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+```
+
+## 68
+
+* クエリ結果の味方について
+
+## 69
+
+* TF/IDF TF：出現頻度 IDF：単語がどれくらい特徴的か
+* Okapi BM25 ：スコアを出すアルゴリズム
+* explain付与すると、どのようにしてスコア算出されたか見れる
+
+## 70
+
+* debug用途でexplain APIは便利
+
+```
+GET product/default/1/_explain
+{
+  "query": {
+    "term": {
+      "name": "lobster"
+    }
+  }
+}
+```
+
+## 71
+
+* query context? かっこの話？ よくわからん
+* query contextはスコアに影響を与える。filterコンテキストは影響を与えない
+
+## 72
+
+* term query と match query
+  * term は直でinverted indexに行くけど、match はanalizerを介する
+
+```
+GET product/default/_search?explain
+{
+  "query": {
+    "term": {
+      "name": "lobster"
+    }
+  }
+}
+
+GET product/default/_search?explain
+{
+  "query": {
+    "term": {
+      "name": "Lobster"
+    }
+  }
+}
+GET product/default/_search?explain
+{
+  "query": {
+    "match": {
+      "name": "Lobster"
+    }
+  }
+}
+```
+
+# Term level queries
+
+## 73
+
+* term queryをみてく
+
+## 74 
+
+* booleanフィールドをひっかける
+
+```
+GET product/default/_search
+{
+  "query": {
+    "term": {
+      "is_active": {
+        "value": true
+      }
+    }
+  }
+}
+```
+
+## 75
+
+* IN句みたいなやつ
+
+```
+GET product/default/_search
+{
+  "query": {
+    "terms": {
+      "tags.keyword": [
+        "Soup",
+        "Cake"
+        ]
+    }
+  }
+}
+```
+
+
+## 76
+
+* idで絞る
+
+```
+GET product/default/_search
+{
+  "query": {
+    "ids": {
+      "values": [
+1,2,3        ]
+    }
+  }
+}
+```
+
+## 77 
+
+* 範囲指定
+
+```
+GET product/default/_search
+{
+  "query": {
+    "range": {
+      "in_stock": {
+        "gte": 2,
+        "lte": 5
+      }
+    }
+  }
+}
+
+GET product/default/_search
+{
+  "query": {
+    "range": {
+      "created": {
+        "gte": "2010/01/01",
+        "lte": "2010/12/31"
+      }
+    }
+  }
+}
+
+GET product/default/_search
+{
+  "query": {
+    "range": {
+      "created": {
+        "gte": "01-01-2010",
+        "lte": "31-12-2010",
+        "format": "dd-MM-yyyy"
+      }
+    }
+  }
+}
+```
+
+## 78
+
+* https://www.elastic.co/guide/en/elasticsearch/reference/current/common-options.html#date-math 
+* 基軸の日に足したりする
+
+## 79
+
+* non-nullを調べる
+
+```
+GET product/default/_search
+{
+  "query": {
+    "exists": {
+      "field": "tags"
+    }
+  }
+}
+```
+
+## 80
+
+* prefixの一致指定できる
+
+```
+GET product/default/_search
+{
+  "query": {
+    "prefix": {
+      "tags.keyword": "Vege"
+    }
+  }
+}
+```
+
+## 81
+
+* ワイルドカードを使える
+* ?は一文字、*は任意
+
+```
+GET product/default/_search
+{
+  "query": {
+    "wildcard": {
+      "tags.keyword": "Veg*ble"
+    }
+  }
+}
+
+GET product/default/_search
+{
+  "query": {
+    "wildcard": {
+      "tags.keyword": "Veg?ble"
+    }
+  }
+}
+```
+
+## 82
+
+* 正規表現を一部使える
+* https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-regexp-query.html#regexp-syntax
+
+```
+GET product/default/_search
+{
+  "query": {
+    "regexp": {
+      "tags.keyword": "Veget[a-zA-Z]+ble"
+    }
+  }
+}
+```
