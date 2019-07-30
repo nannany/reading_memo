@@ -102,3 +102,117 @@ beats
 * upsert。なかったら登録、あれば更新のパターン。
 
 ## 34
+
+* query でdeleteする
+
+## 35
+
+* index毎消せる
+
+## 36
+
+* _bulkで一気に複数作業できる
+
+## 37
+
+* curlでデータ入れる。
+
+## 38
+
+```
+GET /_cat/health?v
+
+GET /_cat/nodes?v
+
+GET /_cat/indices?v
+
+GET _cat/allocation?v
+
+GET _cat/shards?v
+```
+
+* 上みたいな感じで健康状態など見れる
+
+## 39
+
+* mappingについて
+
+## 40 
+
+* 各フィールドに対して、よしなに型をマッピングしてくれる
+
+## 41
+
+* メタフィールドについて。_idとか_indexとか
+
+## 42
+
+* https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html
+
+## 43
+
+* 明示的にマッピングに型を加える。
+
+## 45
+
+* マッピングをupdateすることはできない。変えるのなら、新たに作るしかない。
+
+## 46 
+
+* マッピングに使われているフィールドについて
+
+## 47
+
+* フィールドを加える
+
+```
+PUT /product/default/_mapping
+{
+  "properties": {
+    "description": {
+      "type": "text"
+    },
+    "name": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    },
+    "tags": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    }
+  }
+}
+```
+
+## 48
+
+* カスタマイズされたフィールドを作成
+
+
+## 49
+
+* indexを最新化する？
+* conflicts=proceed クエリ
+
+## 50 
+
+* マッピングについてのまとめ
+
+# アナライザー
+
+## 51 
+
+* 諸データはそのままelasticsearchに突っ込まれるわけではない。アナライザーを経てから突っ込まれる。
+
+## 52
+
+* Character fileter ⇒ tokenizer ⇒ token filter
+* 
