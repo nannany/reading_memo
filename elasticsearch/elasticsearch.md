@@ -511,3 +511,73 @@ GET product/default/_search
   }
 }
 ```
+
+## 83
+
+* これでデータ入れる
+
+```
+curl -H "Content-Type: application/json" -u elastic:${password}  -XPOST  https://94ddc868351e4e5ea5ad7f9f1cf72f37.ap-northeast-1.aws.found.io:9243/recipe/default/_bulk --data-binary '@test-data2.json'
+```
+
+* データ準備
+
+## 84 
+
+* match クエリ
+
+```
+GET /recipe/default/_search
+{
+  "query": {
+    "match": {
+      "title": "Recipes with pasta or spaghetti"
+    }
+  }
+}
+
+GET /recipe/default/_search
+{
+  "query": {
+    "match": {
+      "title": {
+        "query": "pasta spaghetti",
+        "operator": "and"
+      }
+    }
+  }
+}
+```
+
+## 85 
+
+* matchクエリの順番厳密にした番
+
+```
+GET /recipe/default/_search
+{
+  "query": {
+    "match_phrase": {
+      "title": "spaghetti puttanesca"
+    }
+  }
+}
+```
+
+## 86
+
+* queryで指定した文字に関して、複数のフィールドでmatchしているか見る
+
+
+```
+GET /recipe/default/_search
+{
+  "query": {
+    "multi_match": {
+      "query": "pasta",
+      "fields": ["title","description"]
+    }
+  }
+}
+```
+
