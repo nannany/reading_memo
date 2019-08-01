@@ -581,3 +581,164 @@ GET /recipe/default/_search
 }
 ```
 
+# adding boolean logic to queries
+
+## 87
+
+* Leaf query と compound query
+* bool query
+
+## 88
+
+* boolクエリを使った
+
+```
+GET /recipe/default/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match": {
+            "ingredients.name": "parmesan"
+          }
+        }
+        ],
+        "must_not": [
+        {
+          "match": {
+            "ingredients.name": "tuna"
+          }
+        }
+        ],
+        "should": [
+        {
+          "match": {
+            "ingredients.name": "parsley"
+          }
+        }
+        ], 
+        "filter": [
+        {
+          "range": {
+            "preparation_time_minutes": {
+              "lte": 15
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
+
+GET /recipe/default/_search
+{
+  "query": {
+    "bool": {
+        "should": [
+        {
+          "match": {
+            "ingredients.name": "parmesan"
+          }
+        }
+        ]
+    }
+  }
+}
+```
+
+## 89
+
+* どのクエリにマッチするかわかるようにできる
+
+```
+GET /recipe/default/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match": {
+            "ingredients.name": {
+              "query": "parmesan",
+              "_name": "parmesan_must"
+            }
+          }
+        }
+        ],
+        "must_not": [
+        {
+          "match": {
+            "ingredients.name": {
+              "query": "tuna",
+              "_name": "tuna_must_not"
+            }
+          }
+        }
+        ],
+        "should": [
+        {
+          "match": {
+            "ingredients.name": {
+              "query": "parsley",
+              "_name": "parsley_should"
+            }
+          }
+        }
+        ], 
+        "filter": [
+        {
+          "range": {
+            "preparation_time_minutes": {
+              "lte": 15,
+              "_name": "prep_time_filter"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+## 90
+
+* andとか使ってみる
+
+```
+GET /recipe/default/_search
+{
+  "query": {
+    "match": {
+      "title": {
+        "query":"pasta carbonara",
+        "operator": "and"
+      }
+    }
+  }
+}
+
+GET /recipe/default/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "term": {
+            "title": "`pasta"
+          }
+        },
+        {
+          "term": {
+            "title": "carbonara"
+          }
+        }
+        ]
+    }
+  }
+}
+```
+
+
+##20 
