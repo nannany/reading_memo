@@ -741,4 +741,99 @@ GET /recipe/default/_search
 ```
 
 
-##20 
+## 91 
+
+* データの結合はコストが高い
+
+## 92 
+
+* 下記一つ目のクエリだとネストした値をうまく検索できない。2つ目のようにしたらとれる
+
+```
+GET department/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match": {
+            "employees.position": "intern"
+          } 
+        },
+        {
+          "term": {
+            "employees.gender.keyword": {
+              "value": "F"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
+GET department/_search
+{
+  "query": {
+    "nested": {
+      "path": "employees",
+      "query": {
+        "bool": {
+          "must": [
+            {
+              "match": {
+                "employees.position": "intern"
+              }
+            },
+            {
+              "term": {
+                "employees.gender.keyword": {
+                  "value": "F"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+```
+
+
+## 93
+
+* inner_hits をクエリに加えることで、nestしているうちのどれに引っかかっているのか見れる
+
+```
+GET department/_search
+{
+  "_source": false, 
+  "query": {
+    "nested": {
+      "path": "employees",
+      "inner_hits": {}, 
+      "query": {
+        "bool": {
+          "must": [
+            {
+              "match": {
+                "employees.position": "intern"
+              }
+            },
+            {
+              "term": {
+                "employees.gender.keyword": {
+                  "value": "F"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+```
+
+## 94
