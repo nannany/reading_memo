@@ -836,4 +836,364 @@ GET department/_search
 }
 ```
 
-## 94
+## 95
+
+* joinするドキュメントの加え方
+
+## 96
+
+* うまくいかず
+
+```
+GET /department/_search
+{
+  "query": {
+    "parent_id": {
+      "type": "employee",
+      "id": 1
+    }
+  }
+}
+```
+
+## 97
+
+* うまくいかず
+
+## Matching child documents by parent criteria
+
+```
+GET /department/_search
+{
+  "query": {
+    "has_parent": {
+      "parent_type": "department",
+      "query": {
+        "term": {
+          "name.keyword": "Development"
+        }
+      }
+    }
+  }
+}
+```
+
+## Incorporating the parent documents' relevance scores
+
+```
+GET /department/_search
+{
+  "query": {
+    "has_parent": {
+      "parent_type": "department",
+      "score": true,
+      "query": {
+        "term": {
+          "name.keyword": "Development"
+        }
+      }
+    }
+  }
+}
+```
+
+* 以下の結果
+
+```
+{
+  "error": {
+    "root_cause": [
+      {
+        "type": "query_shard_exception",
+        "reason": "[has_parent] no join field has been configured",
+        "index_uuid": "3yZ5I1jLR5qXIdIzmyG6ig",
+        "index": "department"
+      }
+    ],
+    "type": "search_phase_execution_exception",
+    "reason": "all shards failed",
+    "phase": "query",
+    "grouped": true,
+    "failed_shards": [
+      {
+        "shard": 0,
+        "index": "department",
+        "node": "COiFawWaQSaqLG8y4TrAaA",
+        "reason": {
+          "type": "query_shard_exception",
+          "reason": "[has_parent] no join field has been configured",
+          "index_uuid": "3yZ5I1jLR5qXIdIzmyG6ig",
+          "index": "department"
+        }
+      }
+    ]
+  },
+  "status": 400
+}
+```
+
+* https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-has-parent-query.html#_sorting_2
+
+## 98 
+
+* https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-has-child-query.html#_sorting
+
+===
+JOIN周り、全然わからんのでいったんぶっとばす
+機会があればまた
+===
+
+# 12章 Controlling Query Result
+
+## 104
+
+* 検索結果を整形して返すようにする方法。
+
+## Returning results as YAML
+
+```
+GET /recipe/_doc/_search?format=yaml
+{
+    "query": {
+      "match": { "title": "pasta" }
+    }
+}
+```
+
+## Returning pretty JSON
+
+```
+GET /recipe/_doc/_search?pretty
+{
+    "query": {
+      "match": { "title": "pasta" }
+    }
+}
+```
+
+## 105
+
+* _source でごにょごにょやるとレスポンスの_source内をフィルタリングできる。
+
+## Excluding the `_source` field altogether
+
+```
+GET /recipe/_doc/_search
+{
+  "_source": false,
+  "query": {
+    "match": { "title": "pasta" }
+  }
+}
+```
+
+## Only returning the `created` field
+
+```
+GET /recipe/_doc/_search
+{
+  "_source": "created",
+  "query": {
+    "match": { "title": "pasta" }
+  }
+}
+```
+
+## Only returning an object's key
+
+```
+GET /recipe/_doc/_search
+{
+  "_source": "ingredients.name",
+  "query": {
+    "match": { "title": "pasta" }
+  }
+}
+```
+
+## Returning all of an object's keys
+
+```
+GET /recipe/_doc/_search
+{
+  "_source": "ingredients.*",
+  "query": {
+    "match": { "title": "pasta" }
+  }
+}
+```
+
+## Returning the `ingredients` object with all keys, __and__ the `servings` field
+
+```
+GET /recipe/_doc/_search
+{
+  "_source": [ "ingredients.*", "servings" ],
+  "query": {
+    "match": { "title": "pasta" }
+  }
+}
+```
+
+## Including all of the `ingredients` object's keys, except the `name` key
+
+```
+GET /recipe/_doc/_search
+{
+  "_source": {
+    "includes": "ingredients.*",
+    "excludes": "ingredients.name"
+  },
+  "query": {
+    "match": { "title": "pasta" }
+  }
+}
+```
+
+
+## 106
+
+* デフォだと10件返してくる。sizeで返ってくる件数を制御できる。 
+
+## Using a query parameter
+
+```
+GET /recipe/_doc/_search?size=2
+{
+  "_source": false,
+  "query": {
+    "match": {
+      "title": "pasta"
+    }
+  }
+}
+```
+
+## Using a parameter within the request body
+
+```
+GET /recipe/_doc/_search
+{
+  "_source": false,
+  "size": 2,
+  "query": {
+    "match": {
+      "title": "pasta"
+    }
+  }
+}
+```
+
+## 107
+
+* どこからsize分取るのかfromで指定できる
+
+## Specifying an offset with the `from` parameter
+
+```
+GET /recipe/_doc/_search
+{
+  "_source": false,
+  "size": 2,
+  "from": 2,
+  "query": {
+    "match": {
+      "title": "pasta"
+    }
+  }
+}
+```
+
+## 108
+
+* https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-search-after.html
+* `total-page-size=ceil(total-hits/page-size)`
+* `from = (page-size * (page-number - 1))`
+* size のmaxは10000
+* cursor的な概念はない
+  * そのため、ユーザーが1ページ目を参照していて、長時間経ってページ2に移動した場合、1ページ目を参照したときの2ページ目ではなく、最新のelasitcsearchの状態から見た2ページ目になる。 
+
+## 109
+
+* レスポンスのソートのさせ方
+
+## Sorting by the average rating (descending)
+
+```
+GET /recipe/_doc/_search
+{
+  "_source": [ "preparation_time_minutes", "created" ],
+  "query": {
+    "match_all": {}
+  },
+  "sort": [
+    { "preparation_time_minutes": "asc" },
+    { "created": "desc" }
+  ]
+}
+```
+
+## 110
+
+* aggregationしてる。よくわからん
+
+```
+GET /recipe/_doc/_search
+{
+  "_source": "ratings",
+  "query": {
+    "match_all": {}
+  },
+  "sort": [
+    {
+      "ratings": {
+        "order": "desc",
+        "mode": "avg"
+      }
+    }
+  ]
+}
+```
+
+## 111
+
+* filter句でフィルタリングするとScoreに影響がない
+
+## Adding a `filter` clause to the `bool` query
+
+```
+GET /recipe/_doc/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match": {
+            "title": "pasta"
+          }
+        }
+      ],
+      "filter": [
+        {
+          "range": {
+            "preparation_time_minutes": {
+              "lte": 15
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+## 112
+
+```
+curl -H "Content-Type: application/json" -u elastic:${password}  -XPOST  https://94ddc868351e4e5ea5ad7f9f1cf72f37.ap-northeast-1.aws.found.io:9243/orders/default/_bulk --data-binary '@order-bulk.json'
+```
+
+## 113 
+
+* https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics.html
+
