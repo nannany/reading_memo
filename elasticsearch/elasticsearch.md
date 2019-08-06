@@ -1196,4 +1196,179 @@ curl -H "Content-Type: application/json" -u elastic:${password}  -XPOST  https:/
 ## 113 
 
 * https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics.html
+* 合計・平均・重複のない値の数、等をレスポンスに出す方法
 
+## Calculating statistics with `sum`, `avg`, `min`, and `max` aggregations
+
+```
+GET /order/_doc/_search
+{
+  "size": 0,
+  "aggs": {
+    "total_sales": {
+      "sum": {
+        "field": "total_amount"
+      }
+    },
+    "avg_sale": {
+      "avg": {
+        "field": "total_amount"
+      }
+    },
+    "min_sale": {
+      "min": {
+        "field": "total_amount"
+      }
+    },
+    "max_sale": {
+      "max": {
+        "field": "total_amount"
+      }
+    }
+  }
+}
+```
+
+## Retrieving the number of distinct values
+
+```
+GET /order/_doc/_search
+{
+  "size": 0,
+  "aggs": {
+    "total_salesmen": {
+      "cardinality": {
+        "field": "salesman.id"
+      }
+    }
+  }
+}
+```
+
+## Retrieving the number of values
+
+```
+GET /order/_doc/_search
+{
+  "size": 0,
+  "aggs": {
+    "values_count": {
+      "value_count": {
+        "field": "total_amount"
+      }
+    }
+  }
+}
+```
+
+## Using `stats` aggregation for common statistics
+
+```
+GET /order/_doc/_search
+{
+  "size": 0,
+  "aggs": {
+    "amount_stats": {
+      "stats": {
+        "field": "total_amount"
+      }
+    }
+  }
+}
+```
+
+## 114
+
+* 
+
+## Creating a bucket for each `status` value
+
+```
+GET /order/_doc/_search
+{
+  "size": 0,
+  "aggs": {
+    "status_terms": {
+      "terms": {
+        "field": "status.keyword"
+      }
+    }
+  }
+}
+```
+
+## Including `20` terms instead of the default `10`
+
+```
+GET /order/_doc/_search
+{
+  "size": 0,
+  "aggs": {
+    "status_terms": {
+      "terms": {
+        "field": "status.keyword",
+        "size": 20
+      }
+    }
+  }
+}
+```
+
+## Aggregating documents with missing field (or `NULL`)
+
+```
+GET /order/_doc/_search
+{
+  "size": 0,
+  "aggs": {
+    "status_terms": {
+      "terms": {
+        "field": "status.keyword",
+        "size": 20,
+        "missing": "N/A"
+      }
+    }
+  }
+}
+```
+
+## Changing the minimum document count for a bucket to be created
+
+```
+GET /order/_doc/_search
+{
+  "size": 0,
+  "aggs": {
+    "status_terms": {
+      "terms": {
+        "field": "status.keyword",
+        "size": 20,
+        "missing": "N/A",
+        "min_doc_count": 0
+      }
+    }
+  }
+}
+```
+
+## Ordering the buckets
+
+```
+GET /order/_doc/_search
+{
+  "size": 0,
+  "aggs": {
+    "status_terms": {
+      "terms": {
+        "field": "status.keyword",
+        "size": 20,
+        "missing": "N/A",
+        "min_doc_count": 0,
+        "order": {
+          "_term": "asc"
+        }
+      }
+    }
+  }
+}
+```
