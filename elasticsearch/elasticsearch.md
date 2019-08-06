@@ -1181,7 +1181,7 @@ GET /recipe/_doc/_search
             }
           }
         }
-      ]
+    
     }
   }
 }
@@ -1197,3 +1197,31 @@ curl -H "Content-Type: application/json" -u elastic:${password}  -XPOST  https:/
 
 * https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics.html
 
+
+## 116
+
+* aggregationをネストさせることは可能。
+
+## 117
+
+* バケットにフィルタリングして、その中で平均を出すとかができる
+
+## 118
+
+* 複数のフィールドでフィルタリングして、それらのフィールドの平均を出すことができる
+
+## 119
+
+* rangeを使用して、バケットをいくつかに分けることができる
+
+## 120
+
+* histgram を使用して、指定したインターバルごとにバケット作ることができる
+
+## 121 
+
+* globalを使用して、絞られていない状態での検索結果を得ることができる
+
+## 122
+
+* 
