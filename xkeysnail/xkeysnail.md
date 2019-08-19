@@ -20,10 +20,10 @@ Windows上では、[enthumble](https://qiita.com/mhara/items/d2d072592a4db9243c9
 
 enthumbleについては、私の意識している範囲だと以下の機能を提供してくれていました。
 
-* 無変換キーを押すとIMEをOFFにする
-* 変換キーを押すとIMEをONにする
-* 無変換キーか変換キーを押しながら他のキーを押した場合の動作をカスタマイズできる
-  * 例）変換キー + h = ← 
+* 無変換を押すとIMEをOFFにする
+* 変換を押すとIMEをONにする
+* 無変換か変換を押しながら他のキーを押した場合の動作をカスタマイズできる
+  * 例）変換 + h = ← 
 
 無変換、変換を押して他のキーを押した場合の挙動のカスタマイズは以下のようにしていました。(※自由にカスタマイズするためには980円の有料版をダウンロードする必要があります。)
 詳しい見方は[このページ](https://qiita.com/mhara/items/44064da2d77ddbd258b7)が参考になります。
@@ -129,17 +129,45 @@ Insert={}
 
 Ubuntu上での日本語入力環境としては、fcitx-mozcを使用しています。
 無変換を押したらIMEがOFFになり、変換を押したらIMEがONになる、という挙動はfcitxの設定で再現するよう試みました。
-また、無変換、変換を押した時に他のキーを押した場合の挙動のカスタマイズは
+また、無変換、変換を押しながら他のキーを押した場合の挙動のカスタマイズは、xkeysnailというツールを使用しました。
 
 ## fcitxの入力メソッド切り替え設定
 
-## xkeysnailｓsu
+`fcitx-configtool`で表示される画面で、以下のように「キーボード-日本語-日本語(OADG 109A)」と「Mozc」入力メソッドを設定します。
+(108キーボードはなかったので109で代用しましたが、現状特に問題は起きていません)
+
+次に、「全体の設定」タブをクリックし、「Show Advanced Options」にチェックを入れます。
+「入力メソッドをオンに」に「Henkanmode」を指定し、「入力メソッドをオフに」に「Muhenkan」を指定します。
+
+これで無変換を押せば半角英数入力になり、変換を押せば日本語入力になるはずです。
+
+## xkeysnail
 
 キーのマッピングのカスタマイズには[xmodmap](https://wiki.archlinux.jp/index.php/Xmodmap)や[remap](https://github.com/k0kubun/xremap)などがありましたが、一番後発であるという理由で[xkeysnail](https://github.com/mooz/xkeysnail)を使用しました。
 
+[このページ](https://qiita.com/mooz@github/items/c5f25f27847333dd0b37)をみて、以下2点あたりが特に利点に感じました。
+
+* アプリケーションごとにキーバインド設定ができる
+  * 例)chromeとVSCodeで別のキーバインド設定ができる
+* 他のツールに比べ、ほとんどの場所でキーバインド設定が効く
+
 ### xkeysnailのインストール方法
 
+以下コマンドの実行でインストールできます。
+```
+sudo apt install python3-pip
+sudo pip3 install xkeysnail
+```
+
 ### xkeysnailのconfig.py 
+
+config.py というファイルにカスタマイズ内容を記述していきます。
+記述方法は[ここ](https://qiita.com/mooz@github/items/c5f25f27847333dd0b37#define_keymapcondition-mappings-name)に記載されています。
+
+カスタマイズする際に頭を悩ませた点なのですが、xkeysnailの仕様として、修飾キーには`Control`、`Alt`、`Shift`、`Windows`キーのいずれかしか選択できません。
+理想としては無変換、変換キーを修飾キーに使用したかったのですが、
+
+
 
 ### xkeysnailのサービス化
 
