@@ -169,7 +169,7 @@ config.py というファイルにカスタマイズ内容を記述していき�
 
 
 
-### xkeysnailのサービス化
+### xkeysnailのサービス化(未対応！)
 
 ~/.config/systemd/user/xkeysnail.service
 を作成。
