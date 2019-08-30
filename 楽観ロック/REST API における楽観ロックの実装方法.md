@@ -15,7 +15,6 @@ API経由で一覧情報を取得し、その中の1件を更新する、とい�
 
 ## If-MatchヘッダとETagヘッダ
 
-
 ![If-Match-and-Etag.png](https://qiita-image-store.s3.ap-northeast-1.amazonaws.com/0/441085/a5fb4b53-953b-c4e0-f7f0-5644976bd166.png)
 
 ## 結果エンティティにおけるETags
@@ -43,9 +42,15 @@ API経由で一覧情報を取得し、その中の1件を更新する、とい�
 | バージョン番号 | ・更新リクエスト以外の追加リクエストが不要 | ・HTTPヘッダに付与すべき情報が、業務オブジェクトに入り込んでしまう |
 | Last-Modified / If-Unmodified-Since | ・昔から使用されているので実績がある<br>・業務オブジェクトに干渉しない<br>・実装が容易<br>・更新リクエスト以外の追加リクエストが不要 | ・API側が複数インスタンスから構成されている場合、厳密な時刻同期が必要となる |
 
+Zalandoのガイドラインにおいては、「結果エンティティにおけるETags」と「Last-Modified / If-Unmodified-Since」を利用した方法を推薦しています。
 
+「バージョン番号」を利用した方法は、「結果エンティティにおけるETags」と同様のメリット・デメリットを持つにもかかわらず推薦はされていません。
+この点については、
 
-# ETagヘッダを利用した楽観ロックの具体例
+# 結果エンティティにおけるETagsを利用した楽観ロックの具体例
+
+* どのようにしてETagを生成しているのか
+  * 最終更新時刻のHash
 
 # Last-Modified / If-Unmodified-Sinceを利用した楽観ロックの具体例
 
@@ -56,3 +61,5 @@ API経由で一覧情報を取得し、その中の1件を更新する、とい�
 [Zalando](https://restful-api-guidelines-ja.netlify.com/#optimistic-locking)
 [理系学生日記](https://kiririmode.hatenablog.jp/entry/20180917/1537148448)
 [RFC7232](https://tools.ietf.org/html/rfc7232)
+[ETags for REST with Spring](https://www.baeldung.com/etags-for-rest-with-spring)
+[HTTPヘッダチューニング Etag・Last-Modified](https://blog.redbox.ne.jp/http-header-tuning.html)
