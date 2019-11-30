@@ -51,3 +51,39 @@
 
 * 変化を起こせているときは面白い
 * エンジニアのためのマネジメントキャリアパス
+
+# クラウドネイティブな監視
+
+@kameneko1004
+
+* cloud nativeとは？→ 定義がある
+* Web3層モデル時代では、簡単にデバッグできた
+* マイクロサービスにおいてはしんどい
+
+## 可観測性
+
+* observability：人によって意味合いが異なる
+* monitoring,analyticsが目的
+* monitoringは想定された障害への対策
+* 後からデバッグできるようにanalyticsの観点が必要
+* observabilityにはtestingが含まれる 
+* observabilityを実現するには？
+  * telemetryなツールの導入
+
+## Telemetry
+
+* Metrics
+  * 単一のメトリクスからは何もわからないことが多い
+  * カーディナリティの高いラベルをもたせると、爆発的にメトリクスが増加する
+  * Prometheus
+* Logging
+  * ストレージ設計注意
+  * Grafana Loki
+* Tracing
+  * Jaeger
+* telemetryの課題
+  * 構築コストが高い
+* observabilityの先
+  * 観測データをビジネスに利用する
+* distributed system observability
+
