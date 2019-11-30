@@ -87,3 +87,18 @@
   * 観測データをビジネスに利用する
 * distributed system observability
 
+
+# マルチクラウド・コンテナに最適化したリスクを最小化するcontinuous delivery
+
+清水健司
+
+* spinnaker
+* solrをEKS上に構築
+* Jenkinsを使うのもありだったが、高度なデプロイメント戦略には不安があった
+  * Rolling Updateでは要件を満たせない
+* Kubernetes へのデプロイツールを採用
+  * Spinnaker
+    * パイプラインテンプレート
+  * blue,green deployment
+  * Jsonを吐く?
+  * Warming up query?
