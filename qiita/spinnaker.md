@@ -16,12 +16,12 @@ Halyardなくてもできるらしいが、おすすめできないらしい
 
 
 homeに .hal ディレクトリを作成
-```
+```shell script
 mkdir ~/.hal
 ```
 
 docker コマンド実行
-```aidl
+```shell script
 docker run -p 8084:8084 -p 9000:9000 \
     --name halyard --rm \
     -v ~/.hal:/home/spinnaker/.hal \
@@ -30,11 +30,12 @@ docker run -p 8084:8084 -p 9000:9000 \
 ```
 
 コンテナの中に
-```
+```shell script
 docker exec -it halyard bash
 ```
 
 ## クラウドプロバイダを選択する
+
 
 ## どの環境にSpinnakerをインストールするか選択する
 
