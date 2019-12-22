@@ -6,6 +6,7 @@ spinnakerでそもそも何ができるのか
 
 
 とりあえず使ってみる
+https://www.spinnaker.io/setup/install/
 ## Halyardをインストールする
 
 Halyardって何をしてくれるやつ？
@@ -35,6 +36,9 @@ docker exec -it halyard bash
 ```
 
 ## クラウドプロバイダを選択する
+
+Azureでやってみる
+azコマンドを[インストール](https://docs.microsoft.com/ja-jp/cli/azure/install-azure-cli-apt?view=azure-cli-latest)する。
 
 
 ## どの環境にSpinnakerをインストールするか選択する
