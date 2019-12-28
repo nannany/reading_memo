@@ -122,7 +122,6 @@ hal config provider azure account add my-azure-account \
 
 ## どの環境にSpinnakerをインストールするか選択する
 
-
 ### Azure上にSpinnakerサーバを建てようとした。
 
 ```shell script
@@ -145,6 +144,62 @@ hal config deploy edit --type localdebian
 ```
 
 ## 外部ストレージを選択する
+
+アプリケーションの設定などをどこかに保存する必要がある
+
+ここではAzure Storageを使ってみる
+
+サブスクリプションをセットする。なにに？？
+```shell script
+az login
+az account set --subscription `az account list | jq '.[].id' | tr -d '"'` 
+```
+
+リソースグループを作る
+```shell script
+RESOURCE_GROUP="SpinnakerStorage"
+az group create --name $RESOURCE_GROUP --location japaneast
+```
+
+ストレージアカウントを作る
+ストレージアカウント名は３〜２４文字で数と小文字のみ使える模様
+
+```shell script
+STORAGE_ACCOUNT_NAME="storagenannany"
+az storage account create --resource-group $RESOURCE_GROUP --sku STANDARD_LRS --name $STORAGE_ACCOUNT_NAME
+STORAGE_ACCOUNT_KEY=$(az storage account keys list --resource-group $RESOURCE_GROUP --account-name $STORAGE_ACCOUNT_NAME --query [0].value | tr -d '"')
+```
+
+halyardにストレージの設定を教え込む
+
+```shell script
+hal config storage azs edit \
+  --storage-account-name $STORAGE_ACCOUNT_NAME \
+  --storage-account-key $STORAGE_ACCOUNT_KEY
+```
+
+halyard にストレージがAzure Storageであることを教え込む
+
+```shell script
+hal config storage edit --type azs
+```
+
+## Spinnakerをデプロイして、UIと接続する
+
+`hal version list` コマンドで、使えるSpinnakerのversionを確認する
+使うと決めたversionを設定する
+
+```shell script
+hal config version edit --version 1.17.5
+```
+
+Spinnakerを設定する
+
+```shell script
+sudo hal deploy apply
+```
+
+
 
 ## Configをバックアップする
 
