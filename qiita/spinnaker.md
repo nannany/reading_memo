@@ -199,9 +199,17 @@ Spinnakerを設定する
 sudo hal deploy apply
 ```
 
+Spinnaker のUIに接続する??
 
+```shell script
+hal deploy connect
+```
+
+ブラウザから`http://localhost:9000`に行くとSpinnakerの画面に行ける
 
 ## Configをバックアップする
+
+
 
 # 参考
 
