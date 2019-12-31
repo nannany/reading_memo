@@ -22,7 +22,7 @@ curl -O https://raw.githubusercontent.com/spinnaker/halyard/master/install/debia
 sudo bash InstallHalyard.sh
 ```
 
-====
+------
 
 homeに .hal ディレクトリを作成
 ```shell script
@@ -43,9 +43,11 @@ docker run -p 8084:8084 -p 9000:9000 \
 docker exec -it halyard bash
 ```
 
-===
+-----
 
 ## クラウドプロバイダを選択する
+
+---
 
 Azureでやってみる
 azコマンドを[インストール](https://docs.microsoft.com/ja-jp/cli/azure/install-azure-cli-apt?view=azure-cli-latest)する。
@@ -119,6 +121,120 @@ hal config provider azure account add my-azure-account \
 ```
 
 このときにパスワードを聞かれるので、サービスプリンシパル作成時に控えたpasswordを入力する
+
+-----
+
+#### AWS
+
+Azureでうまく行かなかったので、AWSでやってく
+https://www.spinnaker.io/setup/install/providers/kubernetes-v2/aws-eks/
+
+```shell script
+curl "https://d1vvhvl2y92vvt.cloudfront.net/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+```
+
+`aws configure` 等でAWSの設定はできている前提
+下記、限られたregionでしか成功しない。下記はoregonで実行
+↓
+ap-northeast-1, us-west-2
+双方で失敗した
+unsupported Kubernetes version (Service: AmazonEKS; Status Code:400
+
+https://github.com/spinnaker/spinnaker.github.io/issues/1518
+に従って、versionを1.10から1.14にしてみる
+
+
+```shell script
+curl -O https://d3079gxvs8ayeg.cloudfront.net/templates/managing.yaml
+aws cloudformation deploy --stack-name spinnaker-managing-infrastructure-setup --template-file managing.yaml \
+--parameter-overrides UseAccessKeyForAuthentication=false EksClusterName=spinnaker-cluster --capabilities CAPABILITY_NAMED_IAM
+```
+
+上のやつだとうまく行かない。。。
+↓
+1.14だとap-northeast-1でもおｋ
+
+
+```shell script
+VPC_ID=$(aws cloudformation describe-stacks --stack-name spinnaker-managing-infrastructure-setup --query 'Stacks[0].Outputs[?OutputKey==`VpcId`].OutputValue' --output text)
+CONTROL_PLANE_SG=$(aws cloudformation describe-stacks --stack-name spinnaker-managing-infrastructure-setup --query 'Stacks[0].Outputs[?OutputKey==`SecurityGroups`].OutputValue' --output text)
+AUTH_ARN=$(aws cloudformation describe-stacks --stack-name spinnaker-managing-infrastructure-setup --query 'Stacks[0].Outputs[?OutputKey==`AuthArn`].OutputValue' --output text)
+SUBNETS=$(aws cloudformation describe-stacks --stack-name spinnaker-managing-infrastructure-setup --query 'Stacks[0].Outputs[?OutputKey==`SubnetIds`].OutputValue' --output text)
+MANAGING_ACCOUNT_ID=$(aws cloudformation describe-stacks --stack-name spinnaker-managing-infrastructure-setup --query 'Stacks[0].Outputs[?OutputKey==`ManagingAccountId`].OutputValue' --output text)
+EKS_CLUSTER_ENDPOINT=$(aws cloudformation describe-stacks --stack-name spinnaker-managing-infrastructure-setup --query 'Stacks[0].Outputs[?OutputKey==`EksClusterEndpoint`].OutputValue' --output text)
+EKS_CLUSTER_NAME=$(aws cloudformation describe-stacks --stack-name spinnaker-managing-infrastructure-setup --query 'Stacks[0].Outputs[?OutputKey==`EksClusterName`].OutputValue' --output text)
+EKS_CLUSTER_CA_DATA=$(aws cloudformation describe-stacks --stack-name spinnaker-managing-infrastructure-setup --query 'Stacks[0].Outputs[?OutputKey==`EksClusterCA`].OutputValue' --output text)
+SPINNAKER_INSTANCE_PROFILE_ARN=$(aws cloudformation describe-stacks --stack-name spinnaker-managing-infrastructure-setup --query 'Stacks[0].Outputs[?OutputKey==`SpinnakerInstanceProfileArn`].OutputValue' --output text)
+```
+
+
+
+管理される側のアカウントで以下実行
+
+```shell script
+curl -O https://d3079gxvs8ayeg.cloudfront.net/templates/managed.yaml  
+
+aws cloudformation deploy --stack-name spinnaker-managed-infrastructure-setup --template-file managed.yaml \
+--parameter-overrides AuthArn=$AUTH_ARN ManagingAccountId=$MANAGING_ACCOUNT_ID --capabilities CAPABILITY_NAMED_IAM
+```
+
+
+以下のような設定を`~/.kube/config`ファイルに書き込んで、kubectlでの接続先を設定する
+endpoint-url は　`aws eks describe-cluster --name spinnaker-cluster| jq '.cluster.endpoint' | tr -d '"'`
+base64-encoded-ca-cert は　`aws eks describe-cluster --name spinnaker-cluster| jq '.cluster.certificateAuthority.data' | tr -d '"'`
+cluster-name は spinnaker-cluster
+[aws-iam-authenticator](https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/install-aws-iam-authenticator.html#w158aac27c11b5b3)をインストールしておく
+
+```shell script
+apiVersion: v1
+clusters:
+- cluster:
+    server: <endpoint-url>
+    certificate-authority-data: <base64-encoded-ca-cert>
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: aws
+  name: aws
+current-context: aws
+kind: Config
+preferences: {}
+users:
+- name: aws
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1alpha1
+      command: aws-iam-authenticator
+      args:
+        - "token"
+        - "-i"
+        - "<cluster-name>"
+        # - "-r"
+        # - "<role-arn>"
+      # env:
+        # - name: AWS_PROFILE
+        #   value: "<aws-profile>"
+```
+
+ここから
+Halyardにどの環境のkubernetesを使うことを教え込む
+```shell script
+hal config provider kubernetes enable
+hal config provider kubernetes account add my-k8s-account --provider-version v2 --context $(kubectl config current-context)
+hal config features edit --artifacts true
+```
+
+Spinnakerが乗っかるワーカーノードをデプロイする
+```shell script
+curl -O https://d3079gxvs8ayeg.cloudfront.net/templates/amazon-eks-nodegroup.yaml
+aws cloudformation deploy --stack-name spinnaker-eks-nodes --template-file amazon-eks-nodegroup.yaml \
+--parameter-overrides NodeInstanceProfile=$SPINNAKER_INSTANCE_PROFILE_ARN \
+NodeInstanceType=t2.large ClusterName=$EKS_CLUSTER_NAME NodeGroupName=spinnaker-cluster-nodes ClusterControlPlaneSecurityGroup=$CONTROL_PLANE_SG \
+Subnets=$SUBNETS VpcId=$VPC_ID --capabilities CAPABILITY_NAMED_IAM
+```
 
 ## どの環境にSpinnakerをインストールするか選択する
 
@@ -214,3 +330,6 @@ hal deploy connect
 # 参考
 
 https://www.spinnaker.io/
+
+
+https://s3.amazonaws.com/aws-quickstart/quickstart-spinnaker/doc/spinnaker-on-the-aws-cloud.pdf
