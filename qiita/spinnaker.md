@@ -4,7 +4,6 @@ spinnakerでそもそも何ができるのか
 
 どこまでやるか
 
-
 とりあえず使ってみる
 https://www.spinnaker.io/setup/install/
 ## Halyardをインストールする
@@ -47,84 +46,7 @@ docker exec -it halyard bash
 
 ## クラウドプロバイダを選択する
 
----
-
-Azureでやってみる
-azコマンドを[インストール](https://docs.microsoft.com/ja-jp/cli/azure/install-azure-cli-apt?view=azure-cli-latest)する。
-
-Azureにログインして、支払いを行う subscription を設定する
-
-```shell script
-az login
-SUBSCRIPTION_ID=`az account list | jq '.[].id'`
-az account set --subscription $SUBSCRIPTION_ID
-```
-
-Service Principalを作成する
-
-```shell script
-az ad sp create-for-rbac --name "Spinnaker"
-# az ad sp list の appOwnerTenantId
-APP_ID=`az ad sp list  | jq '.[] | select(.appDisplayName == "Spinnaker") | .appId'`
-# az ad sp list の appOwnerTenantId
-TENANT_ID=`az ad sp list  | jq '.[] | select(.appDisplayName == "Spinnaker") | .appOwnerTenantId'`
-```
-
-プリンシパル作成時にJSON形式で表示される情報はどこかに控えておく
-
-リソースグループを作成する
-
-```shell script
-RESOURCE_GROUP="Spinnaker"
-az group create --name "Spinnaker" --location "japaneast"
-```
-
-暗号化する鍵を作成する
-```shell script
-VAULT_NAME="SpinnakerVaultNannany"
-az keyvault create --enabled-for-template-deployment true --resource-group $RESOURCE_GROUP --name $VAULT_NAME
-az keyvault set-policy --secret-permissions get --name $VAULT_NAME --spn $APP_ID
-az keyvault secret set --name VMUsername --vault-name $VAULT_NAME --value nannany
-
-ssh-keygen -m PEM -t rsa -b 4096
-az keyvault secret set --name VMSshPublicKey --vault-name $VAULT_NAME --value @~/.ssh/id_rsa
-```
-
-halにAzureのもろもろを設定する
-
-```shell script
-docker run -d -p 8084:8084 -p 9000:9000 \
-    --name halyard --rm \
-    -v ~/.hal:/home/spinnaker/.hal \
-    -it \
-    -e APP_ID=$APP_ID \
-    -e TENANT_ID=$TENANT_ID \
-    -e SUBSCRIPTION_ID=$SUBSCRIPTION_ID \
-    -e VAULT_NAME=$VAULT_NAME \
-    -e RESOURCE_GROUP=$RESOURCE_GROUP \
-    gcr.io/spinnaker-marketplace/halyard:stable
-```
-
-halyardのコンテナに入った上で、
-
-```shell script
-hal config provider azure enable
-
-hal config provider azure account add my-azure-account \
-  --client-id $APP_ID \
-  --tenant-id $TENANT_ID \
-  --subscription-id $SUBSCRIPTION_ID \
-  --default-key-vault $VAULT_NAME \
-  --default-resource-group $RESOURCE_GROUP \
-  --packer-resource-group $RESOURCE_GROUP \
-  --app-key
-```
-
-このときにパスワードを聞かれるので、サービスプリンシパル作成時に控えたpasswordを入力する
-
------
-
-#### AWS
+### AWS
 
 Azureでうまく行かなかったので、AWSでやってく
 https://www.spinnaker.io/setup/install/providers/kubernetes-v2/aws-eks/
@@ -155,7 +77,7 @@ aws cloudformation deploy --stack-name spinnaker-managing-infrastructure-setup -
 上のやつだとうまく行かない。。。
 ↓
 1.14だとap-northeast-1でもおｋ
-
+なのだが、その後のSpinnakerがのっかるノードを作成するときに、対応するamiがないと言われるのでus-west-2にしとく
 
 ```shell script
 VPC_ID=$(aws cloudformation describe-stacks --stack-name spinnaker-managing-infrastructure-setup --query 'Stacks[0].Outputs[?OutputKey==`VpcId`].OutputValue' --output text)
@@ -168,8 +90,6 @@ EKS_CLUSTER_NAME=$(aws cloudformation describe-stacks --stack-name spinnaker-man
 EKS_CLUSTER_CA_DATA=$(aws cloudformation describe-stacks --stack-name spinnaker-managing-infrastructure-setup --query 'Stacks[0].Outputs[?OutputKey==`EksClusterCA`].OutputValue' --output text)
 SPINNAKER_INSTANCE_PROFILE_ARN=$(aws cloudformation describe-stacks --stack-name spinnaker-managing-infrastructure-setup --query 'Stacks[0].Outputs[?OutputKey==`SpinnakerInstanceProfileArn`].OutputValue' --output text)
 ```
-
-
 
 管理される側のアカウントで以下実行
 
@@ -214,9 +134,9 @@ users:
         - "<cluster-name>"
         # - "-r"
         # - "<role-arn>"
-      # env:
-        # - name: AWS_PROFILE
-        #   value: "<aws-profile>"
+      env: # 以下、default以外でAWSに繋いでいる場合は記述する
+        - name: AWS_PROFILE
+          value: spinnaker
 ```
 
 ここから
@@ -235,6 +155,30 @@ aws cloudformation deploy --stack-name spinnaker-eks-nodes --template-file amazo
 NodeInstanceType=t2.large ClusterName=$EKS_CLUSTER_NAME NodeGroupName=spinnaker-cluster-nodes ClusterControlPlaneSecurityGroup=$CONTROL_PLANE_SG \
 Subnets=$SUBNETS VpcId=$VPC_ID --capabilities CAPABILITY_NAMED_IAM
 ```
+
+
+<spinnaker-role-arn>の部分に変数AUTH_ARNを入れてやったファイルを作成する。
+ファイル名は ` aws-auth-cm.yaml` に。
+
+```shell script
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aws-auth
+  namespace: kube-system
+data:
+  mapRoles: |
+    - rolearn: <spinnaker-role-arn>
+      username: system:node:{{EC2PrivateDNSName}}
+      groups:
+        - system:bootstrappers
+        - system:nodes
+```
+
+`kubectl apply -f aws-auth-cm.yaml` 実行する。
+
+`kubectl get nodes --watch` したが、NotReadyになる。。。
+
 
 ## どの環境にSpinnakerをインストールするか選択する
 
@@ -333,3 +277,80 @@ https://www.spinnaker.io/
 
 
 https://s3.amazonaws.com/aws-quickstart/quickstart-spinnaker/doc/spinnaker-on-the-aws-cloud.pdf
+
+## Azureでできなかった
+
+Azureでやってみる
+azコマンドを[インストール](https://docs.microsoft.com/ja-jp/cli/azure/install-azure-cli-apt?view=azure-cli-latest)する。
+
+Azureにログインして、支払いを行う subscription を設定する
+
+```shell script
+az login
+SUBSCRIPTION_ID=`az account list | jq '.[].id'`
+az account set --subscription $SUBSCRIPTION_ID
+```
+
+Service Principalを作成する
+
+```shell script
+az ad sp create-for-rbac --name "Spinnaker"
+# az ad sp list の appOwnerTenantId
+APP_ID=`az ad sp list  | jq '.[] | select(.appDisplayName == "Spinnaker") | .appId'`
+# az ad sp list の appOwnerTenantId
+TENANT_ID=`az ad sp list  | jq '.[] | select(.appDisplayName == "Spinnaker") | .appOwnerTenantId'`
+```
+
+プリンシパル作成時にJSON形式で表示される情報はどこかに控えておく
+
+リソースグループを作成する
+
+```shell script
+RESOURCE_GROUP="Spinnaker"
+az group create --name "Spinnaker" --location "japaneast"
+```
+
+暗号化する鍵を作成する
+```shell script
+VAULT_NAME="SpinnakerVaultNannany"
+az keyvault create --enabled-for-template-deployment true --resource-group $RESOURCE_GROUP --name $VAULT_NAME
+az keyvault set-policy --secret-permissions get --name $VAULT_NAME --spn $APP_ID
+az keyvault secret set --name VMUsername --vault-name $VAULT_NAME --value nannany
+
+ssh-keygen -m PEM -t rsa -b 4096
+az keyvault secret set --name VMSshPublicKey --vault-name $VAULT_NAME --value @~/.ssh/id_rsa
+```
+
+halにAzureのもろもろを設定する
+
+```shell script
+docker run -d -p 8084:8084 -p 9000:9000 \
+    --name halyard --rm \
+    -v ~/.hal:/home/spinnaker/.hal \
+    -it \
+    -e APP_ID=$APP_ID \
+    -e TENANT_ID=$TENANT_ID \
+    -e SUBSCRIPTION_ID=$SUBSCRIPTION_ID \
+    -e VAULT_NAME=$VAULT_NAME \
+    -e RESOURCE_GROUP=$RESOURCE_GROUP \
+    gcr.io/spinnaker-marketplace/halyard:stable
+```
+
+halyardのコンテナに入った上で、
+
+```shell script
+hal config provider azure enable
+
+hal config provider azure account add my-azure-account \
+  --client-id $APP_ID \
+  --tenant-id $TENANT_ID \
+  --subscription-id $SUBSCRIPTION_ID \
+  --default-key-vault $VAULT_NAME \
+  --default-resource-group $RESOURCE_GROUP \
+  --packer-resource-group $RESOURCE_GROUP \
+  --app-key
+```
+
+このときにパスワードを聞かれるので、サービスプリンシパル作成時に控えたpasswordを入力する
+
+
