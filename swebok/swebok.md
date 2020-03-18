@@ -11,10 +11,12 @@ SWEBOKの目的は以下の5つ
 swebokは以下の要素からなる
 * Software Requirements
 * Software Design
+  * 設計系の話
 * Software Construction
 * Software Testing
 * Software Maintenance
 * Software Configuration Management
+  * 構成管理
 * Software Engineering Management
 * Software Engineering Process
 * Software Engineering Models and Methods
@@ -25,4 +27,7 @@ swebokは以下の要素からなる
 * Mathematical Foundations
 * Engineering Foundations
 
+# CHAPTER 1 SOFTWARE REQUIREMENTS
+
+要件定義みたいな感じか？
 
