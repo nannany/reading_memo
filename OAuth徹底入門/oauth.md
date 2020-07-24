@@ -366,6 +366,59 @@ response_typeをtokenにする。
 * OAuthの使用に関して、Webアプリケーション、ブラウザ内アプリケーション、ネイティブアプリケーションはそれぞれ独特の癖を持っているが、それらすべてに共通する核となる部分もある
 * 機密クライアント(Confidential Client)はクライアント・シークレットを保持するが、公開クライアント(Public Client)は保持しない
 
+# ブラウザで動作するアプリの20200723でのベストプラクティス
+
+https://tools.ietf.org/html/draft-ietf-oauth-browser-based-apps-06
+
+# ネイティブアプリ
+
+[仕様](https://tools.ietf.org/html/rfc8252)
+
+[AppAuth](https://appauth.io/)
+
+## ベストプラクティス
+
+```
+   For authorizing users in native apps, the best current practice is to
+   perform the OAuth authorization request in an external user-agent
+   (typically the browser) rather than an embedded user-agent (such as
+   one implemented with web-views).
+```
+
+WebViewではなく、ブラウザで認可リクエストをしにこい。
+
+WebView使用による欠点は以下にある
+[欠点](https://tools.ietf.org/html/rfc8252#section-8.12)
+
+パブリッククライアントなので、やっぱりPKCEに準拠しないといけないようだ。
+
+```
+パブリックネイティブアプリクライアントは、OAuthに対するコード交換のためのプルーフキー (Proof Key for Code Exchange)拡張(PKCE [RFC7636])
+を実装しなければならず[MUST]、認可サーバーは、セクショ ン8.1で詳述されている理由から、そのようなクライアントのためにPKCEをサポートしな ければならない[MUST]。
+```
+
+クライアントがリダイレクトを受け取る方法が7章に書かれている。
+
+* カスタムURIスキーム
+  * FAPIという基準によると、クライアントが用いるリダイレクトURIスキームはhttps出なければならないので、これは使えない。
+  * これだとアプリでURIが衝突する可能性があるらしい
+* app-claimed https
+  * AndroidだとAppLinks, iOSだとUniversal Linksと呼ばれる
+  * これが最も悪意ある他のアプリに通信傍受される可能性が低い
+  * なんにせよPKCEを使って正当なクライアントしか認可コードでトークン交換できないようにする
+* ローカルループバックアドレスを使う
+  * localhostは非推奨
+
+8章でセキュリティに関すること述べている。
+
+* インプリシット付与方式はPKCEで保護されないので非推奨
+* ネイティブアプリはパブリッククライアントであることを強調
+* 組み込みユーザーエージェントつまり、WebViewを使うべきでないことを強調
+  * 組み込みユーザーエージェントは他のアプリ、ブラウザと情報共有しないため、認証要求回数が増える
+  * アプリからWebView内のコンテンツを触ることはできるが、端末のブラウザは触れない。よって、悪意のあるアプリ対策になる？
+    * アプリ実装者に向けてというより、OAuth全体の仕組みをみて、セキュリティの向上につながる
+* CSRFを防ぐためにstateの付与推奨
+
 
 # 第3部 OAuth2.0の実装と脆弱性
 
