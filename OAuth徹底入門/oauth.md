@@ -523,6 +523,7 @@ X-XSS-Protection: 1; mode=block
 
 
 
+
 #### 10.4.1. PKCE(Proof Key for Code Exchange)
 
 認可コード横取り攻撃の対策として使うことが多い。  
