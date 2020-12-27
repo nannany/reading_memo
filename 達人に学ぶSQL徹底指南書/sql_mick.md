@@ -208,3 +208,11 @@ SELECT ROW_NUMBER()
 DELETE FROM Products_NoRedundant
   WHERE row_num > 1;
 ```
+
+# 4. 3値論理とNULL
+
+null は値でも変数でもない
+
+排中律 ⇒ 白黒はっきり命題の真偽が定まる
+
+IN と EXISTSは同値変換が可能だが、NOT INとNOT EXISTSは同値でない
