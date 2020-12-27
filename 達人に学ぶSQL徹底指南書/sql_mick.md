@@ -107,7 +107,41 @@ order by case key
 * フレーム句を使うことで、異なる行のデータを1つの行に持ってくることができるようになり、行間比較が簡単に行えるようになった。
 * ウィンドウ関数の内部動作としては、現在のところ、レコードのソートが行われている。将来的にハッシュが採用される可能性もゼロではない。
 
+## 演習2.1
 
+予想：全レコードの合計loadが算出されるのでは ⇒ あたり
 
+```sql
+CREATE TABLE ServerLoadSample
+(server       CHAR(4) NOT NULL,
+ sample_date  DATE    NOT NULL,
+ load_val      INTEGER NOT NULL,
+    PRIMARY KEY (server, sample_date));
 
+INSERT INTO ServerLoadSample VALUES('A' , '2018-02-01',  1024);
+INSERT INTO ServerLoadSample VALUES('A' , '2018-02-02',  2366);
+INSERT INTO ServerLoadSample VALUES('A' , '2018-02-05',  2366);
+INSERT INTO ServerLoadSample VALUES('A' , '2018-02-07',   985);
+INSERT INTO ServerLoadSample VALUES('A' , '2018-02-08',   780);
+INSERT INTO ServerLoadSample VALUES('A' , '2018-02-12',  1000);
+INSERT INTO ServerLoadSample VALUES('B' , '2018-02-01',    54);
+INSERT INTO ServerLoadSample VALUES('B' , '2018-02-02', 39008);
+INSERT INTO ServerLoadSample VALUES('B' , '2018-02-03',  2900);
+INSERT INTO ServerLoadSample VALUES('B' , '2018-02-04',   556);
+INSERT INTO ServerLoadSample VALUES('B' , '2018-02-05', 12600);
+INSERT INTO ServerLoadSample VALUES('B' , '2018-02-06',  7309);
+INSERT INTO ServerLoadSample VALUES('C' , '2018-02-01',  1000);
+INSERT INTO ServerLoadSample VALUES('C' , '2018-02-07',  2000);
+INSERT INTO ServerLoadSample VALUES('C' , '2018-02-16',   500);
+```
+
+```sql
+SELECT server, sample_date,
+       SUM(load_val) OVER () AS sum_load
+  FROM ServerLoadSample;
+```
+
+## 演習2.2 
+
+サーバごとの合計値が取れる
 
