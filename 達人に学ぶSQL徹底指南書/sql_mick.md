@@ -145,3 +145,66 @@ SELECT server, sample_date,
 
 サーバごとの合計値が取れる
 
+# 3 自己結合の使い方
+
+自己結合のコツは、同じテーブルが本当に2つあるかのように扱うこと
+
+順列、組み合わせを得るときに役立つ方法が書いてある！
+
+* 自己結合は非等値結合と組み合わせて使うのが基本
+* GROUP BYと組み合わせると、再帰的集合を作ることができる
+* 本当に異なるテーブルを結合していると考えると理解しやすい
+* 物理ではなく論理の世界で考える
+
+rank, dense_rank
+
+## 演習3.1 重複組み合わせ
+
+```sql
+CREATE TABLE Products
+(name VARCHAR(16) PRIMARY KEY,
+ price INTEGER NOT NULL);
+
+--重複順列・順列・組み合わせ
+DELETE FROM Products;
+INSERT INTO Products VALUES('りんご',	100);
+INSERT INTO Products VALUES('みかん',	50);
+INSERT INTO Products VALUES('バナナ',	80);
+```
+
+```sql
+select p1.name , p2.name
+from Products p1 cross join Products p2
+where p1.name <=p2.name;
+```
+
+## 演習3.2 ウィンドウ関数で重複削除
+
+```sql
+DROP TABLE Products;
+CREATE TABLE Products
+(name VARCHAR(16) NOT NULL,
+ price INTEGER NOT NULL);
+
+--重複するレコード
+INSERT INTO Products VALUES('りんご',	50);
+INSERT INTO Products VALUES('みかん',	100);
+INSERT INTO Products VALUES('みかん',	100);
+INSERT INTO Products VALUES('みかん',	100);
+INSERT INTO Products VALUES('バナナ',	80);
+```
+
+```sql
+CREATE TABLE Products_NoRedundant
+AS
+SELECT ROW_NUMBER()
+         OVER(PARTITION BY name, price
+                  ORDER BY name) AS row_num,
+       name, price
+  FROM Products;
+
+
+-- 連番が1以外のレコードを削除
+DELETE FROM Products_NoRedundant
+  WHERE row_num > 1;
+```
