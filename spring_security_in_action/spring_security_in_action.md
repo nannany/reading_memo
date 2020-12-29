@@ -79,3 +79,9 @@ SpringSecurityの各構成要素の概念図？みたいなものが重要っぽ
 UserDetailsServiceのBean定義をした際に、PasswordEncoderのBean定義が必要なのはなんで？
 
 次2．3.1から
+
+## 20201229
+
+* Spring Security in actionの2.3.1において、 UserDetailsManagerのBean定義のみしたら、なぜPasswordEncoderがなくて怒られるのか？
+
+次は2.3.4から
