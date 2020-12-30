@@ -217,7 +217,38 @@ null は値でも変数でもない
 
 IN と EXISTSは同値変換が可能だが、NOT INとNOT EXISTSは同値でない
 
+* NULLは値ではない
+*　値ではないので、述語もまともに適用できない
+* 無理やり適用するとunknownが生じる
+* unknownが論理演算に紛れ込むと、SQLが直感に反する動作をする
+* これに対処するには、段階的なステップに分けてSQLの動作を追うことが有効
 
+## 演習４．１
+
+postgresにおけるorder by のソート順。nullについて。
+⇒
+nulls first , nulls last でNULLを最初に持ってくるか、最後に持ってくるか決められる。
+デフォルトでは、大きな値として扱われる。つまり、descだと最初に来る。
+
+## 演習4.2
+
+nullと文字連結
+https://www.postgresql.jp/document/9.3/html/functions-string.html
+
+## 演習4.3 
+
+coalesce は左から順に、nullでないのを見つけたらそれを返す感じ  
+↓は'ddd'返す。
+```sql
+select coalesce('ddd','abc' , null);
+```
+
+nullif は引数に与えられた2値が等しければnull返す。
+
+下のはnull返す。
+```sql
+select nullif('dddd', 'dddd')
+```
 
 
 # 19. 手続き型から宣言型・集合指向へ　頭を切り替える7か条
