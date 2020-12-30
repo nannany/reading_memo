@@ -85,3 +85,18 @@ UserDetailsServiceのBean定義をした際に、PasswordEncoderのBean定義が
 * Spring Security in actionの2.3.1において、 UserDetailsManagerのBean定義のみしたら、なぜPasswordEncoderがなくて怒られるのか？
 
 次は2.3.4から
+
+## 20201230
+
+2.3.4 にて、基本的にSpring Security側で想定されている責務配置に逆らわないこと。
+
+configuration クラスも責務によって分けること
+
+* Spring Bootは、アプリケーションの依存関係にSpring Securityを追加する際に、いくつかのデフォルト設定を提供します。
+* 認証と認可のための基本的なコンポーネントを実装します。UserDetailsService、PasswordEncoder、AuthenticationProviderです。
+* Userクラスでユーザーを定義することができます。ユーザーは、少なくともユーザー名、パスワード、および権限を持つ必要があります。権限とは、アプリケーションのコンテキストでユーザに実行させるアクションのことです。
+* Spring Securityが提供するUserDetailsServiceの簡単な実装はInMemoryUserDetailsManagerです。このようなUserDetailsServiceのインスタンスにユーザーを追加して、アプリケーションのメモリ上でユーザーを管理することができます。
+* NoOpPasswordEncoderはパスワードを平文で使うPasswordEncoder契約の実装です。この実装は、例を学習したり、(たぶん)概念を証明するのには適していますが、本番さながらのアプリケーションには適していません。
+* AuthenticationProvider 契約を使用して、アプリケーションにカスタム認証ロジックを実装することができます。
+* 設定を書く方法は複数ありますが、1つのアプリケーションでは、1つのアプローチを選択し、それに固執するべきです。そうすることで、コードがすっきりして理解しやすくなります。
+
