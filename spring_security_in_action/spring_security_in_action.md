@@ -92,6 +92,9 @@ UserDetailsServiceのBean定義をした際に、PasswordEncoderのBean定義が
 
 configuration クラスも責務によって分けること
 
+
+2章まとめ
+
 * Spring Bootは、アプリケーションの依存関係にSpring Securityを追加する際に、いくつかのデフォルト設定を提供します。
 * 認証と認可のための基本的なコンポーネントを実装します。UserDetailsService、PasswordEncoder、AuthenticationProviderです。
 * Userクラスでユーザーを定義することができます。ユーザーは、少なくともユーザー名、パスワード、および権限を持つ必要があります。権限とは、アプリケーションのコンテキストでユーザに実行させるアクションのことです。
@@ -99,4 +102,110 @@ configuration クラスも責務によって分けること
 * NoOpPasswordEncoderはパスワードを平文で使うPasswordEncoder契約の実装です。この実装は、例を学習したり、(たぶん)概念を証明するのには適していますが、本番さながらのアプリケーションには適していません。
 * AuthenticationProvider 契約を使用して、アプリケーションにカスタム認証ロジックを実装することができます。
 * 設定を書く方法は複数ありますが、1つのアプリケーションでは、1つのアプローチを選択し、それに固執するべきです。そうすることで、コードがすっきりして理解しやすくなります。
+
+
+### 3章
+
+UserはUserDetailsを実装したクラス
+
+### 4章 パスワードを扱う
+
+* PasswordEncoderについてみていく
+* Spring Securityが提供する暗号モジュールを見ていく
+
+3章までで、クライアントから渡されたユーザーの情報を引っ張ってくるまでの動作を見ていた。  
+AuthenticationProvider は　PasswordEncoderを使ってパスワードの検証をする。
+
+PasswordEncoderが用意しているメソッドは、`encode` `matches`の2つ。  
+`upgradeEncoding`は何者？
+
+* PasswordEncoderは、認証ロジックの中で最も重要な責任の一つを担っています。
+* Spring Securityはハッシュアルゴリズムにいくつかの選択肢を提供しており、実装は選択の問題となっています。
+* Spring Security Cryptoモジュール(SSCM)は、鍵生成器と暗号化器の実装に様々な選択肢を提供します。
+* キージェネレータは、暗号化アルゴリズムで使用される鍵の生成を支援するユーティリティオブジェクトです。
+* 暗号化器は、データの暗号化と復号化を適用するのに役立つユーティリティオブジェクトです。
+
+
+# 20201231
+
+まとめる
+
+### 4.1.1 PasswordEncoderのIFについて理解する
+
+```java
+public interface PasswordEncoder {
+
+  String encode(CharSequence rawPassword);
+  boolean matches(CharSequence rawPassword, String encodedPassword);
+
+  default boolean upgradeEncoding(String encodedPassword) { 
+    return false; 
+  }
+}
+```
+
+encodeは、与えられたパスワードの文字列を特定のハッシュ関数などでエンコードすることを目的としている。  
+matchesは、受け取ったパスワードとエンコードされたパスワードの検証を目的としてる。
+
+upgradeEncodingは、受け取ったエンコード済みのパスワードを再度エンコードかけるかどうかを判断することを目的としている。
+
+### 4.1.2 自前でPasswordEncoderを実装する
+
+自前でPasswordEncoderを実装する方針を取って見せている。
+
+### 4.1.3 Springが用意してるPasswordEncoderの実装を使う
+
+* NoOpPasswordEncoder-- パスワードをエンコードせず、平文で保持します。この実装は例としてのみ使用します。パスワードをハッシュ化しないので、実世界のシナリオでは決して使用すべきではありません。
+* StandardPasswordEncoder-- パスワードのハッシュ化に SHA-256 を使用します。この実装は現在非推奨となっており、新しい実装では使用すべきではありません。なぜ非推奨なのかというと、もう十分に強力ではないと考えられるハッシュアルゴリズムを使用しているからです。
+* Pbkdf2PasswordEncoder--パスワードベースのキー導出関数 2 (PBKDF2) を使用します。
+* BCryptPasswordEncoder--パスワードをエンコードするために bcrypt 強力ハッシュ関数を使用します。
+* SCryptPasswordEncoder-- パスワードをエンコードするために scrypt ハッシュ関数を使用します。
+
+NoOpとStandardは非推奨
+
+### 4.1.4 DelegatingPasswordEncoderについて
+
+途中で暗号化の方式が変わったりした時には、このPasswordEncoderを用いる。
+
+encodingとencryptingとhashingの違い
+ここはとばす。
+
+
+## 4.2 Spring Security Crypto module(sscm)について
+
+### 4.2.1 key generator キー生成
+
+Spring Securityが提供するキー生成部品について
+
+### 4.2.2 encryptors 暗号と復号
+
+TextEncryptor と ByteEncryptor がある。同じ責務だけど、input,outputが違う
+
+Encryptorを生成するのには、Encryptorsを利用する。
+
+ByteEncryptorを生成するのは  
+* `Encryptors.standard()` 
+* `Encryptors.stronger()`
+で、その名の通りstrongerのほうが強度の強い暗号化ができる
+
+TextEncryptor を生成するのは、
+
+* Encryptors.text()
+* Encryptors.delux()
+* Encryptors.queryableText()
+の3つ。 Encryptors.noOpText() もあるけどこれはテスト用。
+`text`は内部で上のstandardを使っていて、`delux`はstrongerを使っている
+queryableTextを使うと、同じプロセスで暗号化した場合には、同じ値になる。
+
+# 20210102
+
+## 5.1 AuthenticationProviderについて
+
+フレームワークを使う際に気を付けることが書いてあり、共感できる内容であった。
+
+* フレームワーク、特にアプリケーションで広く使われているものは、多くの頭の良い個人が参加して書かれています。そうであっても、フレームワークが不適切に実装されることがあるとは考えにくいでしょう。問題があればフレームワークのせいだと結論づける前に、常にアプリケーションを分析してください。
+* フレームワークを使うことを決めるときは、少なくともその基本をよく理解していることを確認してください。
+* フレームワークについて学ぶために使うリソースに注意してください。ウェブ上で見つけた記事には、手っ取り早く回避策を行う方法が書かれていることがありますが、必ずしもクラスデザインを正しく実装する方法が書かれているとは限りません。
+* 研究には複数のソースを使いましょう。誤解を明らかにするために、何かをどのように使うかわからないときには、概念実証を書きましょう。
+* フレームワークを使うと決めた場合は、そのフレームワークの意図した目的のために可能な限り使いましょう。例えば、あなたがSpring Securityを使っていて、セキュリティ実装のためにフレームワークの提供するものに頼らずにカスタムコードを書く傾向があるとします。なぜこのようなことが起こるのか、質問を投げかけてみてください。
 
