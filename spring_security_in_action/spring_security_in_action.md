@@ -209,3 +209,91 @@ queryableTextを使うと、同じプロセスで暗号化した場合には、�
 * 研究には複数のソースを使いましょう。誤解を明らかにするために、何かをどのように使うかわからないときには、概念実証を書きましょう。
 * フレームワークを使うと決めた場合は、そのフレームワークの意図した目的のために可能な限り使いましょう。例えば、あなたがSpring Securityを使っていて、セキュリティ実装のためにフレームワークの提供するものに頼らずにカスタムコードを書く傾向があるとします。なぜこのようなことが起こるのか、質問を投げかけてみてください。
 
+# 20210109 
+
+## 5.1 AuthenticationProviderについて
+
+5.1.1ではSpringSecurityが認証をどう表現するか見ていく  
+5.1.2ではAuthenticationProviderのIFを見ていく  
+5.1.3ではカスタム↓AuthenticationProviderをみていく
+
+### 5.1.1 Authenticationの表現方法
+
+AuthenticationはPrincipalを継承している
+
+```java
+public interface Authentication extends Principal, Serializable {
+
+  Collection<? extends GrantedAuthority> getAuthorities();
+  Object getCredentials();
+  Object getDetails();
+  Object getPrincipal();
+  boolean isAuthenticated();
+  void setAuthenticated(boolean isAuthenticated) 
+     throws IllegalArgumentException;
+}
+```
+
+### 5.1.2 
+
+# 20210221
+
+# 7
+
+認可の話をしていく
+
+##　7.1 
+この章では認可とロールの話をしていく。
+
+`UserDetails`には`GrantedAuthority`が複数含まれている。
+
+`GrantedAuthority`のインターフェースはこんな感じ。
+```java
+public interface GrantedAuthority extends Serializable {
+  String getAuthority();
+}
+```
+
+`UserDetails`では`GrantedAuthority`のリストを返すようになっている。
+
+```java
+public interface UserDetails extends Serializable {
+  Collection<? extends GrantedAuthority> getAuthorities();
+
+  // Omitted code
+}
+```
+
+### 7.1.1 Restricting access for all endpoints based on user authorities
+
+
+すべてのエンドポイントについて、ユーザーの権限でアクセス制御する例をみせている。
+
+下記のメソッドを使ってアクセス制御する例をみせている。
+* `hasAuthority`
+* `hasAnyAuthority`
+* `access`
+
+accessはSpEL(Spring Expression Language)を利用して柔軟に記述することができるが、複雑になる可能性も高まるので、hasAnyAuthority、hasAuthority で対応するのが望ましい。
+
+### 7.1.2 Restricting access for all endpoints based on user roles
+
+authorityが複数集まって形成されるのがrole。
+
+この章では、Userへのroleの付与の仕方を扱っている。`ROLE_`を付与する必要があるか、いらないか、みたいなことを書いてる。
+
+### 7.1.3 Restricting access to all endpoints
+
+`denyAll`を利用して、すべてのリクエストをはじくことができる。
+これをどこで利用するかの例
+* パスパラメータ内にメールアドレスが入ってくるようなリクエストがあったとして、`.com`で終わるアドレスのみを許可したいときに使う(それ以外はdenyAllではじく)
+* 一つのサービスを2つのゲートウェイから共有するときに、各ゲートウェイごとに特定のパスへのアクセスは禁止させたい場合
+
+
+#### まとめ
+
+* 認可とは、アプリケーションが認証されたリクエストが許可されているかどうかを決定するプロセスです。認可は常に認証の後に行われます。
+* 認証済みユーザーの権限と役割に基づいて、アプリケーションがどのようにリクエストを認可するかを設定します。
+* アプリケーションでは、認証されていないユーザーに対して特定の要求が可能であることを指定することもできます。
+* アプリでは、denyAll() メソッドを使用してすべての要求を拒否したり、 permitAll() メソッドを使用してすべての要求を許可したりするように構成できます。
+
