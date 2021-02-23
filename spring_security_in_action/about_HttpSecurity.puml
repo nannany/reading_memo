@@ -1,0 +1,78 @@
+@startuml
+
+interface SecurityBuilder<O> {
+  O build()
+}
+interface HttpSecurityBuilder<H extends HttpSecurityBuilder<H>> {
+  <C extends SecurityConfigurer<DefaultSecurityFilterChain, H>> C getConfigurer(Class<C> var1);
+  <C extends SecurityConfigurer<DefaultSecurityFilterChain, H>> C removeConfigurer(Class<C> var1);
+  <C> void setSharedObject(Class<C> var1, C var2);
+  <C> C getSharedObject(Class<C> var1);
+  H authenticationProvider(AuthenticationProvider var1);
+  H userDetailsService(UserDetailsService var1) throws Exception;
+  H addFilterAfter(Filter var1, Class<? extends Filter> var2);
+  H addFilterBefore(Filter var1, Class<? extends Filter> var2);
+  H addFilter(Filter var1);
+}
+
+interface SecurityConfigurer<O, B extends SecurityBuilder<O>>{
+}
+
+abstract AbstractSecurityBuilder<O> {
+  - AtomicBoolean building
+  - O object;
+  + AbstractSecurityBuilder()
+  + final O build() throws Exception
+  + final O getObject()
+  # O doBuild() throws Exception;
+}
+abstract AbstractConfiguredSecurityBuilder<O, B extends SecurityBuilder<O>> {
+  - final Log logger;
+  - final LinkedHashMap<Class<? extends SecurityConfigurer<O, B>>, List<SecurityConfigurer<O, B>>> configurers;
+  - final List<SecurityConfigurer<O, B>> configurersAddedInInitializing;
+  - final Map<Class<?>, Object> sharedObjects;
+  - final boolean allowConfigurersOfSameType;
+  - AbstractConfiguredSecurityBuilder.BuildState buildState;
+  - ObjectPostProcessor<Object> objectPostProcessor;
+
+  # AbstractConfiguredSecurityBuilder(ObjectPostProcessor<Object> objectPostProcessor)
+  # AbstractConfiguredSecurityBuilder(ObjectPostProcessor<Object> objectPostProcessor, boolean allowConfigurersOfSameType)
+  + O getOrBuild()
+  + <C extends SecurityConfigurerAdapter<O, B>> C apply(C configurer) throws Exception
+  + <C extends SecurityConfigurer<O, B>> C apply(C configurer) throws Exception
+  + <C> void setSharedObject(Class<C> sharedType, C object)
+  + <C> C getSharedObject(Class<C> sharedType)
+  + Map<Class<?>, Object> getSharedObjects()
+  + <C extends SecurityConfigurer<O, B>> List<C> getConfigurers(Class<C> clazz)
+  + <C extends SecurityConfigurer<O, B>> List<C> removeConfigurers(Class<C> clazz)
+  + <C extends SecurityConfigurer<O, B>> C getConfigurer(Class<C> clazz)
+  + <C extends SecurityConfigurer<O, B>> C removeConfigurer(Class<C> clazz)
+  + B objectPostProcessor(ObjectPostProcessor<Object> objectPostProcessor)
+  # <P> P postProcess(P object)
+  # final O doBuild() throws Exception
+  # void beforeInit() throws Exception
+  # void beforeConfigure() throws Exception
+  # {abstract} O performBuild() throws Exception;
+}
+
+abstract SecurityConfigurerAdapter<O, B extends SecurityBuilder<O>> {
+}
+
+class HttpSecurity {
+	- final RequestMatcherConfigurer requestMatcherConfigurer;
+	- List<Filter> filters
+	- RequestMatcher requestMatcher
+	- FilterComparator comparator
+
+}
+
+
+SecurityBuilder <|.. HttpSecurity
+SecurityBuilder <|.. AbstractSecurityBuilder
+SecurityBuilder <|- HttpSecurityBuilder
+HttpSecurityBuilder <|.. HttpSecurity
+AbstractSecurityBuilder <|- AbstractConfiguredSecurityBuilder
+AbstractConfiguredSecurityBuilder <|- HttpSecurity
+
+
+@enduml
