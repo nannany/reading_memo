@@ -16,6 +16,8 @@ interface HttpSecurityBuilder<H extends HttpSecurityBuilder<H>> {
 }
 
 interface SecurityConfigurer<O, B extends SecurityBuilder<O>>{
+  void init(B var1) throws Exception;
+  void configure(B var1) throws Exception;
 }
 
 abstract AbstractSecurityBuilder<O> {
@@ -56,6 +58,16 @@ abstract AbstractConfiguredSecurityBuilder<O, B extends SecurityBuilder<O>> {
 }
 
 abstract SecurityConfigurerAdapter<O, B extends SecurityBuilder<O>> {
+  - B securityBuilder
+  - CompositeObjectPostProcessor objectPostProcessor
+
+	+ void addObjectPostProcessor(ObjectPostProcessor<Object> objectPostProcessor)
+  + B and()
+  + void configure(B builder)
+  + void init(B builder)
+  + void setBuilder(B builder)
+  # final B getBuilder()
+  # <T> T postProcess(T object)
 }
 
 class HttpSecurity {
@@ -64,6 +76,15 @@ class HttpSecurity {
 	- RequestMatcher requestMatcher
 	- FilterComparator comparator
 
+
+}
+
+abstract AbstractHttpConfigurer<T extends AbstractHttpConfigurer<T, B>, B extends HttpSecurityBuilder<B>>{
+  + B disable()
+  + T withObjectPostProcessor(ObjectPostProcessor<Object> objectPostProcessor)
+}
+
+class HttpBasicConfigurer<B extends HttpSecurityBuilder<B>> {
 }
 
 
@@ -71,8 +92,18 @@ SecurityBuilder <|.. HttpSecurity
 SecurityBuilder <|.. AbstractSecurityBuilder
 SecurityBuilder <|- HttpSecurityBuilder
 HttpSecurityBuilder <|.. HttpSecurity
-AbstractSecurityBuilder <|- AbstractConfiguredSecurityBuilder
+AbstractSecurityBuilder <|-- AbstractConfiguredSecurityBuilder
 AbstractConfiguredSecurityBuilder <|- HttpSecurity
 
+SecurityConfigurer <|.. SecurityConfigurerAdapter
+SecurityConfigurerAdapter <|-- AbstractHttpConfigurer
+AbstractHttpConfigurer <|-- HttpBasicConfigurer
 
+SecurityBuilder <.. SecurityConfigurer
+SecurityBuilder <.. SecurityConfigurerAdapter
+
+
+note top of AbstractSecurityBuilder
+     {if ビルドされるオブジェクトが1回だけビルドすることを保証}
+end note
 @enduml
