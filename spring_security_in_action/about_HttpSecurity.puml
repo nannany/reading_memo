@@ -104,6 +104,6 @@ SecurityBuilder <.. SecurityConfigurerAdapter
 
 
 note top of AbstractSecurityBuilder
-     {if ビルドされるオブジェクトが1回だけビルドすることを保証}
+     ビルドされるオブジェクトが1回だけビルドすることを保証
 end note
 @enduml
