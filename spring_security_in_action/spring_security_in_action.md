@@ -266,7 +266,6 @@ public interface UserDetails extends Serializable {
 
 ### 7.1.1 Restricting access for all endpoints based on user authorities
 
-
 すべてのエンドポイントについて、ユーザーの権限でアクセス制御する例をみせている。
 
 下記のメソッドを使ってアクセス制御する例をみせている。
@@ -311,10 +310,32 @@ authorityが複数集まって形成されるのがrole。
 * ルールは明示的に記述するべき。
 * ルールの記述は細かいものから書いて包括的なものは後に書く。
 
+`hola`のエンドポイントに関しては、permitAllの挙動になっている。  
+こちらは、ユーザーパスワードなしだと普通に200が返るが、登録されていないユーザー、パスワードでリクエストすると401が返される。
+
 ## 8.2 Selecting requests for authorization using MVC matchers
 
-#### まとめ
+```
+mvcMatchers(HttpMethod method, String... patterns)
+mvcMatchers(String... patterns)
+```
 
+## 8.3 Selecting requests for authorization using Ant matchers
+
+```
+antMatchers(HttpMethod method, String patterns)
+antMatchers(String patterns)
+antMatchers(HttpMethod method)
+```
+
+## 8.4 Selecting requests for authorization using regex matchers
+
+```aidl
+regexMatchers(HttpMethod method, String regex)
+regexMatchers(String regex)
+```
+
+#### まとめ
 
 * 実際のシナリオでは、異なる要求に対して異なる認証規則を適用することがよくあります。
 * パスと HTTP メソッドに基づいて認証ルールが設定されているリクエストを指定します。これを行うには、Matcher メソッドを使用します。MVC、Ant および regex です。
