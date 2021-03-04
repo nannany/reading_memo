@@ -343,4 +343,37 @@ regexMatchers(String regex)
 * 要件が複雑すぎて Ant や MVC 式では解決できない場合は、より強力な正規表現を使用して実装することができます。
 
 
+# 20210304 
+一枚の画として、SpringSecurityの全体像を表現できるとよいと感じた。
+Filterは3章あたりで出てきたAuthenticationFilterの抽象度を上げたものと理解できる。
+
+# 9. Implementing filters 
+
+Filterについてみていく
+
+## 9.1 Implementing filters in the Spring Security architecture
+
+* ServletRequest
+* ServletResponse
+* FilterChain
+をFilterではパラメータとして扱う。
+  
+SpringSecurityが用意してくれているFilterとしては以下のようなものがある。
+
+* BasicAuthenticationFilter
+* CsrfFilter
+* CorsFilter
+
+Orderでどの順番でFilterをかけるか決められる。
+
+## 9.2 Adding a filter before an existing one in the chain
+
+BasicAuthenticationFilterの前にカスタムフィルターを置く方法を論じている
+
+## 9.3 Adding a filter after an existing one in the chain
+
+ここでは9.2とは反対に、後にFilterを付け足す方法を論じている
+
+## 9.4 Adding a filter at the location of another in the chain
+
 
