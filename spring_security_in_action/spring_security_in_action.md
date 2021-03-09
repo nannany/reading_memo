@@ -405,6 +405,26 @@ OncePerRequestFilterでは、
 * 既存のフィルタの同じ位置に複数のフィルタを持つことができます。この場合、フィルタを実行する順番は定義されていません。
 * フィルタチェインを変更することで、アプリケーションの要件に合わせて認証と認証をカスタマイズすることができます。
 
+# 20210309 
+
 # 10. Applying CSRF protection and CORS
 
+SpringSecurityのCSRF、CORSの設定について論じる章。
+
+## 10.1 Applying cross-site request forgery (CSRF) protection in applications
+
+この章では、CSRFの防御策とそれをいつ使うかについて論じる。
+まずは仕組みを解説し、それからCSRFの対処方法についての話に移る。
+
+### 10.1.1 How CSRF protection works in Spring Security
+
+具体例として、以下のような流れでCSRFは実行される。
+* ユーザーがとある認証が必要なサーバーに認証をパスする
+* ユーザーが悪意のあるメールを受け取り、その中にあるリンクを踏む
+* リンクの先には最初に認証をパスしたサーバーに対して、データを全消去するような命令を飛ばすスクリプトが仕込まれている
+* すでに認証済みであるので、ユーザーの意図しない、スクリプトによる命令でデータが全消去されてしまう
+
+CSRFの対策としては、最初にページを取得するGET命令時に、ページ内にユニークなトークンを仕込ませておき、その後の操作においては該当のトークンがなければ受け付けないようにする
+
+SpringSecurityでは、CsrfFilterという部品がCsrfTokenRepositoryFilterという部品を使って、CSRF対策をしていく。
 
