@@ -428,3 +428,11 @@ CSRFの対策としては、最初にページを取得するGET命令時に、�
 
 SpringSecurityでは、CsrfFilterという部品がCsrfTokenRepositoryFilterという部品を使って、CSRF対策をしていく。
 
+CsrfTokenRepositoryFilterは、デフォルトではセッションにトークンを保存する。
+
+### 10.1.2 Using CSRF protection in practical scenarios
+
+同じサーバーでフロントとバック両方を担当する場合にCSRFトークンは機能する。  
+モバイルや、SPA系では別の対策を打つ必要がある。  
+
+### 10.1.3 Customizing CSRF protection
