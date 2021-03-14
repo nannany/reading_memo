@@ -11,4 +11,7 @@
 
 ## JavaScriptのセキュリティについて
 
-* 
+* strict modeを確実に効かせるためには、IIFEを使う
+* document.domainは使うな
+  * `window.postMessage`なるものがあるのでそれを使う
+    
