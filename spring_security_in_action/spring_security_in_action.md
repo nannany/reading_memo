@@ -436,3 +436,9 @@ CsrfTokenRepositoryFilterは、デフォルトではセッションにトーク�
 モバイルや、SPA系では別の対策を打つ必要がある。  
 
 ### 10.1.3 Customizing CSRF protection
+
+特定のエンドポイントにのみCSRF対応を入れるような実装を例示している。
+
+CSRFを外部に保存するための部品もSpringSecurityで用意してくれている。
+
+## 10.2 Using cross-origin resource sharing
