@@ -442,3 +442,41 @@ CsrfTokenRepositoryFilterは、デフォルトではセッションにトーク�
 CSRFを外部に保存するための部品もSpringSecurityで用意してくれている。
 
 ## 10.2 Using cross-origin resource sharing
+
+CORSとは何か。`example.com`から`api.example.com`にはアクセスを許さないみたいな話。
+
+最近はVueやReactの台頭もあって、フロントとバックが分かれるパターンが多い。
+
+
+### 10.2.1 How does CORS work?
+
+iframe でも問題になりうる。[iframe](https://developer.mozilla.org/ja/docs/Web/HTML/Element/iframe)はWebページ内に地図を埋め込んだりするあれ。
+
+* Access-Control-Allow-Origin
+* Access-Control-Allow-Methods
+* Access-Control-Allow-Headers
+
+ssia-ch10-ex4で例あり。localhostと127.0.0.1でもCORSは起こるので、それを利用して検証する。  
+あたりまえだけど、127.0.0.1:8080でアクセスしたら普通に通信は成功する。
+localhost:8080でアクセスしたら、想定通りCORSエラーを引き起こせる。
+
+CORSは承認や保護とは違う。なので、バックエンドのAPI自体は正常に実行される。
+
+preflightこみのリクエストの流れ。
+![img.png](img.png)
+
+### 10.2.2 Applying CORS policies with th @CrossOrigin annotation
+
+### 10.2.3 Applying CORS using a CorsConfiguration
+
+`@CrossOrigin`を利用するか、`CorsConfiguration`を利用するか問題。
+アノテーションでやると、透明性が上がる？が、いくつもアノテーションを記述しなければならないため冗長。
+
+ここの例では`CorsConfigurationSource`をconfigureメソッドの中に直接書いてるけど、現実世界のアプリはさらに設定が長くなるだろうから、本当は分離したほうがいい。
+
+* クロスサイトリクエストフォージェリ（CSRF）とは、ユーザーを騙してフォージェリ用のスクリプトを含むページにアクセスさせる攻撃の一種です。このスクリプトは、アプリケーションにログインしているユーザーになりすまし、ユーザーに代わってアクションを実行することができます。
+* CSRF対策は、Spring Securityではデフォルトで有効になっています。
+* Spring SecurityのアーキテクチャにおけるCSRF保護ロジックのエントリーポイントはHTTPフィルタです。
+* CORS(Cross-over Resource Sharing)とは、特定のドメインでホストされているウェブアプリケーションが、他のドメインのコンテンツにアクセスしようとする状況を指します。デフォルトでは、ブラウザはこの現象を許しません。CORSを設定すると、ブラウザで実行されるWebアプリケーションで、リソースの一部を別のドメインから呼び出すことができるようになります。
+* CORS は、@CrossOrigin アノテーションを使用してエンドポイントに対して設定することも、HttpSecurity オブジェクトの cors() メソッドを使用して設定クラスで集中的に設定することもできます。
+
