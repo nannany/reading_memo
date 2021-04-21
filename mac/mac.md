@@ -16,8 +16,9 @@ Mac有識者に伺いつつ、Mac初心者が初期設定でやったことを�
 * アダプター
   * [USB-C Digital AV Multiportアダプタ](https://www.apple.com/jp/shop/product/MUF82ZA/A/usb-c-digital-av-multiportアダプタ?fnode=540dfac785e689c1d520f2f513715743c294ddf38a598d0ac6cb6ceb9a415c5e390d7c6d14d57c0bf318235db605ff79936cf7eb0e427d15ff2c8daf4dd712457fd42eb11e83fa2904ec673616dc1e473e194d79dac24f1aff2df2ed68b9d31f3558357087e8aa5b3a94bc09c904651d&fs=fh%3D459d%252B45b0)
     * 7,480円。個人的にはこれが一番高く感じました。純正品以外は故障しやすいという評判を受け購入。
-  * [USB Type C to HDMI 変換アダプター](https://www.amazon.co.jp/gp/product/B088NNLQVS/)
-    * 1,322円。２台目のディスプレイと結合するために必要。
+  * ~~[USB Type C to HDMI 変換アダプター](https://www.amazon.co.jp/gp/product/B088NNLQVS/)~~
+    * 1,322円。~~２台目のディスプレイと結合するために必要。~~。[Display Link非対応](https://yukimejiyoung.com/macbook-air-dual/)なので無駄銭。
+  * 
 
 ## キーカスタマイズ
 
@@ -57,12 +58,12 @@ function peco-history-selection() {
     zle reset-prompt
 }
 
+    BUFFER="cd `ghq list -p | peco`"
 zle -N peco-history-selection
 bindkey '^R' peco-history-selection
 
 # ctrl + g
 function peco-ghq-selection() {
-    BUFFER="cd `ghq list -p | peco`"
     zle accept-line
     zle reset-prompt
 }
@@ -80,3 +81,8 @@ function peco-hub-selection() {
 zle -N peco-hub-selection
 bindkey '^B' peco-hub-selection
 ```
+
+## ウィンドウ管理ツール
+
+[Amethyst](https://github.com/ianyh/Amethyst)をinstallしました。
+
