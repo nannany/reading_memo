@@ -351,6 +351,8 @@ Filterは3章あたりで出てきたAuthenticationFilterの抽象度を上げ�
 
 Filterについてみていく
 
+FilterはManagerクラスに処理を預けることが多い。Filterの処理が終わったら、次のFilterが動き出す。
+
 ## 9.1 Implementing filters in the Spring Security architecture
 
 * ServletRequest
@@ -374,6 +376,8 @@ BasicAuthenticationFilterの前にカスタムフィルターを置く方法を�
 
 ここでは9.2とは反対に、後にFilterを付け足す方法を論じている
 
+9.2,9.3のコードがssia-ch9-ex1。
+
 ## 9.4 Adding a filter at the location of another in the chain
 
 この章ではフィルターチェーンの中にフィルターを組み込んでいく。
@@ -382,21 +386,26 @@ authentication部分をオリジナルのフィルターにしてみる。
 認証の典型的なパターンとしては以下のようなものがある。
 
 * 特定のheaderの値をもとに認証をする
-* 共通鍵を利用して作成した署名をもとに認証する
+* 鍵を利用して作成した署名をもとに認証する
 * ワンタイムパスワードを利用して認証する
 
 例としては一番目の特定の値による認証を行う。
 
 フィルターを同じポジションに置いた場合は適用の順番が不定になるので、フィルターの順番はちゃんと決めること。
 
+9.4のコードがssia-ch9-ex2
+このコードはorderが一緒になっているけど、本当はしないほうがいい。
+
 ## 9.5 Filter implementations provided by Spring Security
 
 SpringSecurity提供のFilterを使うと便利。
 
 OncePerRequestFilterでは、
-* HttpServletRequestにキャスト不要
+* HttpServletRequestにキャスト不要。(HTTPのリクエストにしか対応してないけど、ほとんどこれ使う)
 * filterが適応されない場合をロジックで定義することができる(shouldNotFilter) 
 * デフォルトでは非同期リクエストやエラーディスパッチリクエストには適用されないが、用意されているメソッドをoverrideすることで変更可能
+
+9.5のコードがssia-ch9-ex3
 
 ## まとめ
 
