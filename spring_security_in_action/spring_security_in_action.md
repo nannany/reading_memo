@@ -542,3 +542,42 @@ client、認証サーバ、ビジネスロジックサーバで構成された�
 
 ### 11.2.2 What is a JSON Web Token?
 
+JWTはjson web token
+
+例としてはこんな感じ
+
+```
+eyJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImRhbmllbGxlIn0.wg6LFProg7s_KvFxvnYGiZF-Mj4rr-0nJA1tVGZNn8U
+```
+
+ピリオド区切りになっていて、最初の部分がヘッダー、次の部分がボディ。それぞれがbase64エンコードされている。
+
+戻すと以下のような感じ。
+
+```
+{
+  "alg": "HS256"
+}
+
+{
+  "username": "danielle"
+}
+```
+
+ボディ部は長くしない事推奨。なぜなら、長いとリクエストのレイテンシーが大きくなり、暗号化の時間も長くなるから。
+
+最後の部分は署名データ。
+
+この章ではJJWTというライブラリを利用してJWTのパースと生成を行う。
+
+## 11.3 Implementing the authentication server
+
+この章では、認証サーバーの実装をしていく。
+
+用意するのは3つのエンドポイント
+
+* `/user/add`--後で実装をテストするために使用するユーザーを追加します。
+* `/user/auth`...認証情報を使ってユーザーを認証し、ワンタイムパスワードをSMSで送信します。ここでは、SMSを送信する部分は削除していますが、練習として行うことができます。
+* `/otp/check`--OTPの値が、認証サーバが特定のユーザのために以前に生成したものであることを確認します。
+
+## 11.4 Implementing the business logic server
