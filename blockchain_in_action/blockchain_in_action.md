@@ -246,6 +246,5 @@ Solidityでの予約語
 * mapping
 * modifier
 
-
 ### 2.7.3 ASK smart contract deployment and testing
 
