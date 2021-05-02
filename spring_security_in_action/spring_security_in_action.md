@@ -698,3 +698,18 @@ OAuth2 の弱点、気をつけるところ。
 
 githubを認可サーバーとして使う
 
+下記から認可サーバーとしての設定を行う。  
+https://github.com/settings/applications/new
+
+### 12.5.2 Starting the implementation
+
+`oauth2Login()`は認証フィルター`OAuth2LoginAuthenticationFilter`を追加している。
+
+### 12.5.3 Implementing ClientRegistration
+
+`ClientRegistration`はOAuth2におけるクライアントを表している。
+
+`CommonOAuth2Provider`を使うことで、設定を省力できる。
+
+### 12.5.4 Implementing ClientRegistrationRepository
+
