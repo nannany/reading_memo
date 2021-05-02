@@ -330,7 +330,7 @@ antMatchers(HttpMethod method)
 
 ## 8.4 Selecting requests for authorization using regex matchers
 
-```aidl
+```
 regexMatchers(HttpMethod method, String regex)
 regexMatchers(String regex)
 ```
