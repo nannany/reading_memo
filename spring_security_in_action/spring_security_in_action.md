@@ -713,3 +713,44 @@ https://github.com/settings/applications/new
 
 ### 12.5.4 Implementing ClientRegistrationRepository
 
+`OAuth2LoginAuthenticationFilter`から利用する`ClientRegistration`を登録するために`ClientRegistrationRepository`を利用する。
+
+※@Beanで定義するか、configurationで定義するか、どちらか一方に統一する。可読性の観点から、混ぜるのはだめ。
+
+### 12.5.5 The pure magic of Spring Boot configuration
+
+`@Bean`で定義、`configuration`で定義、の他にpropertyファイルで定義という選択肢がある
+
+### 12.5.6 Obtaining details about an authenticated user
+
+### 12.5.7 Testing the application
+
+* http://localhost:8080
+  * まずここにアクセス
+* http://localhost:8080/oauth2/authorization/github
+  * いきなりgithubの認可エンドポイントにはとばさず、ここにリダイレクトさせる。これはSpringSecurityならでは？
+* https://github.com/login/oauth/authorize?response_type=code&client_id=~&scope=read:user&state=~=&redirect_uri=http://localhost:8080/login/oauth2/code/github
+  * githubの認可エンドポイント。
+* http://localhost:8080/login/oauth2/code/github?code=~&state=~
+  * ここにアクセスした時に、サーバー側でトークンを取得しているはず。
+* http://localhost:8080
+  * ゴール
+
+# 13 OAuth 2: Implementing the authorization server
+
+OAuth２系のサポート状況は下記参照
+
+https://github.com/spring-projects/spring-security/wiki/OAuth-2.0-Features-Matrix
+
+## 13.1 Writing your own authorization server implementation
+
+`@EnableAuthorizationServer`つけたら、認可サーバーに必要なエンドポイントが勝手に設定される。多分。
+
+## 13.2 Defining user management
+
+基本的には３章、４章で行ったことと同じことをしてuserの管理をする。
+ただし、SecurityContextへの認証情報の保存はしない。代わりにTokenStoreで管理する。
+
+## 13.3 Registering clients with the authorization server
+
+
