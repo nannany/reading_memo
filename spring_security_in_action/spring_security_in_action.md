@@ -489,6 +489,32 @@ preflightこみのリクエストの流れ。
 * CORS(Cross-over Resource Sharing)とは、特定のドメインでホストされているウェブアプリケーションが、他のドメインのコンテンツにアクセスしようとする状況を指します。デフォルトでは、ブラウザはこの現象を許しません。CORSを設定すると、ブラウザで実行されるWebアプリケーションで、リソースの一部を別のドメインから呼び出すことができるようになります。
 * CORS は、@CrossOrigin アノテーションを使用してエンドポイントに対して設定することも、HttpSecurity オブジェクトの cors() メソッドを使用して設定クラスで集中的に設定することもできます。
 
+### 20210508
+
+#### CSRF
+
+10章。CSRFとCORS。
+
+CSRFの怖いところ。設定を誤ると全てに及ぶ？
+
+X-CSRF-TOKENはSpringSecurityオリジナル？
+
+CsrfFilterがある。情報を取得するようなメソッドに対してはデフォルトでは防がない。
+GETで値を更新するようなことをするとだめ。
+(GETも含めるようにすることは可能)
+
+CsrfFilterはCsrfTokenRepositoryを使う。
+
+_csrfをCsrfFilterが埋め込む。
+
+同じセッション期間中だと同じx-csrf-tokenが使われる。
+リロードしても同じセッションで結んでいるのであれば、同じx-csrf-tokenが返ってくる。
+
+SpringBootThymeleafの部分よくわからず。
+
+#### CORS
+
+
 # 11 Hands-on:A separation of responsibilities
 
 client、認証サーバ、ビジネスロジックサーバで構成されたシステムを作っていく。
@@ -618,7 +644,6 @@ RestTemplateのpostForEntityは４００系で返ってきたら、HttpClientErr
 * 私たちは、システムの保守や拡張を容易にするために、システム内の責任を分離することを好みます。このような理由から、ハンズオンの例では、認証を別のアプリに分離し、それを認証サーバーと呼びました。クライアントにサービスを提供するバックエンド・アプリケーション（ビジネス・ロジック・サーバと呼ぶ）は、クライアントを認証する必要があるときに、別の認証サーバを使用します。
 * 多要素認証（MFA）とは、あるリソースにアクセスする際に、ユーザーが複数回、異なる方法で認証を求められる認証戦略です。この例では、ユーザーは、ユーザー名とパスワードを使用した後、SMSメッセージで受信したOTPを検証することで、特定の電話番号にアクセスできることを証明しなければなりません。このようにして、ユーザーのリソースは認証情報の盗難からよりよく保護されます。
 * 多くの場合、問題を解決するための良い解決策は1つだけではありません。常にすべての可能な解決策を検討し、時間が許せば、すべてのオプションの概念実証を実施して、どれが自分のシナリオにより適しているかを理解してください。
-
 
 # 12 How does OAuth2 work?
 
@@ -753,4 +778,9 @@ https://github.com/spring-projects/spring-security/wiki/OAuth-2.0-Features-Matri
 
 ## 13.3 Registering clients with the authorization server
 
+`ClientDetails`系と`UserDetails`系は似ている。
+
+## 13.4 Using the password grant type
+
+ch13-ex1で確認。
 
