@@ -784,3 +784,9 @@ https://github.com/spring-projects/spring-security/wiki/OAuth-2.0-Features-Matri
 
 ch13-ex1で確認。
 
+password grant typeを実装する。
+
+SpringSecurity側で`oauth/token` というエンドポイントを作成してくれる。
+
+
+## 13.5 Using the authorization code grant type
