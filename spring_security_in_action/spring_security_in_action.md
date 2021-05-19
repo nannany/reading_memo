@@ -855,4 +855,13 @@ ssia-ch14-ex1-rsでリソースサーバーを動かす。
 
 ssia-ch14-ex1-asで今回用の認可サーバーをあげられる。
 
+Spring Security OAuthは廃止されて、Spring Securityがその部分をカバーするようになった。
+
+## 14.3 Implementing blackboarding with a JdbcToken Store
+
+共有dbを使うパターン。blackboardingと呼ばれるらしい。
+
+`TokenStore`がコントラクト。
+
+ssia-ch14-ex2-as が認可サーバー
 
