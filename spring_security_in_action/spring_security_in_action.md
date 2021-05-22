@@ -913,3 +913,20 @@ JWTでトークンの妥当性検証を行う術を見ていく。
 
 jwtはヘッダー、ボディ、署名の３つの部分からなる。
 
+署名されているJWTはJWS、暗号化されているJWTはJWEと呼ばれる。
+
+### 15.1.2 Implementing an authorization server to issue JWTs
+
+この章では認可サーバーを実装していく。
+
+トークン署名の鍵に、対象鍵を使うパターンと、非対称鍵を使うパターンがある。
+
+ssia-ch15-ex1-asが対象鍵を使った認可サーバー
+
+### 15.1.3 Implementing a resource server that uses JWT
+
+ssia-ch15-ex1-rs がJWSで対象鍵を使うリソースサーバー
+
+ssia-ch15-ex1-rs-migration　で新しい版のリソースサーバーの実装ができる
+
+## 15.2 Using tokens signed with asymmetric keys with JWT
