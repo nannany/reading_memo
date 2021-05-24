@@ -930,3 +930,35 @@ ssia-ch15-ex1-rs がJWSで対象鍵を使うリソースサーバー
 ssia-ch15-ex1-rs-migration　で新しい版のリソースサーバーの実装ができる
 
 ## 15.2 Using tokens signed with asymmetric keys with JWT
+
+認可サーバーとリソースサーバーが互いに信頼できる関係でない場合は、非対称鍵を利用する必要がある。
+
+### 15.2.1 Generating the key pair
+
+key pairを生成する方法が記述されている。
+
+```
+keytool -genkeypair -alias ssia -keyalg RSA -keypass ssia123 -keystore ssia.jks -storepass ssia123
+```
+
+上のコマンドを実行すると`ssia.jks`ができる。これが秘密鍵。
+
+```
+keytool -list -rfc --keystore ssia.jks | openssl x509 -inform pem -pubkey
+```
+
+上記コマンドを実行すると、passwordを聞かれる。それは秘密鍵生成時に指定した値。
+これを実行すると、コマンドラインにpublic keyが出る。
+
+### 15.2.2 Implementing an authorization server that uses private keys
+
+ssia-ch15-ex2-asという認可サーバーを作成する。
+
+### 15.2.3 Implementing a resource server that uses public keys
+
+ssia-ch15-ex2-rsでリソースサーバーを作成する。
+
+また、ssia-ch15-ex2-rs-migrationではSpringSecurityOAuthを使わずに実装している。
+
+### 15.2.4 Using an endpoint to expose the public key
+
