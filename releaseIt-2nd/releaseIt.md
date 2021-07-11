@@ -1168,3 +1168,22 @@ AWSのアベイラビリティーゾーンなどは、バルクヘッドの仕�
   * キャッシュはアプリケーションの動作を早くするが、メモリを食いすぎないようにする
 * ログを
   * 
+
+
+
+
+
+
+
+
+# PartⅡ. Design for production
+
+## 6. Case Study: Phenomenal Cosmic Powers, IttyBitty Living Space
+
+年末は小売の負荷めっちゃ上がる
+
+### Baby's First Christmas
+
+### Black Friday
+
+### Vital Signs
