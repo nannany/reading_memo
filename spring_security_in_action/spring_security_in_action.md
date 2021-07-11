@@ -930,3 +930,73 @@ ssia-ch15-ex1-rs がJWSで対象鍵を使うリソースサーバー
 ssia-ch15-ex1-rs-migration　で新しい版のリソースサーバーの実装ができる
 
 ## 15.2 Using tokens signed with asymmetric keys with JWT
+
+認可サーバーとリソースサーバーが互いに信頼できる関係でない場合は、非対称鍵を利用する必要がある。
+
+### 15.2.1 Generating the key pair
+
+key pairを生成する方法が記述されている。
+
+```
+keytool -genkeypair -alias ssia -keyalg RSA -keypass ssia123 -keystore ssia.jks -storepass ssia123
+```
+
+上のコマンドを実行すると`ssia.jks`ができる。これが秘密鍵。
+
+```
+keytool -list -rfc --keystore ssia.jks | openssl x509 -inform pem -pubkey
+```
+
+上記コマンドを実行すると、passwordを聞かれる。それは秘密鍵生成時に指定した値。
+これを実行すると、コマンドラインにpublic keyが出る。
+
+### 15.2.2 Implementing an authorization server that uses private keys
+
+ssia-ch15-ex2-asという認可サーバーを作成する。
+
+### 15.2.3 Implementing a resource server that uses public keys
+
+ssia-ch15-ex2-rsでリソースサーバーを作成する。
+
+また、ssia-ch15-ex2-rs-migrationではSpringSecurityOAuthを使わずに実装している。
+
+### 15.2.4 Using an endpoint to expose the public key
+
+キーペアを定期的に入れ替えるのが吉。
+
+公開鍵を取得するために、リソースサーバーのエンドポイントを叩く。
+
+ssia-ch15-ex3-as, ssia-ch15-ex3-rs
+
+クライアントクレデンシャルを持ってる奴ならpublic keyを取得できるエンドポイントを用意する。
+
+
+## 15.3 Adding custom details to the JWT
+
+JWTに情報を込める。
+
+JWTをどのようにカスタマイズするかをここでは学べる。
+
+### 15.3.1 Configuring the authorization server to add custom details to tokens
+
+認可サーバーのタイムゾーンをJWTに加える方法を記述する。
+
+TokenEnhancerを使う。
+
+
+### 15.3.2 Configuring the resource server to read the custom details of a JWT
+
+ssia-ch15-ex4-rs
+
+### まとめ
+
+* OAuth 2 認証アーキテクチャでトークンを検証する方法としては、現在のアプリケーションでは暗号化された署名を使用することが多くなっています。
+* トークンの検証に暗号署名を使う場合、JSON Web Token (JWT) は最も広く使われているトークンの実装です。
+* トークンの署名と検証には対称鍵を使うことができます。対称鍵を使用するのは簡単な方法ですが、認可サーバーがリソースサーバーを信頼していない場合は使用できません。
+* 対称鍵が使えない場合は、非対称鍵ペアを使ってトークンの署名と検証を行うことができます。
+* 鍵が盗まれにくいシステムにするために、定期的に鍵を変更することを推奨します。ここでは、定期的に鍵を変更することをキーローテーションと呼んでいます。
+* 公開鍵はリソースサーバー側で直接設定することができます。この方法は簡単ですが、鍵のローテーションが難しくなります。
+* 鍵のローテーションを簡単にするためには、認証サーバー側で鍵を設定し、リソースサーバーが特定のエンドポイントで鍵を読めるようにすることができます。
+* 実装の要件に応じてJWTのボディに詳細を追加することで、JWTをカスタマイズすることができます。承認サーバーはトークン本体にカスタムの詳細情報を追加し、リソースサーバーはこれらの詳細情報を使用して承認を行うことができます。
+
+# 16 Global method security: Pre- and postauthorizations
