@@ -85,3 +85,29 @@ resource "aws_instance" "helloworld" {
 #### 1.2.3 Initializing Terraform
 
 `terraform init`
+
+これで色々なものをダウンロードしてるっぽい
+
+そのディレクトリに`.terraform`ディレクトリと`.terraform.lock.hcl`ファイルができる
+
+
+#### 1.2.4 Deploying the EC2 instance
+
+`terraform apply`
+
+これが成功するとインフラ出来上がる。
+その前にどのような変更が走るのか`terraform plan`で確認できる
+
+
+#### 1.2.5 Destroying the EC2 instance
+
+`terraform destroy`で作成したリソース消える。
+
+`terraform show`で定義したものが現状どうなっているか確認できる
+
+
+
+
+
+
+
