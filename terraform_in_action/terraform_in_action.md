@@ -83,3 +83,5 @@ resource "aws_instance" "helloworld" {
 ```
 
 #### 1.2.3 Initializing Terraform
+
+`terraform init`
