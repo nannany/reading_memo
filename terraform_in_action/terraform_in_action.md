@@ -32,4 +32,24 @@
 
 #### 1.1.2 Easy to use 
 
+HashiCorp Configuration Language(HCL)というわかりやすい言語で記述される。
+
+HCLとJSONは1:1で変換できるため、外部のシステムとの連携もできる。
+
+#### 1.1.3 Free and source software
+
+
+#### 1.1.4 Declarative programming
+
+１つ１つの手順ではなくて、最終的なあるべき姿を記述することで動くプログラミング手法（宣言的プログラミング）に則っている。
+
+#### 1.1.5 Cloud-agnostic
+
+#### 1.1.6 Richly expressive and highly extensible
+
+Cloud Formationに比べて表現力が高いっぽい
+
+
+### 1.2 "Hello Terraform"
+
 
