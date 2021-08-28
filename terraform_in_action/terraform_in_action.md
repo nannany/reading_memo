@@ -90,14 +90,11 @@ resource "aws_instance" "helloworld" {
 
 そのディレクトリに`.terraform`ディレクトリと`.terraform.lock.hcl`ファイルができる
 
-
 #### 1.2.4 Deploying the EC2 instance
 
 `terraform apply`
 
-これが成功するとインフラ出来上がる。
-その前にどのような変更が走るのか`terraform plan`で確認できる
-
+これが成功するとインフラ出来上がる。 その前にどのような変更が走るのか`terraform plan`で確認できる
 
 #### 1.2.5 Destroying the EC2 instance
 
@@ -105,9 +102,58 @@ resource "aws_instance" "helloworld" {
 
 `terraform show`で定義したものが現状どうなっているか確認できる
 
+### 1.3 Brave new "Hello Terraform"
 
+data source なる仕組みを利用して、動的にargumentを変えることができる。
 
+例えば、そのとき最新のaws_amiを持ってくるみたいな。
 
+#### 1.3.1 Modifying the Terraform configuration
 
+```terraform
+provider "aws" {
+  region = "ap-northeast-1"
+}
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name = "name"
+    values = [
+      "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+
+  owners = [
+    "099720109477"]
+}
+
+resource "aws_instance" "helloworld" {
+  ami = data.aws_ami.ubuntu.id
+  instance_type = "t2.micro"
+  tags = {
+    Name = "HelloWorld"
+  }
+}
+```
+
+`data`でデータソースを定義できる。
+データソースはリソース定義の中で利用するものと考えて良さそう。
+
+`aws_ami`でデータソースの種別を特定し、`ubuntu`で識別するための名前をつけている。
+
+#### 1.3.2 Applying changes
+
+#### 1.3.3 Destroying the infrastructure
+
+### 1.4 Fireside chat
+
+### Summary
+
+- Terraformは、宣言型のIaCプロビジョニングツールです。パブリッククラウドやプライベートクラウドにリソースを展開することができます。
+- Terraformは、(1)プロビジョニングツール、(2)使いやすい、(3)無償・オープンソース、(4)宣言型、(5)クラウドにとらわれない、(6)表現力・拡張性に優れています。
+- Terraformの主要な要素は、リソース、データソース、プロバイダです。
+- コードブロックを連鎖させることで、動的なデプロイを行うことができます。
+- Terraformプロジェクトをデプロイするには、まず設定コードを書き、次にプロバイダーやその他の入力変数を設定し、Terraformを初期化し、最後に変更を適用する必要があります。後始末は destroy コマンドで行います。
 
 
