@@ -65,5 +65,21 @@ resource "aws_instance" "helloworld" {
 
 括弧の中で、リソースに渡す引数を宣言している。
 
-#### 1.2.2 Configureing the AWS provider 
+#### 1.2.2 Configureing the AWS provider
 
+providerを指定
+
+```terraform
+provider "aws" {
+  region = "ap-northeast-1"
+}
+resource "aws_instance" "helloworld" {
+  ami = "ami-09dd2e08d601bff67"
+  instance_type = "t2.micro"
+  tags = {
+    Name = "HelloWorld"
+  }
+}
+```
+
+#### 1.2.3 Initializing Terraform
