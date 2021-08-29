@@ -482,3 +482,9 @@ root moduleはこれらの要素からなる。
 
 ### 4.4 Networking module
 
+`namespace`をインプットに、`vpc`,`sg`の情報を出力する。
+その過程の副作用として、リソースができると考えれば良い。
+
+[variables.tf](4sho/modules/networking/variables.tf)
+
+
