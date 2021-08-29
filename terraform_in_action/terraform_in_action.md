@@ -215,7 +215,7 @@ resource "local_file" "literature" {
 ```
 
 ### 2.4 Generating an execution plan
- 
+
 `terrafomr plan`を事前にやっておくこと推奨。
 
 エラー出る場合は、`TF_LOG=trace`を有効にしてログをいっぱい出すてもある。
@@ -224,7 +224,6 @@ resource "local_file" "literature" {
 https://qiita.com/minamijoyo/items/7945ec527270ee2af5c3
 
 ![terraform planのながれ](スクリーンショット%202021-08-29%2011.38.55.png)
-
 
 #### 2.4.1 Inspecting the plan
 
@@ -256,9 +255,7 @@ main.tfとterraform.tfstateに差分がなければ何もしない。
 
 #### 2.7.1 Detecting configuration drift
 
-作成されたリソースがterraformコマンド以外で直接変更された場合は、planで検知できる。
-Local providerの場合、変更を検知したら、createする動きになる。他のproviderはどうなんだろう？
-
+作成されたリソースがterraformコマンド以外で直接変更された場合は、planで検知できる。 Local providerの場合、変更を検知したら、createする動きになる。他のproviderはどうなんだろう？
 
 #### 2.7.2 Terraform refresh
 
@@ -277,14 +274,16 @@ Terraformはシンプルな状態管理エンジン。
 - Terraformのローカルプロバイダーは、あなたのマシン上にテキストファイルを作成・管理することができます。これは通常、「実際の」インフラを接着するために使用されますが、それ自体が教材としても役立ちます。
 - リソースの作成は、実行計画に基づいた一定の順序で行われます。この順序は、暗黙の依存関係に基づいて自動的に計算されます。
 - 管理されている各リソースには、ライフサイクル機能のフックが関連付けられています。Create()、Read()、Update()、Delete()です。Terraformはこれらの関数フックを通常の操作の一部として呼び出します。
-- Terraformの設定コードを変更してterraform applyを実行すると、既存のマネージドリソースが更新されます。また、terraform refreshを使用すると、現在デプロイされている内容に基づいて状態ファイルを更新することができます。
+- Terraformの設定コードを変更してterraform applyを実行すると、既存のマネージドリソースが更新されます。また、terraform
+  refreshを使用すると、現在デプロイされている内容に基づいて状態ファイルを更新することができます。
 - Terraformは計画時に状態ファイルを読み込んで、適用時にどのようなアクションを取るかを決定します。状態ファイルを失わないようにすることが重要で、そうするとTerraformは管理しているすべてのリソースを把握できなくなります。
 
 ## 3. Functional programming
 
 関数型プログラミングの特徴
+
 - 副作用ない
-- 高階関数 
+- 高階関数
 - immutable
 
 この章では、Terraform言語を構成する関数、式、テンプレート、その他のダイナミクス機能について深く掘り下げていく。
@@ -295,8 +294,8 @@ Mad Libsなる言葉遊びゲームを作る
 
 #### 3.1.1 Input variables
 
-`variable`で変数を宣言できる。
-だいたい言葉通りの意味。
+`variable`で変数を宣言できる。 だいたい言葉通りの意味。
+
 - default
 - description
 - type
@@ -316,8 +315,7 @@ tfvars拡張子ファイルに変数とその値を格納。
 
 #### 3.1.5 Functions
 
-terraformではユーザー定義関数がサポートされていない。
-拡張しようと思ったらproviderを書く必要がある。
+terraformではユーザー定義関数がサポートされていない。 拡張しようと思ったらproviderを書く必要がある。
 
 ここでは`templatefile`関数を使っていく。
 
@@ -342,17 +340,63 @@ for文の使い方について
 #### 3.2.3 Implicit dependencies
 
 `terraform graph`でみれる依存関係について
+
 - 循環依存は許されない
 - 何にも依存していないものは最初に作られ、最後に削除される
 - 同じ依存レベルの場合はどの順序になるかはコントロールできない
 
-小規模プロジェクトでもない限り、依存グラフはすぐに大きくなってしまう。
-その時には基本グラフを見ても何も得られなくなる。
+小規模プロジェクトでもない限り、依存グラフはすぐに大きくなってしまう。 その時には基本グラフを見ても何も得られなくなる。
 
 #### 3.2.4 count parameter
 
 #### 3.2.5 Conditional expressions
 
+三項演算子。
 
+`[][0]`は常にエラーを返す。
 
+#### 3.2.6 More templates
 
+#### 3.2.7 Local file
+
+今回はCLI出力ではなく、ファイルに出していく。
+
+```terraform
+resource "local_file" "mad_libs" {
+  count = var.num_files
+  filename = "madlibs/madlibs-${count.index}.txt"
+  content = templatefile(element(local.templates, count.index),
+  {
+    nouns = random_shuffle.random_nouns[count.index].result
+    adjectives = random_shuffle.random_adjectives[count.index].result
+    verbs = random_shuffle.random_verbs[count.index].result
+    adverbs = random_shuffle.random_adverbs[count.index].result
+    numbers = random_shuffle.random_numbers[count.index].result
+  })
+}
+```
+
+`element`関数でmoduloを扱える。
+
+#### 3.2.8 Zipping files
+
+`archive_file`データソースでファイルの圧縮をできる。
+
+`depends_on`でデータソース、リソースの実行順序を操作できる。
+
+#### 3.2.9 Applying changes
+
+データソースで作ったzipファイルは`terraform destroy`しても消えない。
+
+### 3.3 Fireside chat
+
+Terraformで使える表現が載っている。
+
+### Summary
+
+- 入力変数はTerraformの設定をパラメータ化します。ローカル値は、式の結果を保存します。出力値は、ユーザーや他のモジュールにデータを渡します。
+- for式では、ある複雑な型を別の型に変換することができます。また、他のfor式と組み合わせて高次の関数を作ることもできます。
+- ランダム性は制限されなければなりません。uuid()やtimestamp()などのレガシー関数は、Terraformに非収束状態による微妙なバグをもたらすため、使用しないでください。
+- ArchiveプロバイダでZipファイルを作成します。データソースを適切なタイミングで実行するために、明示的な依存関係を指定する必要があるかもしれません。
+- templatefile() は、補間変数で使用されるのと同じ構文でテンプレートファイルを作成できます。この関数に渡された変数のみがテンプレート化の対象となります。
+- count メタ引数は、リソースの複数のインスタンスを動的に提供することができます。countで生成されたリソースのインスタンスにアクセスするには、ブラケット表記の[]を使用します。
