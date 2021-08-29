@@ -234,3 +234,26 @@ terraform show -json plan.out > plan.json
 ```
 
 これでplan内容をjsonにだせる。
+
+### 2.5 Creating the local file resource
+
+こんな感じで、plan.outで出した通りにapplyすることもできる。
+`terraform plan -out plan.out && terraform apply "plan.out"`
+
+planで事前にやることを必ず確認すること。terraformは不注意に扱うとインフラをぶっ壊すので。
+
+`tfstate`ファイルは更新したり消したりしないこと。
+
+### 2.6 Performing No-Op
+
+この時は、`terraform plan`でLocal providerのreadを呼んでいる。
+
+main.tfとterraform.tfstateに差分がなければ何もしない。
+
+### 2.7 Updating the local file resource
+
+`auto-appvrove`でyesとうたなくても良い
+
+#### 2.7.1 Detecting configuration drift
+
+
