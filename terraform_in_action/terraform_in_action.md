@@ -180,7 +180,7 @@ terraform {
 
 resource "local_file" "literature" {
   filename = "art_of_war.txt"
-<<-EOT
+  content = <<-EOT
       Sun Tzu said: The art of war is of vital importance to the State.
  
       It is a matter of life and death, a road either to safety or to 
@@ -192,3 +192,24 @@ resource "local_file" "literature" {
 
 `terraform`周りはterraformのバージョンとか、どこにファイルを保存するかとか決めるとこ。
 
+### 2.3 Initializing the workspace
+
+`terraform init`は冪等性あり。
+
+`terraform init`コマンド実行すると、下記みたいなファイルが出来上がる。
+
+```
+.
+├── .terraform
+│   └── providers
+│       └── registry.terraform.io
+│           └── hashicorp
+│               └── local
+│                   └── 2.0.0
+│                       └── darwin_amd64
+│                           └── terraform-provider-local_v2.0.0_x5
+├── .terraform.lock.hcl
+└──  main.tf
+ 
+7 directories, 3 files
+```
