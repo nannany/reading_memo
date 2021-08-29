@@ -447,3 +447,38 @@ moduleごとに下記を持つべきとのこと。
 ![module構成](スクリーンショット%202021-08-29%2018.39.45.png)
 
 ### 4.3 Root module
+
+root moduleではnamespace,ssh_keypair,regionをインプットとして受け取る。
+
+root moduleはこれらの要素からなる。
+
+- variables.tf:Input variables
+- terraform.tfvars:Variables definition file
+- providers.tf:Provider declarations
+- main.tf:Entry point for Terraform
+- outputs.tf:Output values
+- versions.tf:Provider version locking
+
+#### 4.3.1 Code
+
+上記６ファイルの説明の段落。
+
+
+[variables.tf](4sho/variables.tf)  
+受け取るパラメータの定義。具体的な値を`terraform.tfvars`に記載。
+
+
+[terraform.tfvars](4sho/terraform.tfvars)  
+
+[provider.tf](4sho/provider.tf)
+
+[main.tf](4sho/main.tf)
+
+[outputs.tf](4sho/outputs.tf)
+
+[versions.tf](4sho/versions.tf)
+バージョンを固定する。
+本来は`terraform init`した後に作る。
+
+### 4.4 Networking module
+
