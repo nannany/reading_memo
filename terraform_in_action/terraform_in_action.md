@@ -329,7 +329,30 @@ terraformではユーザー定義関数がサポートされていない。
 
 #### 3.1.8 Printing output
 
-## 3.2 Generating many Mad Libs stories
+### 3.2 Generating many Mad Libs stories
+
+#### 3.2.1 for expressions
+
+for文の使い方について
+
+#### 3.2.2 Local values
+
+ローカル変数の定義について
+
+#### 3.2.3 Implicit dependencies
+
+`terraform graph`でみれる依存関係について
+- 循環依存は許されない
+- 何にも依存していないものは最初に作られ、最後に削除される
+- 同じ依存レベルの場合はどの順序になるかはコントロールできない
+
+小規模プロジェクトでもない限り、依存グラフはすぐに大きくなってしまう。
+その時には基本グラフを見ても何も得られなくなる。
+
+#### 3.2.4 count parameter
+
+#### 3.2.5 Conditional expressions
+
 
 
 
