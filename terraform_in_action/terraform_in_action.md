@@ -137,8 +137,7 @@ resource "aws_instance" "helloworld" {
 }
 ```
 
-`data`でデータソースを定義できる。
-データソースはリソース定義の中で利用するものと考えて良さそう。
+`data`でデータソースを定義できる。 データソースはリソース定義の中で利用するものと考えて良さそう。
 
 `aws_ami`でデータソースの種別を特定し、`ubuntu`で識別するための名前をつけている。
 
@@ -156,4 +155,40 @@ resource "aws_instance" "helloworld" {
 - コードブロックを連鎖させることで、動的なデプロイを行うことができます。
 - Terraformプロジェクトをデプロイするには、まず設定コードを書き、次にプロバイダーやその他の入力変数を設定し、Terraformを初期化し、最後に変更を適用する必要があります。後始末は destroy コマンドで行います。
 
+## 2. Life cycle of a Terraform resource
+
+ローカルオンリーリソースでTerraformのリソースのライフサイクルを学んでいく。
+
+### 2.1 Process overview
+
+#### 2.1.1 Life cycle function hook
+
+`resource`はCRUD全てhookできる。`data`はRのみ。
+
+### 2.2 Declaring a local file resource
+
+```terraform
+terraform {
+  required_version = ">= 0.15"
+  required_providers {
+    local = {
+      source = "hashicorp/local"
+      version = "~> 2.0"
+    }
+  }
+}
+
+resource "local_file" "literature" {
+  filename = "art_of_war.txt"
+<<-EOT
+      Sun Tzu said: The art of war is of vital importance to the State.
+ 
+      It is a matter of life and death, a road either to safety or to 
+      ruin. Hence it is a subject of inquiry which can on no account be
+      neglected.
+    EOT
+}
+```
+
+`terraform`周りはterraformのバージョンとか、どこにファイルを保存するかとか決めるとこ。
 
