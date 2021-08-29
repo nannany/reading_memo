@@ -256,4 +256,12 @@ main.tfとterraform.tfstateに差分がなければ何もしない。
 
 #### 2.7.1 Detecting configuration drift
 
+作成されたリソースがterraformコマンド以外で直接変更された場合は、planで検知できる。
+Local providerの場合、変更を検知したら、createする動きになる。他のproviderはどうなんだろう？
 
+
+#### 2.7.2 Terraform refresh
+
+`terrafomr refresh`を利用すれば現状のインフラ状態と、stateファイルを一致させることができる。
+
+作者的にはほぼ使わない機能らしい。
