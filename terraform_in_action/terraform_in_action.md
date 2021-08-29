@@ -279,3 +279,57 @@ Terraformはシンプルな状態管理エンジン。
 - 管理されている各リソースには、ライフサイクル機能のフックが関連付けられています。Create()、Read()、Update()、Delete()です。Terraformはこれらの関数フックを通常の操作の一部として呼び出します。
 - Terraformの設定コードを変更してterraform applyを実行すると、既存のマネージドリソースが更新されます。また、terraform refreshを使用すると、現在デプロイされている内容に基づいて状態ファイルを更新することができます。
 - Terraformは計画時に状態ファイルを読み込んで、適用時にどのようなアクションを取るかを決定します。状態ファイルを失わないようにすることが重要で、そうするとTerraformは管理しているすべてのリソースを把握できなくなります。
+
+## 3. Functional programming
+
+関数型プログラミングの特徴
+- 副作用ない
+- 高階関数 
+- immutable
+
+この章では、Terraform言語を構成する関数、式、テンプレート、その他のダイナミクス機能について深く掘り下げていく。
+
+### 3.1 Fun with Mad Libs
+
+Mad Libsなる言葉遊びゲームを作る
+
+#### 3.1.1 Input variables
+
+`variable`で変数を宣言できる。
+だいたい言葉通りの意味。
+- default
+- description
+- type
+- validation
+
+#### 3.1.2 Assigning values with a variable definition file
+
+tfvars拡張子ファイルに変数とその値を格納。
+
+#### 3.1.3 Validating variables
+
+バリデーション
+
+#### 3.1.4 Shuffling lists
+
+`uuid()`と`timestamp()`のみ不純な関数なので、いずれこれらは非推奨になるかも。
+
+#### 3.1.5 Functions
+
+terraformではユーザー定義関数がサポートされていない。
+拡張しようと思ったらproviderを書く必要がある。
+
+ここでは`templatefile`関数を使っていく。
+
+#### 3.1.6 Output values
+
+`output`エレメントを使う。
+
+#### 3.1.7 Templates
+
+#### 3.1.8 Printing output
+
+## 3.2 Generating many Mad Libs stories
+
+
+
