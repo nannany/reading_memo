@@ -213,3 +213,24 @@ resource "local_file" "literature" {
  
 7 directories, 3 files
 ```
+
+### 2.4 Generating an execution plan
+ 
+`terrafomr plan`を事前にやっておくこと推奨。
+
+エラー出る場合は、`TF_LOG=trace`を有効にしてログをいっぱい出すてもある。
+
+遅い時は`parallelism=30`みたいに並列度をあげれば良いかも。
+https://qiita.com/minamijoyo/items/7945ec527270ee2af5c3
+
+![terraform planのながれ](スクリーンショット%202021-08-29%2011.38.55.png)
+
+
+#### 2.4.1 Inspecting the plan
+
+```shell
+terraform plan -out plan.out
+terraform show -json plan.out > plan.json
+```
+
+これでplan内容をjsonにだせる。
