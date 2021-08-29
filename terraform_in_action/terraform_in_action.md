@@ -400,3 +400,48 @@ Terraformで使える表現が載っている。
 - ArchiveプロバイダでZipファイルを作成します。データソースを適切なタイミングで実行するために、明示的な依存関係を指定する必要があるかもしれません。
 - templatefile() は、補間変数で使用されるのと同じ構文でテンプレートファイルを作成できます。この関数に渡された変数のみがテンプレート化の対象となります。
 - count メタ引数は、リソースの複数のインスタンスを動的に提供することができます。countで生成されたリソースのインスタンスにアクセスするには、ブラケット表記の[]を使用します。
+
+## 4 Deploying a multi-tiered web application in AWS
+
+AWSで３層アプリケーションを作成していく。
+
+### 4.1 Architecture
+
+![アーキテクチャ](スクリーンショット%202021-08-29%2018.20.30.png)
+
+作者は小さいコンポーネントで実装を分けるべきとしており、ここでは
+- networking
+- database
+- autoscaling
+の観点で分けることを推奨している。
+  
+terraformではこのような分割を`modules`を用いて行う。
+
+### 4.2 Terraform modules
+
+```
+モジュールは、関連するリソースをグループ化して再利用可能なコンポーネントを作成するための、自己完結型のコードパッケージです。モジュールがどのように動作するかを知らなくても、入力と出力を設定する方法を知っていれば、使用することができます。モジュールは、ソフトウェアの抽象化とコードの再利用を促進する便利なツールです。
+```
+
+#### 4.2.1 Module syntax
+
+moduleはレゴブロックの構成要素みたいなもの。
+
+`module`は`resource`宣言に似ている。
+
+#### 4.2.2 What is the root module?
+
+rootモジュールがあるディレクトリで`terraform apply`する。
+
+子モジュールがさらに子モジュールをもったり、ネストしていくこともある。
+
+#### 4.2.3 Standard module structure
+
+[Standard module structure](https://www.terraform.io/docs/language/modules/develop/index.html#standard-module-structure)
+
+moduleごとに下記を持つべきとのこと。
+- `main.tf`: エントリーポイント
+- `outputs.tf`: アウトプット
+- `variables.tf`: インプット
+
+![module構成](スクリーンショット%202021-08-29%2018.39.45.png)
