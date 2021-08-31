@@ -487,4 +487,14 @@ root moduleはこれらの要素からなる。
 
 [variables.tf](4sho/modules/networking/variables.tf)
 
+[main.tf](4sho/modules/networking/main.tf)
 
+[outputs.tf](4sho/modules/networking/outputs.tf)
+
+### 4.5 Database module
+
+namespace,vpc,sgを受け取る。db_configを吐き出す。
+
+#### 4.5.1 Passing data from the networking module
+
+ネットワークモジュールからルートモジュールに「バブリング」して、データベースモジュールに「トリクルダウン」します。
