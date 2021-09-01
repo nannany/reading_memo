@@ -519,4 +519,10 @@ terraform apply後にデータベースのパスワードの値は知りたい�
 
 ここが一番複雑
 
-#### 
+#### 4.6.1 Trickling down data
+
+まず、autoscalingモジュールに情報を落とすように、rootモジュールを書き換える必要がある。
+
+[variables.tf](4sho/modules/autoscaling/variables.tf)
+
+#### 4.6.2 Templating a cloudinit_config
