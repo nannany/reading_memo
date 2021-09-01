@@ -498,3 +498,25 @@ namespace,vpc,sgを受け取る。db_configを吐き出す。
 #### 4.5.1 Passing data from the networking module
 
 ネットワークモジュールからルートモジュールに「バブリング」して、データベースモジュールに「トリクルダウン」します。
+
+循環的に依存しなければ、2つのモジュールは互いに依存できる。
+ただ、相互依存はデザインとしていけてないのでしないこと。
+
+anyタイプは極力使わないようにすること。モジュール間の値の受け渡しくらい。
+
+[variables.tf](4sho/modules/database/variables.tf)
+
+#### 4.5.2 Generating a random password
+
+[main.tf](4sho/modules/database/main.tf)
+
+最小限の情報をoutputする。
+[outputs.tf](4sho/modules/database/outputs.tf)
+
+terraform apply後にデータベースのパスワードの値は知りたいので、rootモジュールのoutputsに書くこと。
+
+### 4.6 Autoscaling module
+
+ここが一番複雑
+
+#### 
