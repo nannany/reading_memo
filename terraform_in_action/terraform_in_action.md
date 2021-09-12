@@ -526,3 +526,14 @@ terraform apply後にデータベースのパスワードの値は知りたい�
 [variables.tf](4sho/modules/autoscaling/variables.tf)
 
 #### 4.6.2 Templating a cloudinit_config
+
+autoscaling moduleとして下記を用意する。
+[main.tf](4sho/modules/autoscaling/main.tf)
+
+`aws_autoscaling_group`で利用する設定を下記のように作る。
+[cloud_config.yaml](4sho/modules/autoscaling/cloud_config.yaml)
+
+DNS名を出すように下記のように`outputs.tf`をかく。
+[outputs.tf](4sho/modules/autoscaling/outputs.tf)
+
+### 4.7 Deploying the web application
