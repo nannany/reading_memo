@@ -1180,10 +1180,42 @@ AWSのアベイラビリティーゾーンなどは、バルクヘッドの仕�
 
 ## 6. Case Study: Phenomenal Cosmic Powers, IttyBitty Living Space
 
+各業態でそれぞれどの時期に何がどれくらい売れるとか、特徴がある。
+
 年末は小売の負荷めっちゃ上がる
 
 ### Baby's First Christmas
 
+楽観的に年末商戦を迎えた。
+
+### Thanksgiving Day
+
+Thanksgiving Dayの早朝時点でいつもの平日のピークタイムくらいのセッション数があった。
+
+しかし、Thanksgiving Dayは乗り切った。
+
 ### Black Friday
 
+Thanksgiving の次の日がBlack Friday。
+
+ちょっと目を離したすきにオンコールがかかってきた。
+お客さんが購買できない状態になった。
+webページが開けない状態。
+
 ### Vital Signs
+
+オンコールの20分前に事象は発生し始めたらしい。
+
+- セッション数はめっちゃ多い
+- ネットワーク帯域使用率は高いものの、限界ではない
+- アプリケーションサーバーのレイテンシーは高い
+- webサーバー、アプリケーションサーバー、DBサーバーのCPU使用率は低い
+- 検索サーバーも健康
+- リクエストハンドリングスレッドがビジーな状態
+
+サイトが動かなくなって、90分。これはSLAに関わる。
+
+
+### Diagnostic Tests
+
+
