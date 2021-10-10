@@ -449,7 +449,7 @@ HTTPベースの通信では、上記で説明してきた内容に加えて、�
  
 コストの高いオブジェクトをpayloadとして、弱い参照で作ってやる。具体的には以下のようになる。
 
-```java
+```
 MagicBean hugeExpensiveResult = ...;
 
 SoftReference ref = new SoftReference(hugeExpensiveResult);
@@ -1244,4 +1244,25 @@ DRPというプロトコル、一般的な名称なのか？？当然のよう�
 
 
 ## Chapter 7 Foundations
+
+delivery scheduling serverが外部にあり、コントロール不可能という課題が残る。
+
+ここから章(Chapter7~Chapter11)ではレイヤーに分けて本番構成について語っていく。
+
+### Networking in the Data Center and the Cloud
+
+#### NICs and Names
+
+hostnameは2つの異なった意味合いを持つ
+- `hostname`コマンドを打ったときに得られる値
+- 他のシステムと連携するときに用いるときに使う値。DNSで解決されて、最終的にIPになるやつ
+
+DNS nameとIP addressは多対多の関係にある。
+
+開発機は大体移動性？のために複数NICを持っている。イーサネットに繋ぐものと、wifiに繋ぐものと、loopbackNICとか。
+
+データセンターのマシンは開発機とは別の目的で複数のNICを持つ。
+- 管理とモニタリングで別のネットワークを使う
+- プロダクショントラフィックと別の負荷の高いトラフィック（バックアップ）を別にする
+- それぞれのネットワークで別のセキュリティ要件がある
 
