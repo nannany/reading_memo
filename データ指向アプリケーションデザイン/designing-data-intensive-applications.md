@@ -455,6 +455,9 @@ select for updateで同時更新を防ぐ
 更新のロスト？？？
 MySQLのリピータブルリードは更新のロストを検出しない。
 
+以下、postgresの記述。リピータブルリードのところを見ると、やっぱり検出してロールバックしてくれるっぽい。
+https://www.postgresql.jp/document/13/html/transaction-iso.html#XACT-REPEATABLE-READ
+
 #### 7.2.3.4 compare and set
 
 いわゆる楽観ロックに見える。
