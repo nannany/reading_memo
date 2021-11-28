@@ -31,3 +31,60 @@
     - ドメインイベントは常に過去形。過去に起こった過去形の事象をさす
 
 #### Using Event Storming to Discover the Domain
+
+----
+
+# Part 2 Modeling the Domain
+
+ドメインの分解について、functionalなアプローチとオブジェクト指向なアプローチでの違いを見ていく。
+
+## Chapter 4 Understanding Types
+
+代数的データ型
+
+### Understanding Functions
+
+#### Type Signatures
+
+F#では返却する型を明示しなくても良い。
+関数の中にサブ関数を置くこともできる。
+
+#### Functions with Generic Types
+ 
+#### Types and Functions
+
+`type`はオブジェクト指向言語で言うところの`class`とは別物。
+
+関数のoutputがまた関数であることもアリエル。
+
+##### コラム
+
+valuesとobjectsの違いは？
+
+- valueはtypeのうちの1メンバー
+  - 関数がvalueでもあり得る
+  - immutable
+- objectはデータ構造をカプセル化したもの
+  - 状態を持つことを期待されている
+
+### Composition of Types
+
+型のcompositionについて語っていく。
+
+#### "AND" Types
+
+
+#### "OR" Types
+
+[discriminated union](https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/discriminated-unions)
+
+直積が `product types` で、直和が `sum types` か？
+
+
+### Simple Types 
+
+### Algebraic Type Systems
+
+代数データ型はドメインモデリングをするにおいて、素晴らしいツールであるらしい。
+
+## Working With F# Types
