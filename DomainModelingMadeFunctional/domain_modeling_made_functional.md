@@ -131,8 +131,36 @@ F#でのリストの持ち方。
 
 ## Chapter 5 Domain Modeling with Types   
 
+### Reviewing the Domain Model
 
+2章で見たモデルを再掲している。
 
+### Seeing Patterns in a Domain Model
+
+- simple value
+- combinations of values with and
+- choices with or
+- workflows
+
+これらをF#の型を使ってどう表現していくかを見ていく。
+
+### Modeling Simple Values
+
+実態としてはintそのものであっても、ドメインエキスパート目線からみたら別々のものであるものを区別するように型をつける。
+
+```
+type CustomerId = CustomerId of int
+```
+
+こういうのを`simple types`という。
+
+### Working with Single Case Unions
+
+### Constrained Values
+
+simple valuesの制限については次の章で扱う。
+
+### Avoiding Performance Issues with Simple Types
 
 ### Wrapping Up
 
