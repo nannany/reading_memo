@@ -85,41 +85,41 @@ valuesとobjectsの違いは？
 
 代数データ型はドメインモデリングをするにおいて、素晴らしいツールであるらしい。
 
-## Working With F# Types
+### Working With F# Types
 
-## Building a Domain Model by Composing Types
+### Building a Domain Model by Composing Types
 
 実例いっぱい。
 *ここをJavaで表現したらどうなるか興味深い*
 
-## Modeling Optional Values, Errors, and Collections
+### Modeling Optional Values, Errors, and Collections
 
-### Modeling Optional Values
+#### Modeling Optional Values
 
 基本、F#は必須属性。
 null許容するときはoptionをつける
 
-### Modeling Errors
+#### Modeling Errors
 
 エラーをResult型の1つの列挙子として表現する。
 *Flutterとかもこのパターンだった気がする。非同期系の処理はこのパターンかしら*
 
-### Modeling No Value at All
+#### Modeling No Value at All
 
 基本的にはF#でvoidすることはできない。
 が、unitと書くことで、何も返さないことはできる。
 
 unitがあるということは、どこかで副作用が起きているということ
 
-### Modeling Lists and Collections 
+#### Modeling Lists and Collections 
 
 F#でのリストの持ち方。
 
-### Organizing Types in Files and Projects
+#### Organizing Types in Files and Projects
 
 どうやって型をファイルごとに分割するか、依存順とかどうかくかについて述べている。
 
-## Wrapping Up 
+### Wrapping Up 
 
 ```
 この章では、型の概念と関数型プログラミングとの関係を説明し、F#の代数的な型システムを使って、小さな型からより大きな型を作るために型の合成をどのように利用するかを説明しました。
@@ -128,6 +128,8 @@ F#でのリストの持ち方。
 
 型がどのように機能するかを理解したので、要件を再検討して要件を再検討し、学んだことを使って文書化してみましょう。
 ```
+
+##  
 
 
 
