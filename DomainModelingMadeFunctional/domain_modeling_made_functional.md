@@ -32,7 +32,25 @@
 
 #### Using Event Storming to Discover the Domain
 
-----
+- イベントを見つけるなら、イベントストーミング
+  - 開発者やドメインエキスパートとその他のステークホルダーを巻き込んだワークショップ 
+  - イベントストーミング
+    - https://www.eventstorming.com/
+
+#### Discovering the Domain: An Order-Taking System
+
+- イベントストーミングの利点
+  - ビジネスの理解を共有できる
+  - 知らない部分をしれたり、洞察を深められたりする
+
+#### コラム
+
+`workflow、scenarios`、 `useCcses`,
+
+#### Expanding the Events to the Edges
+
+ 
+---
 
 # Part 2 Modeling the Domain
 
