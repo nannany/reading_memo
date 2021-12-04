@@ -130,6 +130,7 @@
 
 #### What's Next
 
+## Chapter 2 Understanding the Domain
 
 ---
 
@@ -253,13 +254,20 @@ type CustomerId = CustomerId of int
 
 こういうのを`simple types`という。
 
-### Working with Single Case Unions
+#### Working with Single Case Unions
 
-### Constrained Values
+#### Constrained Values
 
 simple valuesの制限については次の章で扱う。
 
-### Avoiding Performance Issues with Simple Types
+#### Avoiding Performance Issues with Simple Types
+
+- 高いパフォーマンスが求められる領域で、シンプルな値をラッピングすることについて
+  - F#の例で説明してるからそんな意味かも。。
+  - structなるものを使う
+  - 配列の話はそのままプリミティブバリューを持っていいよってこと？？
+
+### 
 
 ### Wrapping Up
 
