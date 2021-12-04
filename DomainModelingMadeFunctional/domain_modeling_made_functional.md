@@ -275,7 +275,15 @@ simple valuesの制限については次の章で扱う。
 
 #### Modeling Unknown Types
 
-まだ型が決まっていないところのために、Undefinedエイリアスを用意する
+- まだ型が決まっていないところのために、Undefinedエイリアスを用意する。
+  - 設計過程で一旦こうしとくみたいな感じ
+  
+#### Modeling with Choice Types
+
+- 決まった個数の中から選べる型
+  - *Javaだとenumかsealedクラス使うところかな*
+
+
 
 ### Wrapping Up
 
