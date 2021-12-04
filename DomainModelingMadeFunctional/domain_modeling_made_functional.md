@@ -267,7 +267,13 @@ simple valuesの制限については次の章で扱う。
   - structなるものを使う
   - 配列の話はそのままプリミティブバリューを持っていいよってこと？？
 
-### 
+### Modeling Complex Data
+
+代数的データ型を使ってどうなるか見ていく。
+
+#### Modeling with Record Types
+
+
 
 ### Wrapping Up
 
