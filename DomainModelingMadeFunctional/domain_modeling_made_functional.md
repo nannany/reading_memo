@@ -85,6 +85,19 @@
 
 #### Creating Context Maps
 
+- コンテクストマップ 
+  - 境界づけられたコンテクスト間でのやりとりを表現するためのマップ
+
+#### Focusing on the Most Important Bounded Contexts
+
+- ドメインの中でも特に重要な役割を果たすものがコアドメイン
+- そのほかにsupportive domain, generic domainという区分けをしている
+
+何がコアドメインになるかは、その事業の内容による。
+コアドメインに注力して取り組むべし。
+
+### Creating a Ubiquitous Language
+
 
 
 ---
