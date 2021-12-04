@@ -98,6 +98,12 @@
 
 ### Creating a Ubiquitous Language
 
+- Ubiquitous Language
+  - プロジェクトの設計、ソースコードで共通して利用する言葉 
+  - どの境界づけられたコンテキストで使われるかによって意味合いが変わってくるはず
+
+### Summarizing the Concepts of Domain-Driven Design
+
 
 
 ---
