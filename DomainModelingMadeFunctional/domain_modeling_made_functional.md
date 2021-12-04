@@ -273,7 +273,9 @@ simple valuesの制限については次の章で扱う。
 
 #### Modeling with Record Types
 
+#### Modeling Unknown Types
 
+まだ型が決まっていないところのために、Undefinedエイリアスを用意する
 
 ### Wrapping Up
 
