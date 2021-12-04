@@ -114,6 +114,21 @@
 コマンドとは、あるプロセスの実行を要求するもので、人や他のイベントによって起動されます。プロセスが成功すると、システムの状態が変化し、1つまたは複数のドメインイベントが記録されます。
 ```
 
+### Wrapping Up
+
+`Focus on events and processes rather than data.`
+これよく分からない。データの中身はとりあえずまだいいよ、後で詳細詰めるからって話なのか？
+
+#### Events and Processes
+この本で出す具体例の話。
+
+#### Subdomains and Bounded Contexts
+この本で出す具体例の話。
+
+#### The Ubiquitous Language
+この本で出す具体例の話。
+
+#### What's Next
 
 
 ---
