@@ -304,6 +304,9 @@ DIの絡みは9章ぽい
 
 #### Documenting Effects in the Function Signature
 
+effects
+https://levelup.gitconnected.com/what-is-effect-or-effectful-mean-in-functional-programming-7fc7323b52b4
+
 ### Wrapping Up
 
 ```
