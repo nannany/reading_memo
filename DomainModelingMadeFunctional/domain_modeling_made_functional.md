@@ -307,6 +307,18 @@ DIの絡みは9章ぽい
 effects
 https://levelup.gitconnected.com/what-is-effect-or-effectful-mean-in-functional-programming-7fc7323b52b4
 
+monadを使って表現するものがeffects？
+monadは下記参照。
+https://qiita.com/koher/items/6f4a8d8b3ad3142bf645#%E3%83%A2%E3%83%8A%E3%83%89%E3%81%A8%E3%81%97%E3%81%A6%E3%81%AEoptional
+
+### A Question of Identity: Value Objects
+
+DDDの世界では、一意に特定できるものがEntityで、そうでないものがValue Object
+
+#### Implementing Equality for Value Objects
+
+### A Question of Identity: Entities
+
 ### Wrapping Up
 
 ```
