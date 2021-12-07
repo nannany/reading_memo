@@ -285,3 +285,178 @@ https://wiki.sei.cmu.edu/confluence/display/java/MSC59-J.+Limit+the+lifetime+of+
 一般的には、テキストフォーマットが対象となりますが、必ずしもそうとは限りません。
 ```
 
+
+
+---
+
+## 7 Object Construction
+
+オブジェクト組み立て中の話？ここはライブラリとか、他から使われることを意図した内容になっている。
+
+```
+建設中の物体は、存在していてもすぐには使えない厄介な段階にあります。そのため、通常の方法に加えて、いくつかの困難があります。
+```
+
+### Guideline 7-1 / OBJECT-1: Avoid exposing constructors of sensitive classes
+
+センシティブなクラスについては、コンストラクタを晒さないようにする。
+(ライブラリ提供者側の話かな？)
+
+```
+コンストラクタを公開しなければ、クラスの構築をより慎重に制御することができます。
+コンストラクタを公開する代わりに、静的なファクトリメソッドを定義します。継承ではなく委譲による拡張性をサポートします。
+シリアライズやクローンによる暗黙のコンストラクタも避けるべきです。
+```
+
+### Guideline 7-2 / OBJECT-2: Prevent the unauthorized construction of sensitive classes
+
+```
+既存の API がセキュリティセンシティブなコンストラクタを公開している場合、インスタンスの作成を制限する。
+セキュリティセンシティブなクラスは、呼び出し側がSecurityManagerのアクセスコントロールを変更または回避することを可能にします。
+例えば、ClassLoaderのインスタンスは、任意のセキュリティパーミッションを持つクラスを定義する力を持っています。
+
+信頼されていないコードがクラスをインスタンス化することを制限するために、そのクラスがインスタンス化できるすべてのポイントでSecurityManagerチェックを実施します。
+特に、パブリックおよびプロテクトされたコンストラクタの先頭でチェックを行います。
+コンストラクタの代わりにパブリック・スタティック・ファクトリ・メソッドを宣言しているクラスでは、各ファクトリ・メソッドの最初にチェックを行います。
+また、コンストラクタを使用せずにクラスのインスタンスを作成できる箇所にもチェックを入れます。
+具体的には、シリアル化可能なクラスの readObject または readObjectNoData メソッドや、クローン化可能なクラスの clone メソッドの内部でチェックを行います。
+```
+
+### Guideline 7-3 / OBJECT-3: Defend against partially initialized instances of non-final classes
+
+ClassLoaderのコンストラクタは、途中でセキュリティチェックとか入っている。  
+これでClassLoaderを継承したクラスで悪さをさせないようにしているのかな？
+
+```
+ノンファイナルクラスのコンストラクタが例外を投げると、攻撃者はそのクラスの部分的に初期化されたインスタンスへのアクセスを試みることができます。
+ノンファイナルクラスは、コンストラクタが正常に完了するまで完全に使用できないようにします。
+
+JDK 6 以降では、Object コンストラクタが完了する前に例外を発生させることで、サブクラス化可能なクラスの構築を防ぐことができます。
+そのためには、this()またはsuper()の呼び出しで評価される式でチェックを行います。
+```
+
+```java
+// non-final java.lang.ClassLoader
+public abstract class ClassLoader {
+    protected ClassLoader() {
+        this(securityManagerCheck());
+    }
+    private ClassLoader(Void ignored) {
+        // ... continue initialization ...
+    }
+    private static Void securityManagerCheck() {
+        SecurityManager security = System.getSecurityManager();
+        if (security != null) {
+            security.checkCreateClassLoader();
+        }
+        return null;
+    }
+}
+```
+
+```
+古いリリースとの互換性のために、初期化されたフラグを使用するという解決策があります。
+コンストラクタの最後の処理としてフラグを設定してから正常に戻ります。
+機密性の高い操作へのゲートウェイを提供するすべてのメソッドは、処理を進める前にこのフラグを参照する必要があります。
+```
+
+```java
+public abstract class ClassLoader {
+
+    private volatile boolean initialized;
+
+    protected ClassLoader() {
+        // permission needed to create ClassLoader
+        securityManagerCheck();
+        init();
+
+        // Last action of constructor.
+        this.initialized = true;
+    }
+    protected final Class defineClass(...) {
+        checkInitialized();
+
+        // regular logic follows
+        ...
+    }
+
+    private void checkInitialized() {
+        if (!initialized) {
+            throw new SecurityException(
+                "NonFinal not initialized"
+            );
+        }
+    }
+}
+```
+
+```
+さらに、このようなクラスをセキュリティに配慮して使用する場合は、初期化フラグの状態をチェックする必要があります。
+ClassLoaderを構築する場合は、その親クラスローダーが初期化されているかどうかをチェックする必要があります。
+
+非最終的なクラスの部分的に初期化されたインスタンスは、ファイナライザ攻撃によってアクセスすることができます。
+攻撃者は、サブクラスの保護された finalize メソッドをオーバーライドし、そのサブクラスの新しいインスタンスを作成しようとします。
+この試みは失敗しますが（上記の例では、ClassLoader のコンストラクタにおける SecurityManager のチェックでセキュリティ例外が発生しています）、攻撃者は例外を無視して、仮想マシンが部分的に初期化されたオブジェクトのファイナライズを実行するのを待ちます。
+その際、悪意のある finalize メソッドの実装が呼び出され、攻撃者は finalize されるオブジェクトへの参照である this にアクセスできます。
+オブジェクトは部分的にしか初期化されていませんが、攻撃者はそのオブジェクトのメソッドを呼び出すことができるため、SecurityManagerのチェックを回避することができます。
+初期化フラグは、部分的に初期化されたオブジェクトへのアクセスを妨げるものではありませんが、そのオブジェクトのメソッドが攻撃者にとって有益なことをするのを妨げます。
+
+初期化フラグの使用は、安全ではありますが、面倒なものです。
+パブリックな非最終クラスのすべてのフィールドが、オブジェクトの初期化が正常に完了するまで、安全な値（nullなど）を含むようにするだけで、セキュリティに敏感ではないクラスでは合理的な代替手段となります。
+
+より強固な方法として、「実装へのポインタ」（または「pimpl」）を使用する方法があります。
+クラスのコアは非公開のクラスに移され、インターフェースクラスがメソッドコールを転送します。
+クラスが完全に初期化される前に使用しようとすると、NullPointerExceptionが発生します。
+この方法は、クローン攻撃やデシリアライズ攻撃にも有効です。
+```
+
+```java
+public abstract class ClassLoader {
+
+    private final ClassLoaderImpl impl;
+
+    protected ClassLoader() {
+        this.impl = new ClassLoaderImpl();
+    }
+    protected final Class defineClass(...) {
+        return impl.defineClass(...);
+    }
+}
+
+/* pp */ class ClassLoaderImpl {
+    /* pp */ ClassLoaderImpl() {
+        // permission needed to create ClassLoader
+        securityManagerCheck();
+        init();
+    }
+
+    /* pp */ Class defineClass(...) {
+        // regular logic follows
+        ...
+    }
+}
+```
+
+### Guideline 7-4 / OBJECT-4: Prevent constructors from calling methods that can be overridden
+
+オーバーライド可能なメソッドをコンストラクタの中で呼んではならない。
+
+```
+オーバーライド可能なメソッドを呼び出すコンストラクタは、オブジェクトが完全に初期化される前に、攻撃者にthis（構築中のオブジェクト）への参照を与えてしまいます。
+同様に、オーバーライド可能なメソッドを呼び出す clone、readObject、または readObjectNoData メソッドも同様の可能性があります。
+readObjectメソッドは通常、オーバーライド可能なメソッドであるjava.io.ObjectInputStream.defaultReadObjectを呼び出します。
+```
+
+### Guideline 7-5 / OBJECT-5: Defend against cloning of non-final classes
+
+うーんむずい。
+
+```
+末端ではないクラスは、java.lang.Cloneableを実装したクラスによってサブクラス化されることがあります。
+その結果、敵が作成したインスタンスに限りますが、基底クラスが不意にクローン化されることがあります。
+クローンは浅いコピーになります。
+双子は参照されるオブジェクトを共有しますが、異なるフィールドと別々の固有ロックを持っています。
+ガイドライン7-3の "実装へのポインタ "のアプローチは良い防御策となります。
+```
+
+## 8 Serialization and Deserialization
