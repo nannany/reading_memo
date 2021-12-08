@@ -134,7 +134,8 @@
 
 ### Interview with a Domain Expert
 
-ドメインエキスパートとの会話の中で気づきをえる
+ドメインエキスパートとの会話の中で気づきをえる。
+会話の中で、自分の勘違いに気づけることがある。
 
 #### Understanding the Non-functional Requirements
 
