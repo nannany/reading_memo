@@ -132,6 +132,12 @@
 
 ## Chapter 2 Understanding the Domain
 
+### Interview with a Domain Expert
+
+ドメインエキスパートとの会話の中で気づきをえる
+
+#### Understanding the Non-functional Requirements
+
 ---
 
 # Part 2 Modeling the Domain
