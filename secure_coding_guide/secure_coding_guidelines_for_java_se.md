@@ -311,8 +311,70 @@ Javaの文化の特徴として、堅牢性を高めるために厳格なメソ�
 入力の検証は、その入力を防御的にコピーした後に行わなければならないことに注意してください（ガイドライン6-2参照）。
 ```
 
-### 
+### Guideline 5-2 / INPUT-2: Validate output from untrusted objects as input
 
+うーん難しい。TOCTOU？
+とりあえず、信用できないオブジェクトからのアウトプットはバリデートかけろという感じ。
+RESTAPIの戻り値とかならわかるけど、ライブラリのアウトプットとかでそんなことするかしら？
+そもそもそんなライブラリ使うなて気がする。
+
+```
+一般的に、メソッドの引数は検証されるべきですが、戻り値は検証されません。
+しかし、アップコール(上位のコードのメソッドを呼び出すこと)の場合には、 返り値を検証する必要があります。
+同様に、アップコールの実装としてのみ到達可能なオブジェクトは、その入力を検証する必要はありません。
+
+微妙な例として、ClassLoadersが返すClassオブジェクトがあります。
+攻撃者は、引数として渡される ClassLoader インスタンスや、Thread コンテキストで設定される ClassLoader インスタンスを制御できる可能性があります。
+そのため、ClassLoadersのメソッドを呼び出す際には、多くの仮定を立てることはできません。
+ClassLoader.loadClass() の複数回の呼び出しは、同じ Class インスタンスまたは定義を返すことが保証されていないため、TOCTOU 問題を引き起こす可能性があります。
+```
+
+### Guideline 5-3 / INPUT-3: Define wrappers around native methods
+
+nativeメソッドをpublicに公開してはいけない。
+あまりに馴染みがないからよくわからないな。。
+nativeメソッドを暑かったことがない。
+
+```
+Javaコードは、型、配列の境界、ライブラリの使用状況などをランタイムにチェックされます。
+一方、ネイティブコードは、一般的にチェックされません。
+純粋なJavaコードは、従来のバッファオーバーフロー攻撃に対して効果的に免疫がありますが、ネイティブメソッドはそうではありません。
+ネイティブコードの呼び出し時にこれらの保護を提供するには、ネイティブメソッドをpublicに宣言してはいけません。
+代わりにプライベートを宣言し、パブリックなJavaベースのラッパー・メソッドを通して機能を公開します。
+ラッパーは、ネイティブ・メソッドを呼び出す前に、必要な入力検証を安全に行うことができます。
+```
+
+```java
+public final class NativeMethodWrapper {
+
+    // private native method
+    private native void nativeOperation(byte[] data, int offset,
+                                        int len);
+
+    // wrapper method performs checks
+    public void doOperation(byte[] data, int offset, int len) {
+        // copy mutable input
+        data = data.clone();
+
+        // validate input
+        // Note offset+len would be subject to integer overflow.
+        // For instance if offset = 1 and len = Integer.MAX_VALUE,
+        //   then offset+len == Integer.MIN_VALUE which is lower
+        //   than data.length.
+        // Further,
+        //   loops of the form
+        //       for (int i=offset; i<offset+len; ++i) { ... }
+        //   would not throw an exception or cause native code to
+        //   crash.
+
+        if (offset < 0 || len < 0 || offset > data.length - len) {
+              throw new IllegalArgumentException();
+        }
+
+        nativeOperation(data, offset, len);
+    }
+}
+```
 
 ---
 
