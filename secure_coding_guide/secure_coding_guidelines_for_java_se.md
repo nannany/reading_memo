@@ -380,7 +380,7 @@ public final class NativeMethodWrapper {
 
 ## 6 Mutability
 
-
+mutability
 
 ```
 変異可能性は、一見無害に見えますが、意外と様々なセキュリティ問題を引き起こす可能性があります。
@@ -388,7 +388,44 @@ public final class NativeMethodWrapper {
 アプリケーションでは、不変的に設計された新しいJava Date and Time API (java.time.*)を使用するのが望ましいでしょう。
 ```
 
+### Guideline 6-1 / MUTABLE-1: Prefer immutability for value types
 
+immutableなクラスとするために、
+- final class
+- フィールドをfinalに
+
+```
+クラスを不変にすることで、後続のガイドラインに記載されている可変型オブジェクトに関連する問題がクライアントコードで発生するのを防ぐことができます。
+不変クラスはサブクラス化できないようにします。
+さらに、コンストラクタを隠すことで、インスタンスの生成やキャッシングをより柔軟に行うことができます。
+これは、コンストラクタをプライベートにするか、デフォルトのアクセス（"package-private"）にするか、package.accessセキュリティプロパティによって制御されるパッケージに含まれることを意味します。
+不変クラスは、ガイドライン6-2にあるように、フィールドをfinalと宣言し、変更可能な入出力から保護する必要があります。
+ガイドライン6-2で述べたように、不変オブジェクトの構築は、ビルダー（Effective Java [6]を参照）を提供することで容易になります。
+```
+
+### Guideline 6-2 / MUTABLE-2: Create copies of mutable output values
+
+mutableなオブジェクトを返す場合は、deep copyを返せということか。
+これがどうセキュリティに関わるかはわからん。
+
+```
+メソッドが内部のミュータブルオブジェクトへの参照を返す場合、クライアントコードがインスタンスの内部状態を変更する可能性があります。
+状態を共有する意図がない限り、ミュータブルオブジェクトをコピーし、そのコピーを返します。
+
+信頼できる mutable オブジェクトのコピーを作成するには、コピーコンストラクタまたは clone メソッドを呼び出します。
+```
+
+```java
+public class CopyOutput {
+    private final java.util.Date date;
+    ...
+    public java.util.Date getDate() {
+        return (java.util.Date)date.clone();
+    }
+}
+```
+
+### Guideline 6-3 / MUTABLE-3: Create safe copies of mutable and subclassable input values
 
 
 
