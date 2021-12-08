@@ -139,6 +139,8 @@
 
 #### Understanding the Non-functional Requirements
 
+システムの可用性、デザインに関わる情報をえる。
+
 ---
 
 # Part 2 Modeling the Domain
