@@ -30,6 +30,8 @@
     - 物事が変換されるトリガーのことを指している？
     - ドメインイベントは常に過去形。過去に起こった過去形の事象をさす
 
+イベント、コマンド、ビジネスワークフローを正確に定義するとどうなる？
+
 #### Using Event Storming to Discover the Domain
 
 - イベントを見つけるなら、イベントストーミング
@@ -55,10 +57,116 @@
 
 #### Documenting Commands
 
-コマンドがトリガーとなって、ドメインイベントが発生する
+コマンドがトリガーとなって、ドメインイベントが発生する。
+
+```
+これらのイベントをいくつか壁に貼ったら、"何がこれらのドメインイベントを起こしたのか？"と尋ねてみるかもしれません。誰かが、あるいは何かが、ある活動を起こそうとしたのです。例えば、お客様が注文書を受け取ってほしいと思っていたり、上司があなたに何かをしてほしいと頼んでいたりします。
+これらの要求をDDDの用語ではコマンドと呼びます（OOプログラミングで使われるコマンドパターンと混同しないでください）。コマンドは常に命令形で書かれます："Do this for me."
+```
 
 ### Partishoning the Doamin into SubDomain
  
+ドメインをサブドメインに区切っていく。
+
+### Creating s Solution Using Bounded Context
+
+- 問題空間と解決空間
+- 境界づけられたコンテキスト
+
+#### Getting the Contexts Right
+
+どうやったら境界をうまくひけるのか？
+
+- ドメインエキスパートに耳を傾ける
+- 現在の部署構造に着目する
+- 境界を引くことを忘れない
+- 疎結合な設計
+- ビジネスワークフローを優先して考える
+
+#### Creating Context Maps
+
+- コンテクストマップ 
+  - 境界づけられたコンテクスト間でのやりとりを表現するためのマップ
+
+#### Focusing on the Most Important Bounded Contexts
+
+- ドメインの中でも特に重要な役割を果たすものがコアドメイン
+- そのほかにsupportive domain, generic domainという区分けをしている
+
+何がコアドメインになるかは、その事業の内容による。
+コアドメインに注力して取り組むべし。
+
+### Creating a Ubiquitous Language
+
+- Ubiquitous Language
+  - プロジェクトの設計、ソースコードで共通して利用する言葉 
+  - どの境界づけられたコンテキストで使われるかによって意味合いが変わってくるはず
+
+### Summarizing the Concepts of Domain-Driven Design
+
+```
+ドメインとは、私たちが解決しようとしている問題に関連する知識の領域であり、簡単に言えば、「ドメイン・エキスパート」が精通している領域のことです。
+ドメイン・モデルは、特定の問題に関連するドメインの側面を表現する単純化のセットです。ドメインモデルは解決空間の一部であり、ドメインモデルが表現するドメインは問題空間の一部です。ユビキタス言語 
+ユビキタス言語とは，ドメインに関連する概念や語彙の集合であり，チームメンバーとソースコードの両方で共有される．
+境界のあるコンテキストとは，他のサブシステムと区別できる明確な境界を持った解決空間内のサブシステムである．境界のあるコンテキストは，しばしば問題空間のサブドメインに対応します．また、境界のあるコンテキストは、独自の概念と語彙を持ち、ユビキタス言語の独自の方言を持っています。
+コンテキスト・マップとは、バウンデッド・コンテキストの集合体とそれらの間の関係を示す高レベルの図である。
+ドメインイベントとは、システム内で起こったことを記録したものです。イベントは常に過去形で記述される。イベントは多くの場合、追加のアクティビティを引き起こします。
+コマンドとは、あるプロセスの実行を要求するもので、人や他のイベントによって起動されます。プロセスが成功すると、システムの状態が変化し、1つまたは複数のドメインイベントが記録されます。
+```
+
+### Wrapping Up
+
+`Focus on events and processes rather than data.`
+これよく分からない。データの中身はとりあえずまだいいよ、後で詳細詰めるからって話なのか？
+
+#### Events and Processes
+この本で出す具体例の話。
+
+#### Subdomains and Bounded Contexts
+この本で出す具体例の話。
+
+#### The Ubiquitous Language
+この本で出す具体例の話。
+
+#### What's Next
+
+## Chapter 2 Understanding the Domain
+
+### Interview with a Domain Expert
+
+ドメインエキスパートとの会話の中で気づきをえる。
+会話の中で、自分の勘違いに気づけることがある。
+
+#### Understanding the Non-functional Requirements
+
+システムの可用性、デザインに関わる情報をえる。
+
+#### Understanding the Rest of the Workflow
+
+
+
+### Wrapping Up
+
+```
+後半のモデリングの段階に移るときに、必要なものがたくさんあるので、要求の収集は今はやめておきましょう。
+その前に、この章で学んだことを振り返ってみましょう。
+
+設計中に実装の詳細に入り込まないことが重要であることを学びました。
+DDDはデータベースドリブンでもクラスドリブンでもありません。
+DDDはデータベース駆動でもクラス駆動でもありません。
+
+そして、ドメインエキスパートの話をよく聞くと、今回のような比較的シンプルなシステムであっても、多くの複雑さが見えてきました。
+例えば、当初は単一の「オーダー」が存在すると考えていましたが、調査を進めていくうちに、オーダーのライフサイクルを通じて、それぞれがわずかに異なるデータや動作を持つ、多くのバリエーションがあることがわかりました。
+```
+
+#### What's Next
+
+```
+この注文受付のワークフローをF#の型システムを使ってどのようにモデル化するかをまもなく見ていきます。
+しかし、その前に、一歩下がって全体像を見つめ直し、完全なシステムをソフトウェア・アーキテクチャに変換する方法について議論しましょう。
+これが次の章のテーマになります。
+```
+
 ---
 
 # Part 2 Modeling the Domain
@@ -181,13 +289,70 @@ type CustomerId = CustomerId of int
 
 こういうのを`simple types`という。
 
-### Working with Single Case Unions
+#### Working with Single Case Unions
 
-### Constrained Values
+#### Constrained Values
 
 simple valuesの制限については次の章で扱う。
 
-### Avoiding Performance Issues with Simple Types
+#### Avoiding Performance Issues with Simple Types
+
+- 高いパフォーマンスが求められる領域で、シンプルな値をラッピングすることについて
+  - F#の例で説明してるからそんな意味かも。。
+  - structなるものを使う
+  - 配列の話はそのままプリミティブバリューを持っていいよってこと？？
+
+### Modeling Complex Data
+
+代数的データ型を使ってどうなるか見ていく。
+
+#### Modeling with Record Types
+
+#### Modeling Unknown Types
+
+- まだ型が決まっていないところのために、Undefinedエイリアスを用意する。
+  - 設計過程で一旦こうしとくみたいな感じ
+  
+#### Modeling with Choice Types
+
+- 決まった個数の中から選べる型
+  - *Javaだとenumかsealedクラス使うところかな*
+
+### Modeling Workflows with Functions
+
+- 動詞系で表すところについて
+
+#### Working with Complex Inputs and Outputs
+
+- 複数のアウトプットがある部分はそれようにrecordつくってやる
+
+*ここでいう変換をメソッドとして表現するか、関数変数として表現すべきか？*
+
+複数のインプットがある時は `A -> B -> C`みたいな感じにできるし、`A`と`B`をひっくるめた型を作成することもできる。
+
+```
+どの方法が良いのでしょうか？上記のケースでは、ProductCatalogが「実際の」入力ではなく依存関係にある場合、セパレート・パラメータ・アプローチを使用したいと思います。これにより、機能的にはディペンデンシー・インジェクションに相当するものを使うことができます。これについては、注文処理のパイプラインを実装する際の「依存関係の注入」で詳しく説明します。
+一方で、両方の入力が常に必要であり、互いに強く結びついている場合は、レコードタイプでそのことを明確にします。(状況によっては、単純なレコード型の代わりにタプルを使うこともできますが、一般的には名前付きの型を使った方が良いでしょう)。
+```
+
+DIの絡みは9章ぽい
+
+#### Documenting Effects in the Function Signature
+
+effects
+https://levelup.gitconnected.com/what-is-effect-or-effectful-mean-in-functional-programming-7fc7323b52b4
+
+monadを使って表現するものがeffects？
+monadは下記参照。
+https://qiita.com/koher/items/6f4a8d8b3ad3142bf645#%E3%83%A2%E3%83%8A%E3%83%89%E3%81%A8%E3%81%97%E3%81%A6%E3%81%AEoptional
+
+### A Question of Identity: Value Objects
+
+DDDの世界では、一意に特定できるものがEntityで、そうでないものがValue Object
+
+#### Implementing Equality for Value Objects
+
+### A Question of Identity: Entities
 
 ### Wrapping Up
 
