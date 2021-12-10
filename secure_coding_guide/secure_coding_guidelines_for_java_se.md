@@ -690,7 +690,49 @@ public class Files {
 
 ### Guideline 6-10 / MUTABLE-10: Ensure public static final field values are constants
 
+public static finalなフィールドには変更不可能なものしか入れない。
 
+変更不可能なリストを作るメソッドとして、ListならList.ofを使って作ったものはImmutable
+
+```
+パブリック・スタティック・フィールドには、不変または変更不可能な値のみを格納すべきです。
+多くの型は変更可能であり、特に配列やコレクションは見落とされがちです。
+mutatorメソッドを持たない型のフィールドに格納された mutableオブジェクトは、ランタイムの型にキャストバックすることができます。
+Enumの値は絶対に変更できません。
+
+次の例では、names はリストが変更されるのを防ぐために、リストの変更不可能なビューを公開しています。
+```
+
+```java
+import static java.util.Arrays.asList;
+import static java.util.Collections.unmodifiableList;
+...
+public static final List<String> names = unmodifiableList(asList(
+    "Fred", "Jim", "Sheila"
+));
+```
+
+```
+Java 9で追加されたAPIメソッドのof()とofEntries()も、変更不可能なコレクションの作成に使用できます。
+```
+
+```java
+public static final List <String> names = 
+                                        List.of("Fred", "Jim", "Sheila");
+```
+
+```
+of/ofEntries APIメソッドは変更不可能なコレクションを返すのに対し、Collections.unmodifiable... API メソッド (unmodifiableCollection(), unmodifiableList(), unmodifiableMap() など) は、コレクションに対する変更不可能なビューを返します。
+変更不可能なビューを使ってコレクションを変更することはできませんが、基礎となるコレクションを直接参照して変更することはできます。
+ただし、of/ofEntries APIメソッドが返すコレクションは、実際には変更できません。
+コレクションに対して変更不可能なビューを返すメソッドの完全なリストについては、java.util.Collections API ドキュメントを参照してください。
+
+Java 10 で追加された copyOf メソッドは、既存のコレクションの変更不可能なコピーを作成するために使用できます。
+変更不可能なビューとは異なり、元のコレクションが変更されても、その変更は変更不可能なコピーには影響しません。
+同様に、Java 10以降のtoUnmodifiableList()、toUnmodifiableSet()、toUnmodifiableMap()の各コレクターは、ストリームの要素から変更不可能なコレクションを作成するために使用できます。
+
+ガイドライン6-9にあるように、protected static fieldにはpublicなものと同じ問題があります。
+```
 
 ---
 
