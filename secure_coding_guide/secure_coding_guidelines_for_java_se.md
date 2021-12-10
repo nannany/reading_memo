@@ -534,7 +534,58 @@ java.lang.Cloneable のメカニズムは問題があるので、使用すべき
 Cloneableを実装することは、実装の詳細ですが、クラスのパブリック・インターフェースに表示されます。
 ```
 
-### 
+### Guideline 6-5 / MUTABLE-5: Do not trust identity equality when overridable on input reference objects
+
+finalではないクラスの等価性について、気をつける。
+`IdentityHashMap`みたいなのを使えば、参照で比較するようになる。
+
+```
+オーバーライド可能なメソッドは、期待通りの動作をしない場合があります。
+
+例えば、同一性保持の動作を期待してObject.equalsをオーバーライドした場合、異なるオブジェクトに対してtrueを返すことがあります。
+特にMapのキーとして使用されている場合、あるオブジェクトが、アクセスできないはずの別のオブジェクトとして自分を偽ることができるかもしれません。
+
+可能であれば、IdentityHashMapのような、同一性等価を強制するコレクション実装を使用してください。
+```
+
+```java
+private final Map<Window,Extra> extras = new IdentityHashMap<>();
+
+public void op(Window window) {
+    // Window.equals may be overridden,
+    // but safe as we are using IdentityHashMap
+    Extra extra = extras.get(window);
+}
+```
+
+```
+そのようなコレクションがない場合は、敵がアクセスできないパッケージの秘密鍵を使用してください。
+```
+
+```java
+public class Window {
+    /* pp */ class PrivateKey {
+        // Optionally, refer to real object.
+        /* pp */ Window getWindow() {
+            return Window.this;
+        }
+    }
+    /* pp */ final PrivateKey privateKey = new PrivateKey();
+
+    private final Map<Window.PrivateKey,Extra> extras =
+                                     new WeakHashMap<>();
+    ...
+}
+
+public class WindowOps {
+    public void op(Window window) {
+        // Window.equals may be overridden,
+        // but safe as we don't use it.
+        Extra extra = extras.get(window.privateKey);
+        ...
+    }
+}
+```
 
 ---
 
