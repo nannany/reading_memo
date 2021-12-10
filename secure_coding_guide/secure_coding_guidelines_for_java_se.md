@@ -632,9 +632,43 @@ public void endWith(Event event) throws IOException {
 
 ### Guideline 6-8 / MUTABLE-8: Define wrapper methods around modifiable internal state
 
-```クラスの内部にある状態がパブリックにアクセスでき、変更可能でなければならない場合、プライベート・フィールドを宣言し、パブリック・ラッパー・メソッドを介してアクセスできるようにします。サブクラスからしかアクセスできない状態であれば、プライベート・フィールドを宣言し、保護されたラッパー・メソッドを介してアクセスできるようにします。ラッパー・メソッドを使用すると、新しい値を設定する前に入力の検証を行うことができます。
+ラップしたセッターを使っている。
+
+```
+クラスの内部にある状態がパブリックにアクセスでき、変更可能でなければならない場合、プライベート・フィールドを宣言し、パブリック・ラッパー・メソッドを介してアクセスできるようにします。
+サブクラスからしかアクセスできない状態であれば、プライベート・フィールドを宣言し、保護されたラッパー・メソッドを介してアクセスできるようにします。
+ラッパー・メソッドを使用すると、新しい値を設定する前に入力の検証を行うことができます。
 ```
 
+```java
+public final class WrappedState {
+    // private immutable object
+    private String state;
+
+    // wrapper method
+    public String getState() {
+        return state;
+    }
+
+    // wrapper method
+    public void setState(final String newState) {
+        this.state = requireValidation(newState);
+    }
+
+    private static String requireValidation(final String state) {
+        if (...) {
+            throw new IllegalArgumentException("...");
+        }
+        return state;
+    }
+}
+```
+
+```
+ガイドライン6-2にあるように、内部状態が可変型であれば、getStateとsetStateに追加の防御的コピーを作成する。
+
+可能であれば、単に内部の実装を公開するのではなく、クラスのインターフェイスの文脈で意味のある操作のためのメソッドを作る。
+```
 
 ---
 
