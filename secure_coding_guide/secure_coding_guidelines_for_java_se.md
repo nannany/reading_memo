@@ -278,7 +278,7 @@ https://wiki.sei.cmu.edu/confluence/display/java/MSC59-J.+Limit+the+lifetime+of+
 ライブラリがコピーを作成し、データをメモリに残してしまう可能性があります。仮想マシンやOSの動作によって、データのコピーがメモリやディスクに残ることもあります。
 ```
 
-## 3 Injection and Inclusion
+# 3 Injection and Inclusion
 
 ```
 非常に一般的な攻撃方法は、特定のプログラムに細工されたデータを解釈させ、予期しない制御の変更を引き起こすことです。
@@ -286,7 +286,7 @@ https://wiki.sei.cmu.edu/confluence/display/java/MSC59-J.+Limit+the+lifetime+of+
 ```
 
 ---
-## 5 Input Validation
+# 5 Input Validation
 
 バリデーションチェック
 
@@ -295,7 +295,7 @@ Javaの文化の特徴として、堅牢性を高めるために厳格なメソ�
 より一般的には、外部からの入力を検証することは、セキュリティの重要な部分です。
 ```
 
-### Guideline 5-1 / INPUT-1: Validate inputs
+## Guideline 5-1 / INPUT-1: Validate inputs
 
 入力チェックをちゃんとしないとディレクトリトラバーサルとか起きちゃうよ。
 
@@ -311,7 +311,7 @@ Javaの文化の特徴として、堅牢性を高めるために厳格なメソ�
 入力の検証は、その入力を防御的にコピーした後に行わなければならないことに注意してください（ガイドライン6-2参照）。
 ```
 
-### Guideline 5-2 / INPUT-2: Validate output from untrusted objects as input
+## Guideline 5-2 / INPUT-2: Validate output from untrusted objects as input
 
 うーん難しい。TOCTOU？
 とりあえず、信用できないオブジェクトからのアウトプットはバリデートかけろという感じ。
@@ -329,7 +329,7 @@ RESTAPIの戻り値とかならわかるけど、ライブラリのアウトプ�
 ClassLoader.loadClass() の複数回の呼び出しは、同じ Class インスタンスまたは定義を返すことが保証されていないため、TOCTOU 問題を引き起こす可能性があります。
 ```
 
-### Guideline 5-3 / INPUT-3: Define wrappers around native methods
+## Guideline 5-3 / INPUT-3: Define wrappers around native methods
 
 nativeメソッドをpublicに公開してはいけない。
 あまりに馴染みがないからよくわからないな。。
@@ -378,7 +378,7 @@ public final class NativeMethodWrapper {
 
 ---
 
-## 6 Mutability
+# 6 Mutability
 
 mutability
 
@@ -388,7 +388,7 @@ mutability
 アプリケーションでは、不変的に設計された新しいJava Date and Time API (java.time.*)を使用するのが望ましいでしょう。
 ```
 
-### Guideline 6-1 / MUTABLE-1: Prefer immutability for value types
+## Guideline 6-1 / MUTABLE-1: Prefer immutability for value types
 
 immutableなクラスとするために、
 - final class
@@ -403,7 +403,7 @@ immutableなクラスとするために、
 ガイドライン6-2で述べたように、不変オブジェクトの構築は、ビルダー（Effective Java [6]を参照）を提供することで容易になります。
 ```
 
-### Guideline 6-2 / MUTABLE-2: Create copies of mutable output values
+## Guideline 6-2 / MUTABLE-2: Create copies of mutable output values
 
 mutableなオブジェクトを返す場合は、deep copyを返せということか。
 これがどうセキュリティに関わるかはわからん。
@@ -425,7 +425,7 @@ public class CopyOutput {
 }
 ```
 
-### Guideline 6-3 / MUTABLE-3: Create safe copies of mutable and subclassable input values
+## Guideline 6-3 / MUTABLE-3: Create safe copies of mutable and subclassable input values
 
 ミュータブルな値のコピーを渡すときは気をつける。
 また、finalではないクラスをインプットにするときは気をつける。
@@ -511,7 +511,7 @@ public void deepCopy(Collection<Date> dates) {
 さらに、フィールドに割り当てられたオブジェクトは、安全でない公開の危険性があるため、信頼できないデータを参照してはいけません。
 ```
 
-### Guideline 6-4 / MUTABLE-4: Support copy functionality for a mutable class
+## Guideline 6-4 / MUTABLE-4: Support copy functionality for a mutable class
 
 イミュータブルなクラスを設計するときは、安全にコピーを作成する手段を提供せよ。
 
@@ -534,7 +534,7 @@ java.lang.Cloneable のメカニズムは問題があるので、使用すべき
 Cloneableを実装することは、実装の詳細ですが、クラスのパブリック・インターフェースに表示されます。
 ```
 
-### Guideline 6-5 / MUTABLE-5: Do not trust identity equality when overridable on input reference objects
+## Guideline 6-5 / MUTABLE-5: Do not trust identity equality when overridable on input reference objects
 
 finalではないクラスの等価性について、気をつける。
 `IdentityHashMap`みたいなのを使えば、参照で比較するようになる。
@@ -587,7 +587,7 @@ public class WindowOps {
 }
 ```
 
-### Guideline 6-6 / MUTABLE-6: Treat passing input to untrusted object as output
+## Guideline 6-6 / MUTABLE-6: Treat passing input to untrusted object as output
 
 信頼できないオブジェクトにオブジェクトを渡す場合も、適切なコピー作成をすべし。
 
@@ -610,7 +610,7 @@ public void writeTo(OutputStream out) throws IOException {
 コレクションで等式を使用すると、挿入時または挿入後に他の要素が悪意のある入力オブジェクトにさらされる可能性があります。
 ```
 
-### Guideline 6-7 / MUTABLE-7: Treat output from untrusted object as input
+## Guideline 6-7 / MUTABLE-7: Treat output from untrusted object as input
 
 ```
 入力オブジェクトに関する上記のガイドラインは、信頼されていないオブジェクトから返された場合にも適用されます。
@@ -630,7 +630,7 @@ public void endWith(Event event) throws IOException {
 }
 ```
 
-### Guideline 6-8 / MUTABLE-8: Define wrapper methods around modifiable internal state
+## Guideline 6-8 / MUTABLE-8: Define wrapper methods around modifiable internal state
 
 ラップしたセッターを使っている。
 
@@ -670,7 +670,7 @@ public final class WrappedState {
 可能であれば、単に内部の実装を公開するのではなく、クラスのインターフェイスの文脈で意味のある操作のためのメソッドを作る。
 ```
 
-### Guideline 6-9 / MUTABLE-9: Make public static fields final
+## Guideline 6-9 / MUTABLE-9: Make public static fields final
 
 public な static field は常にfinalせよ。
 
@@ -688,7 +688,7 @@ public class Files {
 }
 ```
 
-### Guideline 6-10 / MUTABLE-10: Ensure public static final field values are constants
+## Guideline 6-10 / MUTABLE-10: Ensure public static final field values are constants
 
 public static finalなフィールドには変更不可能なものしか入れない。
 
@@ -734,7 +734,7 @@ Java 10 で追加された copyOf メソッドは、既存のコレクション�
 ガイドライン6-9にあるように、protected static fieldにはpublicなものと同じ問題があります。
 ```
 
-### Guideline 6-11 / MUTABLE-11: Do not expose mutable statics
+## Guideline 6-11 / MUTABLE-11: Do not expose mutable statics
 
 mutable なstaticな値は晒してはいけない。
 
@@ -827,12 +827,12 @@ javax.print.PrintServiceLookup.registerService
 javax.print.PrintServiceLookup.registerServiceProvider
 ```
 
-### Guideline 6-12 / MUTABLE-12: Do not expose modifiable collections
+## Guideline 6-12 / MUTABLE-12: Do not expose modifiable collections
 
 
 ---
 
-## 7 Object Construction
+# 7 Object Construction
 
 オブジェクト組み立て中の話？ここはライブラリとか、他から使われることを意図した内容になっている。
 
@@ -840,7 +840,7 @@ javax.print.PrintServiceLookup.registerServiceProvider
 建設中の物体は、存在していてもすぐには使えない厄介な段階にあります。そのため、通常の方法に加えて、いくつかの困難があります。
 ```
 
-### Guideline 7-1 / OBJECT-1: Avoid exposing constructors of sensitive classes
+## Guideline 7-1 / OBJECT-1: Avoid exposing constructors of sensitive classes
 
 センシティブなクラスについては、コンストラクタを晒さないようにする。
 (ライブラリ提供者側の話かな？)
@@ -851,7 +851,7 @@ javax.print.PrintServiceLookup.registerServiceProvider
 シリアライズやクローンによる暗黙のコンストラクタも避けるべきです。
 ```
 
-### Guideline 7-2 / OBJECT-2: Prevent the unauthorized construction of sensitive classes
+## Guideline 7-2 / OBJECT-2: Prevent the unauthorized construction of sensitive classes
 
 ```
 既存の API がセキュリティセンシティブなコンストラクタを公開している場合、インスタンスの作成を制限する。
@@ -865,7 +865,7 @@ javax.print.PrintServiceLookup.registerServiceProvider
 具体的には、シリアル化可能なクラスの readObject または readObjectNoData メソッドや、クローン化可能なクラスの clone メソッドの内部でチェックを行います。
 ```
 
-### Guideline 7-3 / OBJECT-3: Defend against partially initialized instances of non-final classes
+## Guideline 7-3 / OBJECT-3: Defend against partially initialized instances of non-final classes
 
 ClassLoaderのコンストラクタは、途中でセキュリティチェックとか入っている。  
 これでClassLoaderを継承したクラスで悪さをさせないようにしているのかな？
@@ -980,7 +980,7 @@ public abstract class ClassLoader {
 }
 ```
 
-### Guideline 7-4 / OBJECT-4: Prevent constructors from calling methods that can be overridden
+## Guideline 7-4 / OBJECT-4: Prevent constructors from calling methods that can be overridden
 
 オーバーライド可能なメソッドをコンストラクタの中で呼んではならない。
 
@@ -990,7 +990,7 @@ public abstract class ClassLoader {
 readObjectメソッドは通常、オーバーライド可能なメソッドであるjava.io.ObjectInputStream.defaultReadObjectを呼び出します。
 ```
 
-### Guideline 7-5 / OBJECT-5: Defend against cloning of non-final classes
+## Guideline 7-5 / OBJECT-5: Defend against cloning of non-final classes
 
 うーんむずい。
 
@@ -1002,7 +1002,7 @@ readObjectメソッドは通常、オーバーライド可能なメソッドで�
 ガイドライン7-3の "実装へのポインタ "のアプローチは良い防御策となります。
 ```
 
-## 8 Serialization and Deserialization
+# 8 Serialization and Deserialization
 
 信頼できないデータのデシリアライズはしないこと。
 
