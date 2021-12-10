@@ -427,7 +427,83 @@ public class CopyOutput {
 
 ### Guideline 6-3 / MUTABLE-3: Create safe copies of mutable and subclassable input values
 
+ミュータブルな値のコピーを渡すときは気をつける。
+また、finalではないクラスをインプットにするときは気をつける。
 
+難しい。。
+
+```
+Mutable（変更可能）なオブジェクトは、メソッドやコンストラクタの呼び出し後、あるいは呼び出し中にも変更される可能性があります。
+サブクラス化可能な型は、正しくない、矛盾した、または悪意のある動作をする可能性があります。
+メソッドが変更可能な入力パラメータを直接操作するように指定されていない場合は、その入力のコピーを作成し、そのコピーに対してメソッドロジックを実行します。
+実際、入力がフィールドに格納されている場合、呼び出し元は包含するクラスの競合状態を利用することができます。
+たとえば、TOCTOU（time-of-check, time-of-use inconsistency）[7]は、変更可能な入力がSecurityManagerのチェック時には1つの値を含んでいるが、後でその入力が使用されるときには異なる値を含んでいる場合に悪用できます。
+
+信頼できないミュータブルオブジェクトのコピーを作成するには、コピーコンストラクタまたは作成メソッドを呼び出します。
+```
+
+```java
+public final class CopyMutableInput {
+    private final Date date;
+
+    // java.util.Date is mutable
+    public CopyMutableInput(Date date) {
+        // create copy
+        this.date = new Date(date.getTime());
+    }
+}
+```
+
+```
+まれに、インスタンス自体のコピー・メソッドを呼び出しても安全な場合があります。
+例えば、java.net.HttpCookie は mutable ですが final であり、そのインスタンスのコピーを取得するためのパブリックな clone メソッドが用意されています。
+```
+
+```java
+public final class CopyCookie {
+
+    // java.net.HttpCookie is mutable
+    public void copyMutableInput(HttpCookie cookie) {
+        // create copy
+        cookie = (HttpCookie)cookie.clone(); // HttpCookie is final
+
+        // perform logic (including relevant security checks)
+        // on copy
+        doLogic(cookie);
+    }
+}
+```
+
+```
+HttpCookie.cloneは悪意のある実装ではオーバーライドできないので、呼び出しても安全です。
+Dateもパブリックなcloneメソッドを提供していますが、このメソッドはオーバーライド可能なので、Dateオブジェクトが信頼できるソースからのものである場合にのみ信頼できます。
+java.io.Fileなどの一部のクラスは、不変であるように見えてもサブクラス化が可能です。
+
+このガイドラインは、対象となるオブジェクトをラップするように設計されたクラスには適用されません。
+例えば、java.util.Arrays.asListは、コピーせずに、与えられた配列を直接操作します。
+
+コレクションなどでは、入力オブジェクトのコピーコンストラクタやクローンメソッドで返されるものよりも深いコピーをメソッドが必要とする場合があります。
+たとえば、コレクションで ArrayList をインスタンス化すると、元のコレクション インスタンスの浅いコピーが生成されます。
+コピーとオリジナルの両方が、同じ要素への参照を共有します。
+要素が変更可能な場合は、その要素に対するディープコピーが必要です。
+```
+
+```java
+// String is immutable.
+public void shallowCopy(Collection<String> strs) {
+    strs = new ArrayList<>(strs);
+    doLogic(strs);
+}
+// Date is mutable.
+public void deepCopy(Collection<Date> dates) {
+    Collection<Date> datesCopy =
+                           new ArrayList<>(dates.size());
+    for (Date date : dates) {
+        datesCopy.add(new java.util.Date(date.getTime()));
+    }
+    doLogic(datesCopy);
+}
+```
 
 ---
 
