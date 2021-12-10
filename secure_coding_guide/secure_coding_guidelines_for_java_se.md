@@ -587,6 +587,55 @@ public class WindowOps {
 }
 ```
 
+### Guideline 6-6 / MUTABLE-6: Treat passing input to untrusted object as output
+
+信頼できないオブジェクトにオブジェクトを渡す場合も、適切なコピー作成をすべし。
+
+```
+出力オブジェクトに関する上記のガイドラインは、信頼されていないオブジェクトに渡される場合にも適用されます。
+適切なコピーを適用する必要があります。
+```
+
+```java
+private final byte[] data;
+
+public void writeTo(OutputStream out) throws IOException {
+    // Copy (clone) private mutable data before sending.
+    out.write(data.clone());
+}
+```
+
+```
+よくあるケースですが、発見が難しいのが、入力オブジェクトがキーとして使用されている場合です。
+コレクションで等式を使用すると、挿入時または挿入後に他の要素が悪意のある入力オブジェクトにさらされる可能性があります。
+```
+
+### Guideline 6-7 / MUTABLE-7: Treat output from untrusted object as input
+
+```
+入力オブジェクトに関する上記のガイドラインは、信頼されていないオブジェクトから返された場合にも適用されます。
+適切なコピーと検証を適用する必要があります。
+```
+
+```java
+private final Date start;
+private Date end;
+
+public void endWith(Event event) throws IOException {
+    Date end = new Date(event.getDate().getTime());
+    if (end.before(start)) {
+        throw new IllegalArgumentException("...");
+    }
+    this.end = end;
+}
+```
+
+### Guideline 6-8 / MUTABLE-8: Define wrapper methods around modifiable internal state
+
+```クラスの内部にある状態がパブリックにアクセスでき、変更可能でなければならない場合、プライベート・フィールドを宣言し、パブリック・ラッパー・メソッドを介してアクセスできるようにします。サブクラスからしかアクセスできない状態であれば、プライベート・フィールドを宣言し、保護されたラッパー・メソッドを介してアクセスできるようにします。ラッパー・メソッドを使用すると、新しい値を設定する前に入力の検証を行うことができます。
+```
+
+
 ---
 
 ## 7 Object Construction
