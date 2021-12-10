@@ -670,6 +670,28 @@ public final class WrappedState {
 可能であれば、単に内部の実装を公開するのではなく、クラスのインターフェイスの文脈で意味のある操作のためのメソッドを作る。
 ```
 
+### Guideline 6-9 / MUTABLE-9: Make public static fields final
+
+public な static field は常にfinalせよ。
+
+```
+呼び出し側は、ファイナルではないパブリックなスタティック・フィールドに自明にアクセスしたり変更したりすることができます。
+アクセスや変更を防ぐことはできませんし、新しく設定された値を検証することもできません。
+サブクラス化可能な型を持つフィールドは、悪意のある実装を持つオブジェクトに設定される可能性があります。
+パブリックなスタティック・フィールドは常にfinalとして宣言してください。
+```
+
+```java
+public class Files {
+    public static final String separator = "/";
+    public static final String pathSeparator = ":";
+}
+```
+
+### Guideline 6-10 / MUTABLE-10: Ensure public static final field values are constants
+
+
+
 ---
 
 ## 7 Object Construction
