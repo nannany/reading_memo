@@ -734,6 +734,102 @@ Java 10 で追加された copyOf メソッドは、既存のコレクション�
 ガイドライン6-9にあるように、protected static fieldにはpublicなものと同じ問題があります。
 ```
 
+### Guideline 6-11 / MUTABLE-11: Do not expose mutable statics
+
+mutable なstaticな値は晒してはいけない。
+
+```
+プライベートなスタティックは、限られた方法ではあるが、パブリックなインターフェイスを通じて容易に公開される（ガイドライン6-2、6-6参照）。
+ミュータブルなスタティックは、関係のないコード間でも動作を変えることがある。
+安全なコードを保証するために、プライベート・スタティックはパブリックであるかのように扱われるべきである。
+スタティックをシングルトンとして公開するためのボイラープレートを追加しても、これらの問題は解決しない。
+
+Mutable staticsは、不変のフライウェイト値のキャッシュとして使用することができる。
+Mutableオブジェクトは決してスタティックにキャッシュされるべきではない。
+ミュータブル・オブジェクトのインスタンス・プーリングであっても、細心の注意を払って扱うべきである。
+
+一部の可変型スタティックは、状態を更新するためにセキュリティ権限を必要とする。
+更新された値はグローバルに表示されます。
+そのため、突然変異は細心の注意を払って行う必要があります。
+グローバルな状態を更新するメソッドや、セキュリティチェックを行った上で更新する機能を提供するメソッドには、以下のようなものがあります。
+```
+
+```java
+java.lang.ClassLoader.getSystemClassLoader 
+java.lang.System.clearProperty
+java.lang.System.getProperties 
+java.lang.System.setErr 
+java.lang.System.setIn 
+java.lang.System.setOut 
+java.lang.System.setProperties 
+java.lang.System.setProperty 
+java.lang.System.setSecurityManager 
+java.net.Authenticator.setDefault 
+java.net.CookieHandler.getDefault 
+java.net.CookieHandler.setDefault 
+java.net.Datagram.setDatagramSocketImplFactory 
+java.net.HttpURLConnection.setFollowRedirects 
+java.net.ProxySelector.setDefault
+java.net.ResponseCache.getDefault 
+java.net.ResponseCache.setDefault 
+java.net.ServerSocket.setSocketFactory 
+java.net.Socket.setSocketImplFactory
+java.net.URL.setURLStreamHandlerFactory 
+java.net.URLConnection.setContentHandlerFactory 
+java.net.URLConnection.setFileNameMap 
+java.rmi.server.RMISocketFactory.setFailureHandler 
+java.rmi.server.RMISocketFactory.setSocketFactory 
+java.rmi.activation.ActivationGroup.createGroup  (deprecated)
+java.rmi.activation.ActivationGroup.setSystem (deprecated) 
+java.rmi.server.RMIClassLoader.getDefaultProviderInstance 
+java.security.Policy.setPolicy 
+java.sql.DriverManager.setLogStream (deprecated) 
+java.sql.DriverManager.setLogWriter 
+java.util.Locale.setDefault 
+java.util.TimeZone.setDefault 
+javax.naming.spi.NamingManager.setInitialContextFactoryBuilder 
+javax.naming.spi.NamingManager.setObjectFactoryBuilder 
+javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier 
+javax.net.ssl.HttpsURLConnection.setDefaultSSLSocketFactory 
+javax.net.ssl.SSLContext.setDefault 
+javax.security.auth.login.Configuration.setConfiguration 
+javax.security.auth.login.Policy.setPolicy
+```
+
+```
+Java PlugIn と Java WebStart は、特定のグローバル状態を AppContext1 内に隔離します。
+多くの場合、この状態にアクセスするためのセキュリティ権限は必要ありませんので、（PlugIn と WebStart 内の Same Origin Policy を除いて）信頼することはできません。
+セキュリティチェックがあるとはいえ、この状態はコンテキスト内に留まることが意図されています。
+したがって、AppContext から直接または間接的に取得したオブジェクトは、共有クラス・ローダ内のクラスのプレーンなスタティックなど、他のバリエーションのグローバルには保存しないでください。
+アプリケーションに代わって AppContext を直接または間接的に使用するライブラリ コードは、明確に文書化する必要があります。
+AppContext のユーザーは以下の通りです。
+```
+
+```java
+Extensively within AWT
+Extensively within Swing
+Extensively within JavaBeans Long Term Persistence
+java.beans.Beans.setDesignTime
+java.beans.Beans.setGuiAvailable 
+java.beans.Introspector.getBeanInfo 
+java.beans.PropertyEditorFinder.registerEditor
+java.beans.PropertyEditorFinder.setEdiorSearchPath 
+javax.imageio.ImageIO.createImageInputStream 
+javax.imageio.ImageIO.createImageOutputStream 
+javax.imageio.ImageIO.getUseCache
+javax.imageio.ImageIO.setCacheDirectory
+javax.imageio.ImageIO.setUseCache 
+javax.print.StreamPrintServiceFactory.lookupStreamPrintServices
+javax.print.PrintServiceLookup.lookupDefaultPrintService 
+javax.print.PrintServiceLookup.lookupMultiDocPrintServices
+javax.print.PrintServiceLookup.lookupPrintServices
+javax.print.PrintServiceLookup.registerService 
+javax.print.PrintServiceLookup.registerServiceProvider
+```
+
+### Guideline 6-12 / MUTABLE-12: Do not expose modifiable collections
+
+
 ---
 
 ## 7 Object Construction
