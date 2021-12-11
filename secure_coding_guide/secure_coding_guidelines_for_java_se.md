@@ -498,6 +498,258 @@ if (Double.isInfinite(untrusted_double_value)){
 // normal processing starts here
 ```
 
+---
+# 4 Accessibility and Extensibility
+
+```
+システムの安全性を確保する作業は、コードの「攻撃面」を減らすことで容易になります。
+```
+
+## Guideline 4-1 / EXTEND-1: Limit the accessibility of classes, interfaces, methods, and fields
+
+```
+Javaパッケージは、関連するJavaクラスやインターフェースをまとめたものです。
+公開されたAPIの一部として指定されている場合は、クラスやインターフェースをpublicと宣言し、そうでない場合はpackage-privateと宣言します。
+同様に、クラスのメンバーやコンストラクタ（入れ子になったクラス、メソッド、フィールド）も、APIの一部として指定されている場合は、必要に応じてpublicまたはprotectedと宣言します。
+そうでない場合は、実装の公開を避けるために、privateまたはpackage-privateと宣言してください。
+インターフェイスのメンバーは暗黙のうちに公開されることに注意してください。
+
+異なるローダーによってロードされたクラスは、たとえパッケージ名が同じであっても、お互いにパッケージ・プライベート・アクセスを持ちません。
+同じパッケージ内のクラスが同じクラスローダによってロードされる場合、同じコード署名証明書を共有するか、または証明書を全く持たないかのいずれかでなければなりません。
+Java仮想マシンでは、クラスローダがパッケージを定義する役割を担っています。
+当然のことですが、パッケージはJARファイルのマニフェストでsealedとマークされることが推奨されます。
+```
+
+## Guideline 4-2 / EXTEND-2: Limit the accessibility of packages
+
+```
+コンテナは、package.access セキュリティプロパティに追加することで、実装コードを隠すことができます。
+このプロパティは、他のクラスローダからの信頼されていないクラスが、指定されたパッケージ階層をリンクしたり、リフレクションを使用したりするのを防ぎます。
+このプロパティが設定される前に、信頼されていないコンテクストからパッケージにアクセスできないようにするための注意が必要です。
+
+このサンプルコードは、package.access security プロパティに追加する方法を示しています。
+なお、このコードはスレッドセーフではありません。
+このコードは、通常、1つのシステムに1回しか登場しません。
+```
+
+```java
+private static final String PACKAGE_ACCESS_KEY = "package.access";
+static {
+    String packageAccess = java.security.Security.getProperty(
+        PACKAGE_ACCESS_KEY
+    );
+    java.security.Security.setProperty(
+        PACKAGE_ACCESS_KEY,
+        (
+            (packageAccess == null ||
+             packageAccess.trim().isEmpty()) ?
+            "" :
+            (packageAccess + ",")
+        ) +
+        "xx.example.product.implementation."
+    );
+}
+```
+
+## Guideline 4-3 / EXTEND-3: Isolate unrelated code
+
+```
+コンテナ、つまり信頼度の低いコードを管理するコードは、関係のないアプリケーションコードを隔離する必要があります。
+信頼されていないコードであっても、通常はそのオリジンにアクセスする許可が与えられているため、異なるオリジンからの信頼されていないコードは隔離する必要があります。
+例えば、Javaプラグインは、関連性のないアプレットを別々のクラスローダインスタンスにロードし、別々のスレッドグループで実行します1。
+
+直接的なアクセスにはセキュリティ・チェックが行われるかもしれませんが、システム・クラス・ローダやスレッド・コンテキスト・クラス・ローダを間接的に利用する方法もあります。
+プログラムは、システム・クラス・ローダはどこからでもアクセス可能であり、スレッド・コンテキスト・クラス・ローダは、関連するスレッド上で実行可能なすべてのコードからアクセス可能であることを想定して書かれるべきです。
+
+一見グローバルなオブジェクトでも、実際にはアプレット1やアプリケーションコンテキストにローカルなものもあります。
+異なる Web サイトから読み込まれたアプレットは、例えば java.awt.Frame.getFrames から返される値が異なります。
+このようなスタティック・メソッド（およびトゥルー・グローバルのメソッド）は、現在のスレッドやスタック上のコードのクラス・ローダーからの情報を使用して、現在のコンテキストを判断します。
+これにより、悪意のあるアプレットが他のサイトのアプレットに干渉することを防ぎます。
+
+隔離が不意に破られてしまう一般的な方法として、 Mutable statics (Guideline 6-11参照) と例外があります。
+ミュータブル・スタティックは、どのようなコードでも、それを直接、あるいは間接的に使用するコードに干渉することができます。
+
+ライブラリ・コードは、信頼度の低いコードが安全に使用できるように注意深く書くことができます。
+ライブラリは、クライアントコードの完全性を侵害しないために、少なくとも使用されるコードと同等の信頼度を必要とします。
+コンテナーは、信頼度の低いコードが信頼度の高いライブラリーコードを置き換えることができないようにし、パッケージ・プライベート・アクセスができないようにする必要があります。
+両方の制限は通常、アプリケーションクラスローダーの親であるライブラリクラスローダーという別のクラスローダーインスタンスを使用することで実施されます。
+```
+
+## Guideline 4-4 / EXTEND-4: Limit exposure of ClassLoader instances
+
+```
+ClassLoaderインスタンスへのアクセスは、望ましくない可能性のある特定の操作を可能にします。
+
+- クライアントコードが通常はアクセスできないクラスへのアクセス。
+- リソースの URL の情報を取得すること（実際に URL を開くことは通常の制限で制限されています）。
+- アサーション・ステータスをオン・オフすることができる。
+- インスタンスをサブクラスにキャストすることができる。ClassLoaderのサブクラスは望ましくないメソッドを持つことが多い。
+
+ガイドライン9-8では、様々なJavaライブラリのメソッドを使ってClassLoaderインスタンスを取得する際のアクセスチェックについて説明しています。スレッド・コンテキスト・クラス・ローダを通してクラス・ローダを公開する際には注意が必要です。
+```
+
+## Guideline 4-5 / EXTEND-5: Limit the extensibility of classes and methods
+
+```
+クラスやメソッドを継承するように設計するか、final（最終）と宣言する [6]。
+ファイナルでないままだと、攻撃者が悪意を持ってクラスやメソッドをオーバーライドできてしまいます。
+サブクラス化を許可しないクラスは、実装が容易であり、安全であることを検証することができます。
+継承よりも合成を優先する。
+```
+
+```java
+// Unsubclassable class with composed behavior.
+public final class SensitiveClass {
+
+    private final Behavior behavior;
+
+    // Hide constructor.
+    private SensitiveClass(Behavior behavior) {
+       this.behavior = behavior;
+    }
+
+    // Guarded construction.
+    public static SensitiveClass newSensitiveClass(
+        Behavior behavior
+    ) {
+        // ... validate any arguments ...
+
+        // ... perform security checks ...
+
+        return new SensitiveClass(behavior);
+    }
+}
+```
+
+```
+Object.finalize2 メソッドをオーバーライドした悪意のあるサブクラスは、コンストラクタから例外がスローされた場合でも、オブジェクトを復活させることができます。
+コンストラクタが明示的に java.security.SecurityException をスローする低レベルのクラスは、セキュリティ上の問題を抱えている可能性があります。
+JDK6以降では、java.lang.Objectコンストラクタが終了する前に例外がスローされ、ファイナライザが呼び出されないようになっています。
+したがって、サブクラス化が許可されていて、オブジェクトを構築するためにセキュリティマネージャの許可が必要な場合は、スーパーコンストラクタを呼び出す前にチェックを行います。
+これは、代替（this）コンストラクタの呼び出しの引数としてメソッド呼び出しを挿入することで行うことができます。
+```
+
+```java
+public class NonFinal {
+
+    // sole accessible constructor
+    public NonFinal() {
+        this(securityManagerCheck());
+    }
+
+    private NonFinal(Void ignored) {
+        // ...
+    }
+
+
+    private static Void securityManagerCheck() {
+       SecurityManager sm = System.getSecurityManager();
+        if (sm != null) {
+            sm.checkPermission(...);
+        }
+        return null;
+    }
+
+}
+```
+
+```
+JDK 6以前のバージョンのJavaとの互換性のために、機密性の高い操作を行うたびに、またクラスの他のインスタンスを信頼する前に、クラスが初期化されていることを確認してください。
+部分的に初期化されたインスタンスを見ることができるかもしれないので、どんな変数でもデフォルト値を安全に解釈する必要があります。
+ミュータブルなクラスの場合は、"initialized "フラグを揮発性にして、適切なhappens-before関係を作ることをお勧めします。
+```
+
+```java
+public class NonFinal {
+
+    private volatile boolean initialized;
+
+    // sole constructor
+    public NonFinal() {
+        securityManagerCheck();
+
+        // ... initialize class ...
+
+        // Last action of constructor.
+        this.initialized = true;
+    }
+
+    public void doSomething() {
+        checkInitialized();
+    }
+
+    private void checkInitialized() {
+        if (!initialized) {
+            throw new SecurityException(
+                "NonFinal not initialized"
+            );
+        }
+    }
+}
+```
+
+```
+オブジェクトに属する java.lang.Class インスタンスを調べてオブジェクトのクラス・タイプを確認する場合、Class.getName で取得したクラス名だけで Class インスタンスを比較してはいけません。
+
+Java SE 15では、コードによって特定のクラスのサブクラスの存在を制限できるsealedクラスが導入されました。
+これにより、クラス契約に従わない不正な実装を防ぐことができます。
+```
+
+## Guideline 4-6 / EXTEND-6: Understand how a superclass can affect subclass behavior
+
+```
+サブクラスは、自身の動作を絶対的に制御する能力を持っていません。
+スーパークラスは、オーバーライドされていない継承されたメソッドの実装を変更することで、サブクラスの動作に影響を与えることができます。
+サブクラスがすべての継承されたメソッドをオーバーライドする場合でも、スーパークラスは新しいメソッドを導入することでサブクラスの動作に影響を与えることができます。
+スーパークラスへのそのような変更は、サブクラスで作られた仮定を意図せずに壊し、微妙なセキュリティの脆弱性につながる可能性があります。
+JDK 1.2で発生した次のような例を考えてみましょう。
+```
+
+```
+Class Hierarchy                  Inherited Methods
+-----------------------          --------------------------
+java.util.Hashtable              put(key, val)
+          ^                      remove(key)
+          | extends
+          |
+java.util.Properties
+          ^
+          | extends
+          |
+java.security.Provider           put(key, val) // SecurityManager
+                                 remove(key)   // checks for these
+                                               // methods
+```
+
+```
+java.security.Providerクラスは、java.util.Propertiesを継承し、Propertiesはjava.util.Hashtableを継承しています。
+この階層では、Providerクラスは、Hashtableからputやremoveなどの特定のメソッドを継承しています。
+Provider.putは，RSAなどの暗号アルゴリズム名を，そのアルゴリズムを実装したクラスにマッピングします。
+悪意のあるコードが内部のマッピングに影響を与えないように、プロバイダは put と remove をオーバーライドして、必要な SecurityManager のチェックを実施します。
+
+Hashtable クラスは JDK 1.2 で拡張され、Hashtable からのエントリの削除をサポートする新しいメソッド entrySet が追加されました。
+Providerクラスは、この新しいメソッドをオーバーライドするように更新されていませんでした。
+このため、攻撃者は Provider.remove で強制されている SecurityManager のチェックを回避し、Hashtable.entrySet メソッドを呼び出すだけで Provider のマッピングを削除することができました。
+
+主な欠陥は、Providerに属するデータ（マッピング）がHashtableクラスに格納されているのに対し、データを保護するチェックはProviderクラスで実施されていることです。
+このようにデータとそれに対応するSecurityManagerのチェックが分離されているのは、ProviderがHashtableを継承しているからに他なりません。
+Providerは本質的にHashtableではないので、Hashtableから拡張すべきではありません。
+代わりに、ProviderクラスはHashtableインスタンスをカプセル化して、データとそのデータを保護するチェックが同じクラスに存在するようにします。
+Hashtableをサブクラス化するという当初の決定は、コードの再利用を達成しようとした結果だと思われますが、残念ながらスーパークラスとそのサブクラスの間に不都合な関係が生じ、最終的にはセキュリティの脆弱性につながってしまいました。
+
+悪意のあるサブクラスは、java.lang.Cloneableを実装している可能性があります。
+このインターフェースを実装すると、サブクラスの動作に影響を与えます。
+犠牲者のオブジェクトのクローンが作られるかもしれません。
+クローンは、浅いコピーになります。
+2つのオブジェクトの本質的なロックとフィールドは異なりますが、参照されるオブジェクトは同じになります。
+これにより、攻撃者は攻撃を受けたクラスのインスタンスの状態を混乱させることができます。
+
+JDK 8では、インターフェースにデフォルト・メソッドが導入されました。
+これらのデフォルト・メソッドは、クラスの中に予期せぬ新しいメソッドが現れるもう一つの経路です。
+クラスがデフォルト・メソッドを持つインターフェイスを実装すると、それらはクラスの一部となり、内部データへの予期せぬアクセスを許す可能性があります。
+セキュリティに敏感なクラスでは、そのクラス（およびすべてのスーパークラス）が実装するすべてのインターフェースを、前述のように監視する必要があります。
+無料版のDeepL翻訳（www.DeepL.com/Translator）で翻訳しました。
+```
 
 ---
 # 5 Input Validation
