@@ -143,7 +143,37 @@
 
 #### Understanding the Rest of the Workflow
 
+#### Thinking About Inputs and Outputs
 
+インプットは注文フォーム、アウトプットは？
+
+確認書送付は副作用。
+
+OrderPlaced event をBillingコンテキストにnotifiy
+
+
+### Fighting the Impulse to Do Database-Driven Design
+
+バイアスを入れない
+
+### Fighting the Impulse to Do Class-Driven Design
+
+バイアスを入れない。  
+技術的詳細はまだ入れない。ここではドメインエキスパートが理解できるようにする。
+
+### Documenting the Domain
+
+Workflow の書き方とか。
+
+### Driven Deeper into the Order Taking Workflow
+
+会話。ドメイン知識を貯める。
+
+### Representing Complexity in Our Domain Model
+
+#### Representing Constraints
+
+#### Representing the Life Cycle of an Order
 
 ### Wrapping Up
 
@@ -166,6 +196,34 @@ DDDはデータベース駆動でもクラス駆動でもありません。
 しかし、その前に、一歩下がって全体像を見つめ直し、完全なシステムをソフトウェア・アーキテクチャに変換する方法について議論しましょう。
 これが次の章のテーマになります。
 ```
+
+## Chapter 3 A Functional Architecture
+
+C4アプローチの用語を使う。
+
+### Bounded Contexts as Autonomous Software Components
+
+最初からマイクロサービス目指さなくても良い。
+
+### Communicating Between Bounded Contexts
+
+1つサービス。
+
+#### Transferring Data Between Bounded Contexts
+
+#### Trust Boundaries and Validation
+
+### Contracts Between Bounded Contexts
+
+#### Anti-Corruption Layers
+
+#### A Context Map with Relationships
+
+### Workflows Within a Bounded Context
+
+#### Workflow Inputs and Outputs
+
+#### Avoid Domain Events Within a Bounded Context
 
 ---
 
