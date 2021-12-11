@@ -1790,3 +1790,431 @@ RMIレジストリとRMI分散型ガベージコレクタは、このフィル�
 詳細については、[17]および[20]を参照してください。
 ```
 
+# 9 Access Control
+
+```
+Javaは主にオブジェクト・キャパシティ言語ですが、スタック・ベースのアクセス・コントロール・メカニズムを使用して、より一般的なAPIを安全に提供しています。
+
+このセクションのガイドラインの多くは、SecurityManagerを使用してセキュリティチェックを行い、コードの権限を昇格または制限する方法について説明しています。
+ なお、SecurityManagerは、サイドチャネル攻撃やRow hammerのような低レベルの問題に対する保護を提供するものではなく、また、プロセス内の完全な分離を保証するものでもありません。
+別のプロセス（JVM）を使用して、信頼できないコードと機密情報を持つ信頼できるコードを分離する必要があります。
+ オペレーティング・システムやコンテナから得られる低レベルの分離メカニズムを利用することも推奨されます。
+```
+
+## Guideline 9-1 / ACCESS-1: Understand how permissions are checked
+
+```
+標準的なセキュリティチェックでは、コールスタックの各フレームが必要なパーミッションを持っていることを確認します。
+つまり、現在有効なパーミッションは、現在のアクセスコントロールコンテキスト内の各フレームのパーミッションの交点となります。
+いずれかのフレームが許可を持っていない場合、それがスタックのどこにあるかに関わらず、現在のコンテキストはその許可を持っていません。
+
+ライブラリを介して間接的に安全な操作を行うアプリケーションを考えてみましょう。
+```
+
+```java
+package xx.lib;
+
+public class LibClass {
+    private static final String OPTIONS = "xx.lib.options";
+
+    public static String getOptions() {
+        // checked by SecurityManager
+        return System.getProperty(OPTIONS);
+    }
+}
+
+package yy.app;
+
+class AppClass {
+    public static void main(String[] args) {
+        System.out.println(
+            xx.lib.LibClass.getOptions()
+        );
+    }
+}
+```
+
+```
+許可チェックが行われると、コールスタックは以下のようになります。
+
+        +--------------------------------+
+        | java.security.AccessController |
+        |   .checkPermission(Permission) |
+        +--------------------------------+
+        | java.lang.SecurityManager      |
+        |   .checkPermission(Permission) |
+        +--------------------------------+
+        | java.lang.SecurityManager      |
+        |   .checkPropertyAccess(String) |
+        +--------------------------------+
+        | java.lang.System               |
+        |   .getProperty(String)         |
+        +--------------------------------+
+        | xx.lib.LibClass                |
+        |   .getOptions()                |
+        +--------------------------------+
+        | yy.app.AppClass                |
+        |   .main(String[])              |
+        +--------------------------------+
+        
+上記の例では、AppClass フレームがファイルを読む権限を持っていなくても、LibClass フレームがファイルを読む権限を持っていれば、セキュリティ例外が発生します。
+特権的な操作の直接の呼び出し元が完全に特権的であることは問題ではなく、どこかのスタック上に非特権的なコードがあることが問題なのです。
+
+ライブラリ・コードが特権に関してアプリケーションから透過的に見えるようにするためには、ライブラリは少なくとも一緒に使用されるアプリケーション・コードと同じくらい寛大な権限を与えられるべきです。
+このような理由から、JDKや拡張機能で出荷されるほとんどすべてのコードは完全に特権化されています。
+したがって、ライブラリがアプリケーションコードに代わってセキュリティチェックされた操作を実行する際には、アプリケーションの権限を持つフレームが少なくとも1つスタック上に存在することが重要です。
+```
+
+## Guideline 9-2 / ACCESS-2: Beware of callback methods
+
+```
+コールバックメソッドは、一般的にフルパーミッションでシステムから呼び出されます。
+悪意のあるコードが操作を実行するためにはスタック上にいる必要があると考えるのが妥当だと思われますが、実際にはそうではありません。
+悪意のあるコードは、コールバックをセキュリティチェック済みの操作に橋渡しするオブジェクトを設定することがあります。
+例えば、ユーザーの操作によってファイルシステムを操作できるファイルチューザーのダイアログボックスに、悪意のあるコードからイベントが投稿されることがあります。
+また、悪意のあるコードは、ファイルチューザーを良心的なものとして偽装し、ユーザーのイベントをリダイレクトすることもできます。
+
+コールバックは、オブジェクト指向のシステムに広く普及しています。
+例えば、以下のようなものがあります。
+- 静的な初期化は完全な権限で行われることが多い
+- アプリケーションのメインメソッド 
+- Applet/Midlet/Servletのライフサイクルイベント1 
+- Runnable.run 
+
+このように、コールバックとセキュリティに配慮した操作の橋渡しは、バグを発見したり、どこにバグがあるのかを調べたりすることが容易ではないため、特に厄介です。
+
+コールバック型を実装する際には、ガイドライン9-6に記載されているテクニックを使ってコンテキストを転送する。
+```
+
+## Guideline 9-3 / ACCESS-3: Safely invoke java.security.AccessController.doPrivileged
+
+```
+AccessController.doPrivilegedは、SecurityManagerでチェックされた操作を行う際に、コードが独自のパーミッションを行使できるようにします。
+セキュリティチェックのために、コールスタックはdoPrivilegedの呼び出し元よりも事実上切り捨てられます。
+直接の呼び出し元はセキュリティチェックに含まれます。
+
+        +--------------------------------+
+        | action                         |
+        |   .run                         |
+        +--------------------------------+
+        | java.security.AccessController |
+        |   .doPrivileged                |
+        +--------------------------------+
+        | SomeClass                      |
+        |   .someMethod                  |
+        +--------------------------------+
+        | OtherClass                     |
+        |  .otherMethod                  |
+        +--------------------------------+
+        |                                |
+        
+上記の例では、セキュリティチェックのためにOtherClassフレームの特権が無視されています。
+
+許可されていない呼び出し元に代わってこのような操作を不用意に行わないように、呼び出し元が提供した入力（汚染された入力）を使用してdoPrivilegedを呼び出す際には十分注意してください。
+```
+
+```java
+package xx.lib;
+
+import java.security.*;
+
+public class LibClass {
+    // System property used by library, 
+    //  does not contain sensitive information
+    private static final String OPTIONS = "xx.lib.options";
+
+    public static String getOptions() {
+        return AccessController.doPrivileged(
+            new PrivilegedAction<String>() {
+                public String run() {
+                    // this is checked by SecurityManager
+                    return System.getProperty(OPTIONS);
+                }
+            }
+        );
+    }
+}
+```
+
+```
+getOptions の実装では、ハードコードされた値を使ってシステム・プロパティを適切に取得しています。
+具体的には、呼び出し側が提供した（汚染された）入力を doPrivileged に渡すことで、呼び出し側がプロパティの名前に影響を与えることはできません。
+
+また、特権的な操作によって機密情報が漏洩しないようにすることも重要です。
+doPrivilegedの戻り値が信頼されていないコードからアクセスできるようになっている場合は常に、返されたオブジェクトが機密情報を露呈していないことを確認してください。
+上記の例では、getOptions がシステムプロパティの値を返していますが、そのプロパティには機密データは含まれていません。
+
+検証された呼び出し元の入力は、doPrivilegedで安全に使用できる場合があります。
+通常、入力は限られた許容範囲の値（通常はハードコードされた値）に制限する必要があります。
+
+特権コードのセクションは、セキュリティ上の影響を理解しやすくするために、できるだけ小さくする必要があります。
+
+慣習上、PrivilegedActionとPrivilegedExceptionActionのインスタンスは、信頼されていないコードで利用可能ですが、doPrivilegedは、呼び出し元が提供するアクションで呼び出されてはなりません。
+
+doPrivilegedの2引数のオーバーロードでは、以前に取得したコンテキストの特権を変更することができます。
+nullのコンテキストは、それ以上の制限を加えないと解釈されます。
+そのため、保存されているコンテキストを使用する前に、そのコンテキストがnullでないことを確認してください（AccessController.getContextはnullを返しません）。
+```
+
+```java
+if (acc == null) {
+    throw new SecurityException("Missing AccessControlContext");
+}
+AccessController.doPrivileged(new PrivilegedAction<Void>() {
+        public Void run() {
+            ...
+        }
+    }, acc);
+```
+
+## Guideline 9-4 / ACCESS-4: Know how to restrict privileges through doPrivileged
+
+```
+パーミッションはフレームの交点に制限されるため、フレームがない（ゼロ）ことを表す人工的なAccessControlContextは、すべてのパーミッションを意味します。
+次の3つのdoPrivilegedの呼び出しは等価です。
+```
+
+```java
+private static final AccessControlContext allPermissionsAcc =
+    new AccessControlContext(
+        new java.security.ProtectionDomain[0]
+    );
+void someMethod(PrivilegedAction<Void> action) {
+    AccessController.doPrivileged(action, allPermissionsAcc);
+    AccessController.doPrivileged(action, null);
+    AccessController.doPrivileged(action);
+}
+```
+
+```
+すべてのパーミッションは、パーミッションのない ProtectionDomain のフレームを含む人工的な AccessControlContext コンテキストを使って削除できます。
+```
+
+```java
+private static final java.security.PermissionCollection
+    noPermissions = new java.security.Permissions();
+private static final AccessControlContext noPermissionsAcc =
+    new AccessControlContext(
+        new ProtectionDomain[] {
+            new ProtectionDomain(null, noPermissions)
+        }
+    );
+
+void someMethod(PrivilegedAction<Void> action) {
+    AccessController.doPrivileged(new PrivilegedAction<Void>() {
+        public Void run() {
+            ... context has no permissions ...
+            return null;
+        }
+    }, noPermissionsAcc);
+}
+```
+
+```
+
+        +--------------------------------+
+        | ActionImpl                     |
+        |   .run                         |
+        +--------------------------------+
+        |                                |
+        | noPermissionsAcc               |
+        + - - - - - - - - - - - - - - - -+
+        | java.security.AccessController |
+        |   .doPrivileged                |
+        +--------------------------------+
+        | SomeClass                      |
+        |   .someMethod                  |
+        +--------------------------------+
+        |  OtherClass                    |
+        |    .otherMethod                |
+        +--------------------------------+
+        |                                |
+        
+中間的な状況としては、限られたパーミッションのセットのみが付与される場合が考えられます。
+doPrivilegedに提供される前に、現在のコンテキストでパーミッションがチェックされていれば、権限昇格のリスクなしにパーミッションを減らすことができます。
+これにより、最小特権の原則の使用が可能になります。
+```
+
+```java
+private static void doWithFile(final Runnable task,
+                               String knownPath) {
+    Permission perm = new java.io.FilePermission(knownPath,
+                                                 "read,write");
+
+    // Ensure context already has permission,
+    //   so privileges are not elevate.
+    AccessController.checkPermission(perm);
+
+    // Execute task with the single permission only.
+    PermissionCollection perms = perm.newPermissionCollection();
+    perms.add(perm);
+    AccessController.doPrivileged(new PrivilegedAction<Void>() {
+        public Void run() {
+            task.run();
+            return null;
+        }},
+        new AccessControlContext(
+            new ProtectionDomain[] {
+                new ProtectionDomain(null, perms)
+            }
+        )
+    );
+}
+```
+
+```
+ディレクトリにパーミッションを与える際には、そのアクセスが意図しない結果をもたらさないように細心の注意を払わなければなりません。
+ファイルやサブディレクトリに安全でないパーミッションが設定されていたり、ファイルシステムオブジェクトがディレクトリ外への追加アクセスを提供したりする可能性があります（シンボリックリンク、ループデバイス、ネットワークマウント/シェア、など）。
+セキュリティポリシーやAccessController.doPrivilegedブロックでファイルのパーミッションを付与する際には、この点を考慮することが重要です。
+また、あまり目立たないケース（例えば、クラスがロードされたディレクトリの読み取りパーミッションを付与することができます）についても考慮する必要があります。
+
+アプリケーションは、コードやその他のファイルシステムに専用のディレクトリを使用し、安全なパーミッションが適用されるようにする必要があります。
+共有/共通ディレクトリからコードを実行したり、共有/共通ディレクトリへのアクセス（シンボリックリンクによるアクセスを含む）を許可することは、可能な限り避けるべきです。
+また、ファイルのパーミッションチェックを可能な限り厳密かつ安全に行うように設定することを推奨します[21]。
+
+Java 8では、限定的なdoPrivilegedアプローチも追加されました。
+このアプローチでは、コードが特権のサブセットを主張することができる一方で、他の許可をチェックするための完全なアクセス制御スタックウォークが可能です。
+アサートされた権限の1つがチェックされた場合、スタックチェックはdoPrivilegedの呼び出しで停止します。
+他の許可のチェックについては、スタック・チェックはdoPrivileged invocationを越えて継続されます。
+これは、常に doPrivileged invocation で停止する、前述のアプローチとは異なります。
+
+次の例を考えてみましょう。
+```
+
+```java
+private static void doWithURL(final Runnable task,
+                                          String knownURL) {
+    URLPermission urlPerm = new URLPermission(knownURL);
+    AccessController.doPrivileged(
+                            new PrivilegedAction<Void>() {                 
+        public Void run() {                     
+            task.run();                     
+            return null;                 
+        }},
+        someContext,              
+        urlPerm             
+    );  
+}
+```
+
+```
+タスクの実行中に URLPermission に一致する許可チェックが行われた場合、スタックチェックは doWithURL で停止します。
+しかし、URLPermission にマッチしない許可チェックが実行された場合、スタックチェックはスタックを歩き続けます。
+
+doPrivilegedの他のバージョンと同様に、限定されたdoPrivilegedメソッドでは、context引数をnullにすることができ、その結果、追加の制限は適用されません。
+```
+
+## Guideline 9-5 / ACCESS-5: Be careful caching results of potentially privileged operations
+
+```
+キャッシュされた結果は、それを生成するための適切なパーミッションを持っていないコンテキストに渡されてはなりません。
+そのため、結果が返されるどのコンテキストよりも多くの権限を持たないコンテキストで結果が生成されるようにします。
+権限の計算にはエラーが含まれる可能性があるため、AccessController APIを使用して制約を強化してください。
+```
+
+```java
+private static final Map cache;
+
+public static Thing getThing(String key) {
+    // Try cache.
+    CacheEntry entry = cache.get(key);
+    if (entry != null) {
+        // Ensure we have required permissions before returning
+        //   cached result.
+        AccessController.checkPermission(entry.getPermission());
+        return entry.getValue();
+    }
+
+    // Ensure we do not elevate privileges (per <a href="#9-2">Guideline 9-2</a>).
+    Permission perm = getPermission(key);
+    AccessController.checkPermission(perm);
+
+    // Create new value with exact privileges.
+    PermissionCollection perms = perm.newPermissionCollection();
+    perms.add(perm);
+    Thing value = AccessController.doPrivileged(
+        new PrivilegedAction<Thing>() { public Thing run() {
+            return createThing(key);
+        }},
+        new AccessControlContext(
+            new ProtectionDomain[] {
+                new ProtectionDomain(null, perms)
+            }
+        )
+    );
+    cache.put(key, new CacheEntry(value, perm));
+
+    return value;
+}
+```
+
+## Guideline 9-6 / ACCESS-6: Understand how to transfer context
+
+```
+アクセスコントロールのコンテキストを保存しておくと、後々便利なことがあります。
+例えば、特権的な操作を行うコールバックインスタンスへのアクセスを提供することが適切であると判断した場合、コールバックオブジェクトが登録されたコンテキストでコールバックメソッドを呼び出すことができます。
+このコンテキストは、後から同じスレッドまたは別のスレッドで復元することができます。
+元のスレッドが終了した後でも、特定のコンテキストを何度も復元することができます。
+
+AccessController.getContextは、現在のコンテキストを返します。
+AccessController.doPrivilegedの2引数のフォームは、アクションの間、現在のコンテキストを保存されたコンテキストに置き換えることができます。
+```
+
+```java
+package xx.lib;
+
+public class Reactor {
+    public void addHandler(Handler handler) {
+        handlers.add(new HandlerEntry(
+                handler, AccessController.getContext()
+        ));
+    }
+    private void fire(final Handler handler,
+                      AccessControlContext acc) {
+        if (acc == null) {
+            throw new SecurityException(
+                          "Missing AccessControlContext");
+        }
+        AccessController.doPrivileged(
+            new PrivilegedAction<Void>() {
+                public Void run() {
+                    handler.handle();
+                    return null;
+                }
+            }, acc);
+     }
+     ...
+}
+```
+
+```
+
+                                         +--------------------------------+
+                                         | xx.lib.FileHandler             |
+                                         |   handle()                     |
+                                         +--------------------------------+
+                                         | xx.lib.Reactor.(anonymous)     |
+                                         |   run()                        |
++--------------------------------+ \     +--------------------------------+
+| java.security.AccessController |  `    |                                |
+|   .getContext()                |  +--> | acc                            |
++--------------------------------+  |    + - - - - - - - - - - - - - - - -+
+| xx.lib.Reactor                 |  |    | java.security.AccessController |
+|   .addHandler(Handler)         |  |    |   .doPrivileged(handler, acc)  |
++--------------------------------+  |    +--------------------------------+
+| yy.app.App                     |  |    | xx.lib.Reactor                 |
+|   .main(String[] args)         |  ,    |   .fire                        |
++--------------------------------+ /     +--------------------------------+
+                                         | xx.lib.Reactor                 |
+                                         | .run                           |
+                                         +--------------------------------+
+                                         |                                |
+```
+
+## Guideline 9-7 / ACCESS-7: Understand how thread construction transfers context
+
+```
+新たに構築されたスレッドは、Thread オブジェクトが構築されたときに存在したアクセス制御コンテキストで実行されます。
+このコンテキストを迂回することを防ぐために、信頼されていないオブジェクトの void run() を不適切な権限で実行してはいけません。
+```
+
