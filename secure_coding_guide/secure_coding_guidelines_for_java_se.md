@@ -752,6 +752,7 @@ JDK 8では、インターフェースにデフォルト・メソッドが導入
 ```
 
 ---
+
 # 5 Input Validation
 
 バリデーションチェック
@@ -1527,3 +1528,265 @@ Java Serializationは、Java言語のフィールド・アクセス・コント�
 これらのガイドラインの一部は、サードパーティのライブラリが提供する他のシリアライズ機能にも関連していますが、ドキュメントを参照し、サードパーティのコードに固有のベストプラクティスを利用することも重要です。
 サードパーティ・コードのセキュリティに関する注意点については、ガイドライン0-8を参照してください。
 ```
+
+## Guideline 8-1 / SERIAL-1: Avoid serialization for security-sensitive classes
+
+```
+シリアル化できないセキュリティセンシティブなクラスには、このセクションで説明するような問題はありません。
+クラスをシリアライズ可能にすると、そのクラスのすべてのフィールドに対するパブリック・インターフェースが効果的に作成されます。
+また、シリアル化することで、クラスに隠れたパブリックコンストラクタが追加され、オブジェクトの構築を制限しようとする際に考慮する必要があります。
+
+同様に、ラムダもシリアライズ可能にする前に精査する必要があります。
+機能的なインターフェイスは、何が公開されるかを十分に考慮せずにシリアライズ可能にすべきではありません。
+
+また、シリアル化可能なクラスをサブクラス化したり、シリアル化可能なインターフェイスを実装したりして、意図せずにセキュリティセンシティブなクラスをシリアル化しないようにすることも重要です。
+```
+
+## Guideline 8-2 / SERIAL-2: Guard sensitive data during serialization
+
+```
+オブジェクトがシリアル化されると、Java言語のアクセス制御が効かなくなるため、攻撃者はシリアル化されたバイトストリームを解析することで、オブジェクトのプライベートフィールドにアクセスできてしまいます。そのため、シリアル化可能なクラスで機密データをシリアル化しないでください。
+
+シリアライザブルクラスでセンシティブなフィールドを扱うためのアプローチは以下の通りです。
+
+- センシティブなフィールドを一時的なものとして宣言する
+- serialPersistentFields 配列フィールドを適切に定義する。
+- writeObjectを実装し、ObjectOutputStream.putFieldを選択的に使用する。
+- writeReplaceを実装して、インスタンスをシリアルプロキシで置き換える
+- Externalizableインターフェースの実装
+```
+
+## Guideline 8-3 / SERIAL-3: View deserialization the same as object construction
+
+
+```
+デシリアライズは、クラスのコンストラクタを呼び出さずに、そのクラスの新しいインスタンスを作成します。
+そのため、デシリアライズは通常のコンストラクタのように動作するように設計する必要があります。
+
+デフォルトのデシリアライゼーションとObjectInputStream.defaultReadObjectは、非一時的なフィールドに任意のオブジェクトを割り当てることができ、必ずしも戻りません。
+代わりにObjectInputStream.readFieldsを使用して、フィールドへの割り当ての前にコピーを挿入します。
+また、可能であれば、機密性の高いクラスをシリアル化しないようにしてください。
+```
+
+```java
+public final class ByteString implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
+    private byte[] data;
+    public ByteString(byte[] data) {
+        this.data = data.clone(); // Make copy before assignment.
+    }
+    private void readObject(
+        java.io.ObjectInputStream in
+    ) throws java.io.IOException, ClassNotFoundException {
+        java.io.ObjectInputStreadm.GetField fields =
+            in.readFields();
+        this.data = ((byte[])fields.get("data")).clone();
+    }
+    ...
+}
+```
+
+```
+readObject メソッドの実装では、コンストラクタで行うのと同じ入力検証チェックを行います。
+同様に、デシリアライズ時に明示的に設定されないトランジェント フィールドを含むすべてのフィールドに、コンストラクタで割り当てられたものと同じデフォルト値を割り当てます。
+
+さらに、デシリアライズされたミュータブル オブジェクトのコピーを作成してから、readObject 実装の内部フィールドに割り当てます。
+これにより、敵対的なコードがバイトストリームをデシリアライズする際に、デシリアライズされたコンテナオブジェクト内のミュータブルオブジェクトへの参照を攻撃者に与えるように特別に細工されていることを防御します。
+```
+
+```java
+public final class Nonnegative implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
+    private int value;
+    public Nonnegative(int value) {
+        // Make check before assignment.
+        this.data = nonnegative(value);
+    }
+    private static int nonnegative(int value) {
+        if (value < 0) {
+            throw new IllegalArgumentException(value +
+                                               " is negative");
+        }
+        return value;
+    }
+    private void readObject(
+        java.io.ObjectInputStream in
+    ) throws java.io.IOException, ClassNotFoundException {
+        java.io.ObjectInputStreadm.GetField fields =
+            in.readFields();
+        this.value = nonnegative(field.get(value, 0));
+    }
+    ...
+}
+```
+
+```
+攻撃者は、部分的に初期化された（デシリアライズされた）オブジェクトを悪用するために、敵対的なストリームを作ることもできます。
+シリアライズ可能なクラスは、デシリアライズが正常に完了するまで完全に使用できないようにします。
+例えば、初期化されたフラグを使用します。
+このフラグをプライベートな一時的フィールドとして宣言し、正常に復帰する直前に readObject または readObjectNoData メソッド（およびコンストラクタ）でのみ設定します。
+クラス内のすべてのパブリックおよびプロテクトメソッドは、通常のロジックを実行する前に、初期化フラグを参照する必要があります。
+前述のとおり、初期化フラグの使用は面倒です。
+デシリアライズが正常に完了するまで、すべてのフィールドに安全な値 (null など) が含まれていることを確認するだけでも、合理的な代替手段となります。
+
+セキュリティが重視されるシリアライザブルクラスは、オブジェクトのフィールドタイプがfinalクラスであることを保証するか、デシリアライズ時に正確なタイプを保証するために特別な検証を行う必要があります。
+そうしないと、攻撃者のコードは、予想外の動作をする悪意のあるサブクラスをフィールドに投入する可能性があります。
+例えば、クラスが java.util.List 型のフィールドを持っている場合、攻撃者は矛盾したデータを返す実装でフィールドを生成する可能性があります。
+```
+
+## Guideline 8-4 / SERIAL-4: Duplicate the SecurityManager checks enforced in a class during serialization and deserialization
+
+```
+攻撃者がシリアライズまたはデシリアライズを使用して、クラスで実施されているSecurityManagerチェックを回避することを防ぎます。
+具体的には、シリアル化可能なクラスがコンストラクタでSecurityManagerのチェックを実施する場合、readObjectまたはreadObjectNoDataメソッドの実装でも同じチェックを実施します。
+そうしないと、デシリアライズによってチェックなしでクラスのインスタンスが作成されてしまいます。
+```
+
+```java
+public final class SensitiveClass implements java.io.Serializable {
+    public SensitiveClass() {
+        // permission needed to instantiate SensitiveClass
+        securityManagerCheck();
+
+        // regular logic follows
+    }
+
+    // implement readObject to enforce checks
+    //   during deserialization
+    private void readObject(java.io.ObjectInputStream in) {
+        // duplicate check from constructor
+        securityManagerCheck();
+
+        // regular logic follows
+    }
+}
+```
+
+```
+シリアル化可能なクラスが、呼び出し元による内部状態の変更を可能にし（例えば、パブリック・メソッドを介して）、その変更がSecurityManagerのチェックでガードされている場合、readObjectメソッドの実装で同じチェックを実施してください。
+そうしないと、攻撃者はデシリアライズを利用して、チェックを通過せずに、変更された状態のオブジェクトの別のインスタンスを作成することができます。
+```
+
+```java
+public final class SecureName implements java.io.Serializable {
+
+    // private internal state
+    private String name;
+
+    private static final String DEFAULT = "DEFAULT";
+
+    public SecureName() {
+        // initialize name to default value
+        name = DEFAULT;
+    }
+
+    // allow callers to modify private internal state
+    public void setName(String name) {
+        if (name!=null ? name.equals(this.name)
+                       : (this.name == null)) {
+            // no change - do nothing
+            return;
+        } else {
+            // permission needed to modify name
+            securityManagerCheck();
+
+            inputValidation(name);
+
+            this.name = name;
+        }
+    }
+
+    // implement readObject to enforce checks
+    //   during deserialization
+    private void readObject(java.io.ObjectInputStream in) {
+        java.io.ObjectInputStream.GetField fields =
+            in.readFields();
+        String name = (String) fields.get("name", DEFAULT);
+
+        // if the deserialized name does not match the default
+        //   value normally created at construction time,
+        //   duplicate checks
+
+
+        if (!DEFAULT.equals(name)) {
+            securityManagerCheck();
+            inputValidation(name);
+        }
+        this.name = name;
+    }
+
+}
+```
+
+```
+シリアル化可能なクラスが、呼び出し元から内部状態を取得できるようにし、その取得が機密データの漏洩を防ぐためにSecurityManagerのチェックでガードされている場合は、writeObjectメソッドの実装でも同じチェックを実施してください。
+そうしないと、攻撃者はオブジェクトをシリアル化してチェックを回避し、シリアル化されたバイトストリームを読むだけで内部状態にアクセスできてしまいます。
+```
+
+```java
+public final class SecureValue implements java.io.Serializable {
+    // sensitive internal state
+    private String value;
+
+    // public method to allow callers to retrieve internal state
+
+    public String getValue() {
+        // permission needed to get value
+        securityManagerCheck();
+
+        return value;
+    }
+
+
+    // implement writeObject to enforce checks 
+    //  during serialization
+    private void writeObject(java.io.ObjectOutputStream out) {
+        // duplicate check from getValue()
+        securityManagerCheck();
+        out.writeObject(value);
+    }
+}
+```
+
+## Guideline 8-5 / SERIAL-5: Understand the security permissions given to serialization and deserialization
+
+```
+デシリアライズに適したパーミッションを注意深くチェックする必要があります。
+また、信頼されていないデータのデシリアライズは、可能な限り避けるべきです。
+
+フルパーミッションでシリアライズすると、writeObjectメソッドのパーミッションチェックを回避することができます。
+たとえば、java.security.GuardedObject は、対象となるオブジェクトをシリアル化する前にガードをチェックします。
+フルパーミッションの場合、このガードが回避され、オブジェクトからのデータが（オブジェクト自体ではなく）攻撃者に利用可能になります。
+
+デシリアライズはより重要です。
+readObjectの実装の中には、セキュリティチェックを行おうとするものが多数ありますが、これはフルパーミッションが与えられればパスします。
+さらに、シリアル化できないセキュリティセンシティブなサブクラス化可能なクラスの中には、例えばClassLoaderのように引数なしのコンストラクタを持つものがあります。
+ClassLoaderをサブクラス化した悪意のあるシリアル化可能なクラスを考えてみましょう。
+シリアル化解除の際、シリアル化メソッドはコンストラクタ自体を呼び出し、サブクラスの任意の readObject を実行します。
+ClassLoader のコンストラクタが呼び出されるとき、スタック上に権限のないコードは存在しないため、セキュリティチェックはパスします。
+したがって、データに適さないパーミッションでデシリアライズしてはいけません。
+代わりに、データは必要最小限の権限でデシリアライズされるべきです。
+```
+
+## Guideline 8-6 / SERIAL-6: Filter untrusted serial data
+
+```
+シリアライゼーション・フィルタリングは、JDK 9で導入された新機能で、オブジェクト・シリアライゼーションを使用する際のセキュリティと堅牢性の両方を向上させます。
+セキュリティ・ガイドラインでは、外部ソースからの入力を使用前に検証することが一貫して求められています。
+シリアル化フィルタリングは、デシリアライズされる前にクラスを検証するメカニズムを提供します。
+フィルタは、アプリケーションを変更することなく、オブジェクトのシリアル化のほとんどの用途に適用するように構成することができます。
+フィルタは、システム・プロパティで設定するか、セキュリティ・プロパティのオーバーライド・メカニズムを使って設定します。
+典型的な使用例は、Javaランタイムを危険にさらす可能性があると認識されているクラスのブロックリストを作成することです。
+既知の安全なクラスの許可リストを使用することも簡単です（より強力なセキュリティのためには、ブロックリストのアプローチよりも好ましい）。
+特定のクラスをブロックするアプローチをとる場合、ブロックされたクラスのサブクラスがまだデシリアライズ可能であることを考慮することが重要です。
+フィルタメカニズムにより、オブジェクトをシリアル化するクライアントは、より簡単に入力を検証することができます。
+より細かいアプローチとして、ObjectInputFilter APIを使用すると、アプリケーションはObjectInputStreamの各用途に特化したより細かい制御を統合することができます。
+
+RMIは、エクスポートされたオブジェクトのリモート呼び出しを保護するためのシリアル化フィルタの設定をサポートしています。
+RMIレジストリとRMI分散型ガベージコレクタは、このフィルタリングメカニズムを防御的に使用します。
+
+設定可能なフィルターのサポートは、JDK 8u121、JDK 7u131、JDK 6u141のCPUリリースに含まれています。
+
+詳細については、[17]および[20]を参照してください。
+```
+
