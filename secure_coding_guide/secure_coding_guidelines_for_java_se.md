@@ -2036,6 +2036,8 @@ AccessController.doPrivileged(new PrivilegedAction<Void>() {
 
 ## Guideline 9-4 / ACCESS-4: Know how to restrict privileges through doPrivileged
 
+ディレクトリに対する読み書き、URLへの通信に関して権限をコントロールすることができる。
+
 ```
 パーミッションはフレームの交点に制限されるため、フレームがない（ゼロ）ことを表す人工的なAccessControlContextは、すべてのパーミッションを意味します。
 次の3つのdoPrivilegedの呼び出しは等価です。
