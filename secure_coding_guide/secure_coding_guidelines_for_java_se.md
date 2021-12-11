@@ -1843,16 +1843,20 @@ RMIレジストリとRMI分散型ガベージコレクタは、このフィル�
 
 # 9 Access Control
 
+SecurityManagerを使ったアクセスコントロール
+
 ```
 Javaは主にオブジェクト・キャパシティ言語ですが、スタック・ベースのアクセス・コントロール・メカニズムを使用して、より一般的なAPIを安全に提供しています。
 
 このセクションのガイドラインの多くは、SecurityManagerを使用してセキュリティチェックを行い、コードの権限を昇格または制限する方法について説明しています。
- なお、SecurityManagerは、サイドチャネル攻撃やRow hammerのような低レベルの問題に対する保護を提供するものではなく、また、プロセス内の完全な分離を保証するものでもありません。
+なお、SecurityManagerは、サイドチャネル攻撃やRow hammerのような低レベルの問題に対する保護を提供するものではなく、また、プロセス内の完全な分離を保証するものでもありません。
 別のプロセス（JVM）を使用して、信頼できないコードと機密情報を持つ信頼できるコードを分離する必要があります。
- オペレーティング・システムやコンテナから得られる低レベルの分離メカニズムを利用することも推奨されます。
+オペレーティング・システムやコンテナから得られる低レベルの分離メカニズムを利用することも推奨されます。
 ```
 
 ## Guideline 9-1 / ACCESS-1: Understand how permissions are checked
+
+１つでもセキュリティチェックをできるような特権的なレイアがあれば、それを介してセキュリティチェックをできる。
 
 ```
 標準的なセキュリティチェックでは、コールスタックの各フレームが必要なパーミッションを持っていることを確認します。
@@ -1918,6 +1922,8 @@ class AppClass {
 
 ## Guideline 9-2 / ACCESS-2: Beware of callback methods
 
+コールバックを実装する際には9-6で述べているテクニックを使う。
+
 ```
 コールバックメソッドは、一般的にフルパーミッションでシステムから呼び出されます。
 悪意のあるコードが操作を実行するためにはスタック上にいる必要があると考えるのが妥当だと思われますが、実際にはそうではありません。
@@ -1938,6 +1944,16 @@ class AppClass {
 ```
 
 ## Guideline 9-3 / ACCESS-3: Safely invoke java.security.AccessController.doPrivileged
+
+AccessController.doPrivileged の呼び出しにおいて、与える引数に外部から来た汚染された値を使ってはならない。
+
+Springにおいて、`AccessController.doPrivileged`で調べたら下記が出てきた。無関係というわけではなさそうだ。
+https://jira.spring.io/browse/SPR-8273?redirect=false
+
+SpringBootだとこんな感じの。
+https://github.com/spring-projects/spring-boot/issues/8269
+
+ただ、今のSpringからは`AccessController.doPrivileged`は消えてるっぽい。
 
 ```
 AccessController.doPrivilegedは、SecurityManagerでチェックされた操作を行う際に、コードが独自のパーミッションを行使できるようにします。
