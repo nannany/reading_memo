@@ -1845,6 +1845,9 @@ RMIレジストリとRMI分散型ガベージコレクタは、このフィル�
 
 SecurityManagerを使ったアクセスコントロール
 
+下記の、プラットフォームのセキュリティ (SEC)部分のことと思われる。
+https://www.jpcert.or.jp/java-rules/sec00-j.html
+
 ```
 Javaは主にオブジェクト・キャパシティ言語ですが、スタック・ベースのアクセス・コントロール・メカニズムを使用して、より一般的なAPIを安全に提供しています。
 
@@ -2036,7 +2039,8 @@ AccessController.doPrivileged(new PrivilegedAction<Void>() {
 
 ## Guideline 9-4 / ACCESS-4: Know how to restrict privileges through doPrivileged
 
-ディレクトリに対する読み書き、URLへの通信に関して権限をコントロールすることができる。
+ディレクトリに対する読み書き、URLへの通信に関して権限をコントロールできる。
+これは信頼できないライブラリを使う時用って感じかなぁ。
 
 ```
 パーミッションはフレームの交点に制限されるため、フレームがない（ゼロ）ことを表す人工的なAccessControlContextは、すべてのパーミッションを意味します。
@@ -2175,6 +2179,8 @@ doPrivilegedの他のバージョンと同様に、限定されたdoPrivileged�
 
 ## Guideline 9-5 / ACCESS-5: Be careful caching results of potentially privileged operations
 
+キャッシュを渡すときも適切なパーミッションを持っているか確認する。
+
 ```
 キャッシュされた結果は、それを生成するための適切なパーミッションを持っていないコンテキストに渡されてはなりません。
 そのため、結果が返されるどのコンテキストよりも多くの権限を持たないコンテキストで結果が生成されるようにします。
@@ -2218,6 +2224,8 @@ public static Thing getThing(String key) {
 ```
 
 ## Guideline 9-6 / ACCESS-6: Understand how to transfer context
+
+コールバックを扱うときには、そのコンテキストを保存しておく。
 
 ```
 アクセスコントロールのコンテキストを保存しておくと、後々便利なことがあります。
@@ -2281,6 +2289,8 @@ public class Reactor {
 ```
 
 ## Guideline 9-7 / ACCESS-7: Understand how thread construction transfers context
+
+信頼されていないオブジェクトのvoid run()を不適切な権限で実行してはいけない。
 
 ```
 新たに構築されたスレッドは、Thread オブジェクトが構築されたときに存在したアクセス制御コンテキストで実行されます。
@@ -2403,6 +2413,8 @@ javax.sql.rowset.serial.SerialJavaObject.getFields
 
 ## Guideline 9-9 / ACCESS-9: Safely invoke standard APIs that perform tasks using the immediate caller's class loader instance
 
+下記のメソッドの戻りを信頼できないコードに渡してはいけない。
+
 ```
 以下のスタティック・メソッドは、即時呼び出し元のクラス・ローダを使用してタスクを実行します。
 ```
@@ -2471,6 +2483,8 @@ java.util.concurrent.atomic.AtomicReferenceFieldUpdater.newUpdater
 
 ## Guideline 9-11 / ACCESS-11: Be aware java.lang.reflect.Method.invoke is ignored for checking the immediate caller
 
+Method.invokeは避ける
+
 ```java
 package xx.lib;
 
@@ -2510,6 +2524,8 @@ class LibClass {
 ```
 
 ## Guideline 9-12 / ACCESS-12: Avoid using caller-sensitive method names in interface classes
+
+9-8、9-9、9-10とかにあったメソッド名を使用するのは避ける。
 
 ```
 インターフェイス・クラスを設計する際には、ガイドライン9-8、9-9、9-10に記載されているようなcaller-sensitiveメソッドと同じ名前とシグネチャを持つメソッドを使用することは避けなければなりません。
