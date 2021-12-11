@@ -402,7 +402,10 @@ HTML,XML出力について。
 
 ## Guideline 3-4 / INJECT-4: Avoid any untrusted data on the command line
 
+新しいプロセスに渡すデータは一時ファイルや継承されたチャネル？を通じて渡す。
+普通にWebプログラミングをするにあたってはプロセスを作ることはなさそう。
 
+[xxe攻撃](https://www.mbsd.jp/blog/20171130.html) 
 
 ```
 新しいプロセスを作成するときは、信頼できないデータをコマンドラインに置かないでください。
@@ -412,6 +415,9 @@ HTML,XML出力について。
 ```
 
 ## Guideline 3-5 / INJECT-5: Restrict XML inclusion
+
+XMLを取得して、それを元に何か組み立てたりする処理は気をつける。
+そのような処理がある場合はXMLパーサーの権限を制限したりする。
 
 ```
 XML Document Type Definitions（DTD）では、ローカルファイルやローカルイントラネット内のHTTP URL、localhostなどのシステムエンティティとしてURLを定義することができます。
@@ -425,6 +431,8 @@ XML パーサーは、外部エンティティを禁止したり、DTD を完全
 ```
 
 ## Guideline 3-6 / INJECT-6: Care with BMP files
+
+
 
 ```
 BMP画像ファイルには、ローカルのICC（International Color Consortium）ファイルが参照されている場合があります。
@@ -2217,4 +2225,5 @@ public class Reactor {
 新たに構築されたスレッドは、Thread オブジェクトが構築されたときに存在したアクセス制御コンテキストで実行されます。
 このコンテキストを迂回することを防ぐために、信頼されていないオブジェクトの void run() を不適切な権限で実行してはいけません。
 ```
+
 
