@@ -2269,4 +2269,336 @@ public class Reactor {
 このコンテキストを迂回することを防ぐために、信頼されていないオブジェクトの void run() を不適切な権限で実行してはいけません。
 ```
 
+## Guideline 9-8 / ACCESS-8: Safely invoke standard APIs that bypass SecurityManager checks depending on the immediate caller's class loader
 
+```
+Javaランタイムのコア・ライブラリにある特定の標準APIは、SecurityManagerのチェックを強制しますが、直接の呼び出し元のクラス・ローダによっては、そのチェックを回避することができます。
+例えば、java.lang.Class.newInstanceメソッドがClassオブジェクトで呼び出された場合、直接の呼び出し元のクラス・ローダとClassオブジェクトのクラス・ローダが比較されます。
+呼び出し元のクラス・ローダが Class オブジェクトのクラス・ローダの祖先である (または同じである) 場合、newInstance メソッドは SecurityManager のチェックをバイパスします。
+(クラスローダの関係については、[1]のセクション4.3.2を参照してください）。
+それ以外の場合は、関連するSecurityManagerのチェックが実施されます。
+
+このクラスローダ比較とSecurityManagerチェックの違いは注目に値します。
+SecurityManagerチェックは、現在の実行チェーンに含まれるすべての呼び出し元を調査し、それぞれに必要なセキュリティ権限が与えられていることを確認します。
+(AccessController.doPrivilegedが連鎖的に呼び出された場合、doPrivilegedの呼び出し元につながるすべての呼び出し元がチェックされます)。
+一方、クラスローダの比較では、直接の呼び出し元のコンテキスト（そのクラスローダ）のみを調査します。
+つまり、Class.newInstanceを呼び出し、クラスローダーのチェックを通過する能力を持つ呼び出し元は、SecurityManagerをバイパスすることで、事実上、暗黙のAccessController.doPrivilegedアクションの中で呼び出しを実行します。
+このため、呼び出し側は、信頼できないコードの代わりに誤ってClass.newInstanceを呼び出してしまわないように注意する必要があります。
+```
+
+```java
+package yy.app;
+
+class AppClass {
+   OtherClass appMethod() throws Exception {
+       return OtherClass.class.newInstance();
+   }
+}
+```
+
+```
+        +--------------------------------+
+        | xx.lib.LibClass                |
+        |   .LibClass                    |
+        +--------------------------------+
+        | java.lang.Class                |
+        |   .newInstance                 |
+        +--------------------------------+
+        | yy.app.AppClass                |<-- AppClass.class.getClassLoader
+        |   .appMethod                   |       determines check
+        +--------------------------------+
+        |                                |
+
+コードは、自分自身のクラスローダーと、その子孫であるクラスローダーに完全にアクセスできます。
+Class.newInstance の場合、クラスローダへのアクセスは、制限されたパッケージ内のクラスへのアクセスを意味します (例: sun.という接頭辞が付いたシステムクラス)。
+
+以下の図では、Bがロードしたクラスは、Bとその子孫であるC、E、Dにアクセスできます。
+グレーの取り消し線フォントで示されている他のクラスローダーは、セキュリティチェックの対象となります。
+
+
+        +-------------------------+
+        |    bootstrap loader     | <--- null
+        +-------------------------+
+                 ^              ^
+        +------------------+  +---+
+        | extension loader |  | A |
+        +------------------+  +---+
+                 ^
+        +------------------+
+        |  system loader   | <--- Class.getSystemClassLoader()
+        +------------------+
+             ^           ^
+        +----------+   +---+
+        |    B     |   | F |
+        +----------+   +---+
+           ^      ^       ^
+        +---+  +---+   +---+
+        | C |  | E |   | G |                
+        +---+  +---+   +---+
+          ^
+        +---+
+        | D |
+        +---+
+
+以下のメソッドは、Class.newInstanceと同様の動作をしますが、即時呼び出し元のクラスローダによってはSecurityManagerのチェックをバイパスする可能性があります。
+```
+
+```java
+java.io.ObjectStreamField.getType
+java.io.ObjectStreamClass.forClass
+java.lang.Class.newInstance
+java.lang.Class.getClassLoader
+java.lang.Class.getClasses
+java.lang.Class.getField(s)
+java.lang.Class.getMethod(s)
+java.lang.Class.getConstructor(s)
+java.lang.Class.getDeclaredClasses
+java.lang.Class.getDeclaredField(s)
+java.lang.Class.getDeclaredMethod(s)
+java.lang.Class.getDeclaredConstructor(s)
+java.lang.Class.getDeclaringClass
+java.lang.Class.getEnclosingMethod
+java.lang.Class.getEnclosingClass
+java.lang.Class.getEnclosingConstructor
+java.lang.Class.getNestHost
+java.lang.Class.getNestMembers
+java.lang.ClassLoader.getParent
+java.lang.ClassLoader.getSystemClassLoader
+java.lang.StackWalker.forEach
+java.lang.StackWalker.getCallerClass
+java.lang.StackWalker.walk
+java.lang.invoke.MethodHandleProxies.asInterfaceInstance
+java.lang.reflect.Proxy.getInvocationHandler
+java.lang.reflect.Proxy.getProxyClass (deprecated)
+java.lang.reflect.Proxy.newProxyInstance
+java.lang.Thread.getContextClassLoader
+javax.sql.rowset.serial.SerialJavaObject.getFields
+```
+
+```
+これらのように、呼び出し元のクラスに応じて動作が変化するメソッドは、呼び出し元に依存すると考えられるため、コードに @CallerSensitive アノテーション [16] を付ける必要があります。
+
+信頼できないコードから受け取った Class、ClassLoader、または Thread のインスタンスに対して上記のメソッドを呼び出すことは控えてください。
+それぞれのインスタンスが安全に取得された場合 (または、静的な ClassLoader.getSystemClassLoader メソッドの場合)、信頼できないコードから提供された入力を使用して上記のメソッドを呼び出さないでください。
+また、上記のメソッドから返されたオブジェクトを、信頼できないコードに伝播させないでください。
+```
+
+## Guideline 9-9 / ACCESS-9: Safely invoke standard APIs that perform tasks using the immediate caller's class loader instance
+
+```
+以下のスタティック・メソッドは、即時呼び出し元のクラス・ローダを使用してタスクを実行します。
+```
+
+```java
+java.lang.Class.forName
+java.lang.ClassLoader.getPlatformClassLoader
+java.lang.Package.getPackage(s) (deprecated)
+java.lang.Runtime.load
+java.lang.Runtime.loadLibrary
+java.lang.System.load
+java.lang.System.loadLibrary
+java.sql.DriverManager.deregisterDriver     
+java.sql.DriverManager.getConnection
+java.sql.DriverManager.getDriver(s)
+java.security.AccessController.doPrivileged* 
+java.util.logging.Logger.getAnonymousLogger
+java.util.logging.Logger.getLogger
+java.util.ResourceBundle.getBundle
+```
+
+```
+このように、呼び出し元のクラスに応じて動作が変化するメソッドは、呼び出し元に依存していると考えられるため、コードに@CallerSensitiveアノテーションを付ける必要があります[16]。
+
+例えば、System.loadLibrary("/com/foo/MyLib.so")は、直接の呼び出し元のクラスローダを使用して、指定されたライブラリを見つけてロードします。
+(信頼できないコードは、自身のクラス・ローダー・インスタンスを使用して同じライブラリをロードする能力を持っていない可能性があるため、信頼できないコードを代表してこのメソッドを呼び出さないでください。
+また、これらのメソッドから返されたオブジェクトを信頼できないコードに伝播させないでください。
+```
+
+## Guideline 9-10 / ACCESS-10: Be aware of standard APIs that perform Java language access checks against the immediate caller
+
+```
+オブジェクトが他のオブジェクトのフィールドやメソッドにアクセスする際、JVMはアクセス制御チェックを行い、対象となるメソッドやフィールドの有効な可視性を保証します。
+例えば、オブジェクトが他のオブジェクトのプライベート・メソッドを呼び出すことを防ぎます。
+
+コードは、他のオブジェクトのフィールドやメソッドに反射的にアクセスするために、標準的なAPI（主にjava.lang.reflectパッケージ内）を呼び出すこともできます。
+以下のリフレクションベースのAPIは、仮想マシンが実施する言語チェックを反映しています。
+```
+
+```java
+java.lang.Class.newInstance
+java.lang.invoke.MethodHandles.lookup 
+java.lang.reflect.AccessibleObject.canAccess
+java.lang.reflect.AccessibleObject.setAccessible
+java.lang.reflect.AccessibleObject.tryAccessible
+java.lang.reflect.Constructor.newInstance
+java.lang.reflect.Constructor.setAccessible
+java.lang.reflect.Field.get*
+java.lang.reflect.Field.set*
+java.lang.reflect.Method.invoke
+java.lang.reflect.Method.setAccessible
+java.util.concurrent.atomic.AtomicIntegerFieldUpdater.newUpdater
+java.util.concurrent.atomic.AtomicLongFieldUpdater.newUpdater
+java.util.concurrent.atomic.AtomicReferenceFieldUpdater.newUpdater
+```
+
+```
+このように、直接の呼び出し元のクラスに応じて動作が変わるメソッドは、呼び出し元に依存すると考えられるため、コードに@CallerSensitiveアノテーションを付ける必要があります[16]。
+
+言語チェックは、実行シーケンス内の各呼び出し元に対してではなく、即時呼び出し元に対してのみ行われます。
+即時呼び出し側は、他のコードが持っていない機能を持っている可能性があるため（特定のパッケージに属しているため、そのパッケージのプライベート・メンバーにアクセスできる）、信頼できないコードの代わりに上記のAPIを呼び出さないでください。
+具体的には、信頼されていないコードから受け取った Class、Constructor、Field、Method のインスタンスに対して上記のメソッドを呼び出さないでください。
+それぞれのインスタンスが安全に取得された場合は、信頼できないコードから提供された入力を使用して上記のメソッドを呼び出さないでください。
+また、上記のメソッドから返されたオブジェクトを、信頼できないコードに伝播させないでください。
+```
+
+## Guideline 9-11 / ACCESS-11: Be aware java.lang.reflect.Method.invoke is ignored for checking the immediate caller
+
+```java
+package xx.lib;
+
+class LibClass {
+    void libMethod(
+        PrivilegedAction action
+    ) throws Exception {
+        Method doPrivilegedMethod =
+            AccessController.class.getMethod(
+                "doPrivileged", PrivilegedAction.class
+            );
+        doPrivilegedMethod.invoke(null, action);
+    }
+}
+```
+
+```
+もし、Method.invokeが即時呼び出し元とされた場合、そのアクションはすべての権限で実行されることになります。
+そのため、ガイドライン9-8から9-10で説明したメソッドでは、即時呼び出し元を決定する際に、Method.invokeの実装は無視されます。
+
+        +--------------------------------+
+        | action                         |
+        |   .run                         |
+        +--------------------------------+
+        | java.security.AccessController |
+        |   .doPrivileged                |
+        +--------------------------------+
+        | java.lang.reflect.Method       |
+        |    .invoke                     |
+        +--------------------------------+
+        | xx.lib.LibClass                | <--- Effective caller
+        |   .libMethod                   |
+        +--------------------------------+
+        |                                |
+       
+したがって、Method.invokeは避けてください。
+```
+
+## Guideline 9-12 / ACCESS-12: Avoid using caller-sensitive method names in interface classes
+
+```
+インターフェイス・クラスを設計する際には、ガイドライン9-8、9-9、9-10に記載されているようなcaller-sensitiveメソッドと同じ名前とシグネチャを持つメソッドを使用することは避けなければなりません。
+特に、インターフェース・クラスのデフォルト・メソッドからこれらを呼び出すことは避けてください。
+```
+
+## Guideline 9-13 / ACCESS-13: Avoid returning the results of privileged operations
+
+```
+信頼されていないコードに返されるラムダを設計する場合、特にセキュリティ関連の操作を含むラムダを設計する場合は注意が必要です。
+入出力の検証などの適切な予防措置がなければ、信頼されていないコードがラムダの権限を不適切に利用できる可能性があります。
+
+同様に、Method オブジェクト、MethodHandle オブジェクト、MethodHandles.Lookup オブジェクト、VarHandle オブジェクト、StackWalker オブジェクト（作成時のオプションに依存）を信頼されていないコードに返す前には注意が必要です。
+これらのオブジェクトには、作成時に言語アクセスや特権のチェックが行われており、慎重に配布しないと、信頼されていないコードがプライベート/保護されたアクセス制限や制限されたパッケージアクセスを回避できる可能性があります。
+信頼されていないユーザーが通常はアクセスできない Method または MethodHandle オブジェクトを返す場合は、そのオブジェクトが望ましくない機能を伝えていないことを確認するために、慎重な分析が必要です。
+同様に、MethodHandles.Lookup オブジェクトは、作成者によって異なる機能を持っています。
+ 例えば、Java SE 15では、Lookupオブジェクトは、Lookupが出てきたクラス/ネストに隠しクラスを注入できるようになりました。
+信頼されていないコードが参照オブジェクトとその参照先にアクセスできる場合、2つのタイプの関係が推測される可能性があります。
+このようなオブジェクトが信頼できないコードに戻される前に、そのオブジェクトによって与えられるアクセスを理解することが重要です。
+```
+
+## Guideline 9-14 / ACCESS-14: Safely invoke standard APIs that perform tasks using the immediate caller's module
+
+```
+以下のスタティック・メソッドは、即時呼び出し側のモジュールを使用してタスクを実行します。
+```
+
+```java
+java.lang.System.getLogger
+java.lang.Class.forName(String, Module)
+java.lang.Class.getResourceAsStream
+java.lang.Class.getResource
+java.lang.Module.addExports
+java.lang.Module.addOpens
+java.lang.Module.addReads
+java.lang.Module.addUses
+java.lang.Module.getResourceAsStream
+java.lang.Module.getResource
+java.util.ResourceBundle.getBundle
+java.util.ServiceLoader.load
+java.util.ServiceLoader.loadInstalled
+```
+
+```
+このように、呼び出し元のクラスに応じて動作が変わるメソッドは、呼び出し元に依存すると考えられるため、コードに @CallerSensitive アノテーションを付ける必要があります [16]。
+
+たとえば、Module::addExports は、直接の呼び出し元の Module を使用して、パッケージがエクスポートされるべきかどうかを決定します。
+信頼されていないコードの代わりにこれらのメソッドを呼び出さないでください。
+
+また、これらのメソッドから返されたオブジェクトを信頼できないコードに伝播させないでください。
+```
+
+## Guideline 9-15 / ACCESS-15: Design and use InvocationHandlers conservatively
+
+```
+java.lang.reflect.Proxyインスタンスを作成する際には、Proxyインスタンスのメソッドの委譲を処理するために、java.lang.reflect.InvocationHandlerを実装したクラスが必要です。
+InvocationHandlerは、Proxyを作成したコードのパーミッションを持っていると想定されます。
+したがって、InvocationHandlerへのアクセスは一般的には利用できないはずです。
+
+また、InvocationHandlerが意図しない目的で使用されることを防ぐために、InvocationHandlerは、呼び出しを依頼されたメソッド名を検証する必要があります。
+例えば、以下のようなものです。
+```
+
+```java
+public Object invoke(Object proxy, Method method, Object[] args)
+                                                  throws Throwable {
+    if (! Proxy.isProxyClass(proxy.getClass())) {
+        throw new IllegalArgumentException("not a proxy");
+    }
+
+    if (Proxy.getInvocationHandler(proxy) != this) {
+        throw new IllegalArgumentException("handler mismatch");
+    }
+
+    String methodName = method.getName();
+    Class<!--?-->[] paramTypes = method.getParameterTypes();
+    int paramsLen = paramTypes.length;
+
+    if ( methodName.equals("hashCode") && paramsLen == 0 ) {
+        // handle hashCode here
+        return true;
+    } else ...
+        // equals, toString
+        // ignore clone, finalize
+    } else ...
+        // check for methods expected on interfaces implemented
+        // method name, number of parameters and types
+    }
+}
+```
+
+## Guideline 9-16 / ACCESS-16: Plan module configuration carefully
+
+```
+モジュールの構成を計画する際には、強力なカプセル化を使用して、エクスポートされるパッケージ（修飾されたエクスポートと修飾されていないエクスポートの両方）を制限します。
+エクスポートされたすべてのパッケージやクラスを調べて、セキュリティ上重要なものが露出していないことを確認してください。
+将来的に追加のパッケージをエクスポートするのは簡単ですが、エクスポートを取り消すと互換性の問題が生じます。
+
+モジュール構成で指定されているもの以外に、特定のパッケージを開いたりエクスポートしたりするコマンドラインオプションがあります。
+これらのパッケージを使用する必要性を最小限にすることも推奨されます。
+```
+
+# Conclusion
+
+```
+Javaプラットフォームは、メモリセーフなどの機能により、安全なシステムのための強固な基盤を提供しています。
+しかし、プラットフォームだけでは、欠陥の混入を防ぐことはできません。
+このドキュメントでは、よくある落とし穴の多くを詳しく説明しています。
+脆弱性を最小限に抑えるための最も効果的なアプローチは、明らかな欠陥がないことよりも、明らかに欠陥がないことです。
+```
