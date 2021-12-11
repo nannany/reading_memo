@@ -209,21 +209,6 @@ C4アプローチの用語を使う。
 
 1つサービス。
 
-#### Transferring Data Between Bounded Contexts
-
-#### Trust Boundaries and Validation
-
-### Contracts Between Bounded Contexts
-
-#### Anti-Corruption Layers
-
-#### A Context Map with Relationships
-
-### Workflows Within a Bounded Context
-
-#### Workflow Inputs and Outputs
-
-#### Avoid Domain Events Within a Bounded Context
 
 ---
 
