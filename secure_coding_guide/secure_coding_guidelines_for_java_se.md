@@ -829,6 +829,53 @@ javax.print.PrintServiceLookup.registerServiceProvider
 
 ## Guideline 6-12 / MUTABLE-12: Do not expose modifiable collections
 
+collectionに関してはimmutableなものがJava9以降とかだとあるのでそれ使う。
+
+コレクション内部にmutableなオブジェクトがある場合は、deep copyを生成する必要がある。
+
+```
+パブリック変数やgetメソッドでコレクションを公開しているクラスは、呼び出したクラスがコレクションの内容を変更できるという副作用が発生する可能性があります。
+開発者は、セキュリティ認証や内部状態に関連するコレクションの読み取り専用のコピーを公開することを検討する必要があります。
+
+コレクションオブジェクトを参照しているフィールドの変更は、finalを宣言することで防ぐことができますが（ガイドライン6-9参照）、コレクション自体は個別に変更できないようにしなければなりません。
+変更不可能なコレクションは、of/ofEntries APIメソッド（Java 9以降で利用可能）、またはcopyOf APIメソッド（Java 10以降で利用可能）を使って作成できます。
+コレクションの変更不可能なビューは、Collections.unmodifiable...APIを使って取得できます。
+APIを使用して取得できます。
+
+以下の例では、変更不可能なコレクションをSIMPLEで公開し、変更可能なコレクションに対する変更不可能なビューをITEMSとsomethingStatefulで公開しています。
+```
+
+```java
+public class Example {
+    public static final List<String> SIMPLE = 
+        List.of("first", "second", "...");
+    public static final Map<String, String> ITEMS;
+
+    static {
+        //For complex items requiring construction
+        Map<String, String> temp = new HashMap<>(2);
+        temp.put("first", "The first object");
+        temp.put("second", "Another object");
+        ITEMS = Collections.unmodifiableMap(temp);
+    }
+    
+    private List<String> somethingStateful =
+                            new ArrayList<>();
+    public List<String> getSomethingStateful() {
+            return  Collections.unmodifiableList(
+                                somethingStateful);
+    }
+}
+```
+
+```
+パブリック変数や get メソッドで公開されている配列にも同様の問題があります。
+java.util.Arrays.asList()は、内部の配列を公開する際には使用しないでください。
+
+前述の例では、すべてのコレクションに不変のオブジェクトが含まれていることに注意してください。
+コレクションや配列に変更可能なオブジェクトが含まれている場合は、代わりにそのディープコピーを公開する必要があります。
+セーフコピーの作成については、ガイドライン6-2および6-3を参照してください。
+```
 
 ---
 
