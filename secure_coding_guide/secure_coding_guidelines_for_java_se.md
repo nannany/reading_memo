@@ -432,7 +432,7 @@ XML パーサーは、外部エンティティを禁止したり、DTD を完全
 
 ## Guideline 3-6 / INJECT-6: Care with BMP files
 
-
+色の情報に関するファイルICCがBMP画像ファイル経由で読み取られる可能性があるらしい。
 
 ```
 BMP画像ファイルには、ローカルのICC（International Color Consortium）ファイルが参照されている場合があります。
@@ -441,6 +441,8 @@ BMPファイルを使わないようにするか、ガイドライン9-2のよ�
 ```
 
 ## Guideline 3-7 / INJECT-7: Disable HTML display in Swing components
+
+Swingにおいて、htmlをそのまま解釈する機能があるので、そのレンダリング機能はオフにする。
 
 ```
 多くのSwingプラグインのルック・アンド・フィールズは、<html>で始まる特定のコンポーネント内のテキストをHTMLとして解釈します。
@@ -452,6 +454,8 @@ label.putClientProperty("html.disable", true)とします。
 ```
 
 ## Guideline 3-8 / INJECT-8: Take care interpreting untrusted code
+
+
 
 ```
 コードはさまざまな場所に隠すことができます。コードを供給するソースが信頼できない場合は、コードを実行するための安全なサンドボックスを構築する必要があります。信頼されていないコードを実行する可能性のあるコンポーネントやAPIの例としては、以下のようなものがあります。
