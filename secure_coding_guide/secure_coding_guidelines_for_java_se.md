@@ -1401,6 +1401,10 @@ java.util.Arrays.asList()は、内部の配列を公開する際には使用し�
 
 オブジェクト組み立て中の話？ここはライブラリとか、他から使われることを意図した内容になっている。
 
+この辺も関わるはず。
+- https://www.jpcert.or.jp/java-rules/met05-j.html
+- https://www.jpcert.or.jp/java-rules/tsm01-j.html
+
 ```
 建設中の物体は、存在していてもすぐには使えない厄介な段階にあります。そのため、通常の方法に加えて、いくつかの困難があります。
 ```
