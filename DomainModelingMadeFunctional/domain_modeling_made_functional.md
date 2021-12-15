@@ -414,7 +414,37 @@ DDDの世界では、一意に特定できるものがEntityで、そうでな�
 
 #### Implementing Equality for Value Objects
 
+structural equality
+https://kotlinlang.org/docs/equality.html
+
 ### A Question of Identity: Entities
+
+自分が名前を変えたとしても同じ自分であるように、ある種識別子を持つようなオブジェクトをEntityという。
+
+置かれるコンテキストによって、その物体がEntityにもValue Objectにもなり得る。
+
+#### Identifiers for Entities
+
+Entityを識別する値を割り振る必要がある。
+
+#### Adding Identifiers to Data Definitions
+
+識別子を型の外側におくか、内側におくか？
+パターンマッチングの時に、IDも含めて取れるので、内側に置くことが多い。
+
+#### Implementing Equality for Entities
+
+識別子の比較のみでequalかどうかみれるようにしておく必要がある。
+
+そのためにequalsとhashCodeをオーバーライドしている
+
+オブジェクト同士の比較を禁じることもできるっぽい。
+(コンパイルで弾ける)
+これは多分Javaだと無理。
+
+#### Immutability and Identity
+
+イミュータブルにどうEntityを扱う？
 
 ### Wrapping Up
 
@@ -440,5 +470,7 @@ DDDの世界では、一意に特定できるものがEntityで、そうでな�
 アグリゲートの整合性をどうやって確保するか？
 秩序の異なる状態をどのようにモデル化するのか？これらのトピックは次の章で取り上げます。
 ```
+
+### Aggregetes
 
 
