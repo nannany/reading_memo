@@ -285,11 +285,15 @@ https://www.thoughtworks.com/radar/techniques/inverse-conway-maneuver
   
 #### The Onion Architecture
 
+- 9章
+
 #### Keep I/O at the Edges
 
 - 副作用を避けたい
 - database or file system に対する処理が副作用
 - I/Oをオニオンの外側に追い込む
+- 12章
+
 
 ### Wrapping Up
 
