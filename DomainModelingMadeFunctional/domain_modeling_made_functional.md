@@ -207,7 +207,89 @@ C4アプローチの用語を使う。
 
 ### Communicating Between Bounded Contexts
 
-1つサービス。
+
+#### Transferring Data Between Bounded Context
+
+- Domain ObjectとDTOについて
+
+#### Trust Boundaries and Validation
+
+- workflowの最初と最後にゲートを用意
+  - 入力ゲートでやることはいわゆるバリデーション
+    - not nullとか何文字以下だとか
+  - 出力ゲートでやることは他のコンテキストに出していいか否かのチェック
+    - PANを削除するとか
+
+### Contracts Between Bounded Contexts
+
+```
+Shared Kernel関係とは、2つのコンテキストが何らかの共通のドメインデザインを共有しており、関係するチームが協力する必要がある場合です。
+たとえば、私たちのドメインでは、受注コンテキストと出荷コンテキストは、配送先住所について同じ設計を使用しなければならないと言うかもしれません。
+受注コンテキストは住所を受け入れ、それを検証し、出荷コンテキストは同じ住所を使用してパッケージを出荷します。
+この関係では、イベントまたはDTOの定義の変更は、影響を受ける他のコンテキストの所有者との協議によってのみ行われる必要があります。
+
+顧客/サプライヤーまたは消費者主導型契約[17]の関係は、下流のコンテキストが、上流のコンテキストに提供させたい契約を定義するものである。
+2つのドメインは、上流のコンテキストが契約の義務を果たす限り、独立して進化することができます。
+このドメインでは、課金コンテキストが契約を定義し（「これは顧客に請求するために必要なものです」）、次に受注コンテキストがその情報のみを提供し、それ以上は提供しないかもしれません。
+
+適合的な関係は、消費者主導型とは正反対である。
+下流のコンテキストは、上流のコンテキストから提供された契約を受け入れ、それに合わせて自身のドメインモデルを適応させる。
+私たちのドメインでは、受注コンテキストは、製品カタログによって定義された契約を受け入れ、それをそのまま使用するようにコードを適応させるだけかもしれない。
+```
+
+#### Anti-Corruption Layers
+
+- 腐敗防止層の主な役目は2つのコンテキスト間の翻訳
+  - バリデーションなどは主な役目ではない(が、やるのは事実てことだよね？)
+
+#### A Context Map with Relationship
+
+```
+受注(order-taking)と出荷(shipping)のコンテクスト間の関係は、「Shared Kernel」、つまり通信契約を共同で所有することになります。
+
+受注(order-taking)と請求(billing)の関係は "消費者主導の契約 "であり、請求コンテキストが契約を決定し、受注システムが請求コンテキストに必要なデータを正確に供給することを意味する。
+
+受注(order-taking)と商品カタログ(product-catalog)の関係は、"Conformist "であり、受注コンテキストは商品カタログと同じモデルを使用するようにサブミットすることを意味する。
+
+最後に、外部のアドレスチェックサービスは我々のドメインと全く似ていないモデルを持っているので、それとのインタラクションに明示的なアンチコラプションレイヤーを挿入することにします。
+これはサードパーティーコンポーネントを使用する際によくあるパターンです。
+ベンダーロックインを回避し、後で別のサービスに乗り換えることができるようになる。
+```
+
+逆コンウェイの法則
+https://www.thoughtworks.com/radar/techniques/inverse-conway-maneuver
+
+### Workflows Within a Bounded Context
+
+- 入力がコマンドオブジェクト
+- 出力がイベント
+- コンテキスト間はイベントとドメインを介して情報をやり取りする
+
+#### Workflow Inputs and Outputs
+
+- PlaceOrder が入力
+- OrderPlaced イベントが出力
+- `customer/supplier`関係
+- Workflow は戻り値としてイベントを戻す。
+
+#### Avoid Domain
+
+#### Avoid Domain Events Within a Bounded Context
+
+- 隠れた依存関係
+
+### Code Structure Within a Bounded Context
+
+- layered architectureの問題
+  - transaction script 
+  
+#### The Onion Architecture
+
+#### Keep I/O at the Edges
+
+- 副作用を避けたい
+- database or file system に対する処理が副作用
+- I/Oをオニオンの外側に追い込む
 
 ### Wrapping Up
 
