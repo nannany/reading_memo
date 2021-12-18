@@ -261,22 +261,23 @@ https://www.thoughtworks.com/radar/techniques/inverse-conway-maneuver
 
 ### Workflows Within a Bounded Context
 
-- 入力がコマンドオブジェクト
-- 出力がイベント
-- コンテキスト間はイベントとドメインを介して情報をやり取りする
+- 7章と関連
 
 #### Workflow Inputs and Outputs
 
 - PlaceOrder が入力
 - OrderPlaced イベントが出力
-- `customer/supplier`関係
-- Workflow は戻り値としてイベントを戻す。
-
-#### Avoid Domain
+- order-takingとbillingには`customer/supplier`関係があるので、Billingが必要とする情報をworkflowで生み出す
+- Workflow は戻り値としてイベントを戻す
+- `OrderAcknowledgementSent`これは何者だ？
+  - メールを送ったことを認知するためのイベントかな
 
 #### Avoid Domain Events Within a Bounded Context
 
 - 隠れた依存関係
+  - 内部限定のイベントを持つのではなくて、外部に出してしまう
+  - globalでmutableな状態を持たない
+    - この辺りは2章3章でも扱う
 
 ### Code Structure Within a Bounded Context
 
