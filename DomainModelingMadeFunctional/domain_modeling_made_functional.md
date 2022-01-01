@@ -643,6 +643,16 @@ constructorをprivateにしちゃう。
 
 ### Units of Measure
 
+[測定単位](https://docs.microsoft.com/ja-jp/dotnet/fsharp/language-reference/units-of-measure)
+
+[国際単位系](https://ja.wikipedia.org/wiki/%E5%9B%BD%E9%9A%9B%E5%8D%98%E4%BD%8D%E7%B3%BB) はF#にはデフォで入ってるようだ。
+
+Javaにもあるっぽい。  
+https://www.baeldung.com/javax-measure
+
+### Enforcing Invariants with the Type System
+
+
 ### Wrapping Up 
 
 ```
