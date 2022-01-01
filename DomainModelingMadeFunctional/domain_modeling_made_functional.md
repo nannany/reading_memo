@@ -652,6 +652,12 @@ https://www.baeldung.com/javax-measure
 
 ### Enforcing Invariants with the Type System
 
+型によってデータの完全性を担保する。
+
+リストが空でないということも、`NonEmptyList`なる型を使える。(F#の言語そのものにはないが、3rdパーティライブラリとして提供されてるっぽい)
+Javaだと良さげなライブラリはなさそう。
+
+
 
 ### Wrapping Up 
 
