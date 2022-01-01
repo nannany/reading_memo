@@ -663,6 +663,8 @@ Javaだと良さげなライブラリはなさそう。
 
 で型を作成するべき。
 
+また、認証済みのメールアドレスを作成できるものは限定しておくべき。
+
 ---
 email, 郵便番号のいずれかは必要となる、というような場合においては、
 
@@ -688,7 +690,10 @@ type ContactInfo =
 これ、類似のもので数が増えた場合結構大変そう。。
 とはいえ、上記のようにすると、ContactInfoが3つ以外の状態ではありえないことはすぐにわかる。
 
+
 #### Making Illegal States Unrepresentable in Our Domain
+
+今回この本で考えているケースだと、validate済みのorderと未validateのorderで型を分けられる。
 
 ### Wrapping Up
 
