@@ -35,15 +35,15 @@
 #### Using Event Storming to Discover the Domain
 
 - イベントを見つけるなら、イベントストーミング
-  - 開発者やドメインエキスパートとその他のステークホルダーを巻き込んだワークショップ 
-  - イベントストーミング
-    - https://www.eventstorming.com/
+    - 開発者やドメインエキスパートとその他のステークホルダーを巻き込んだワークショップ
+    - イベントストーミング
+        - https://www.eventstorming.com/
 
 #### Discovering the Domain: An Order-Taking System
 
 - イベントストーミングの利点
-  - ビジネスの理解を共有できる
-  - 知らない部分をしれたり、洞察を深められたりする
+    - ビジネスの理解を共有できる
+    - 知らない部分をしれたり、洞察を深められたりする
 
 #### コラム
 
@@ -65,7 +65,7 @@
 ```
 
 ### Partishoning the Doamin into SubDomain
- 
+
 ドメインをサブドメインに区切っていく。
 
 ### Creating s Solution Using Bounded Context
@@ -85,22 +85,21 @@
 
 #### Creating Context Maps
 
-- コンテクストマップ 
-  - 境界づけられたコンテクスト間でのやりとりを表現するためのマップ
+- コンテクストマップ
+    - 境界づけられたコンテクスト間でのやりとりを表現するためのマップ
 
 #### Focusing on the Most Important Bounded Contexts
 
 - ドメインの中でも特に重要な役割を果たすものがコアドメイン
 - そのほかにsupportive domain, generic domainという区分けをしている
 
-何がコアドメインになるかは、その事業の内容による。
-コアドメインに注力して取り組むべし。
+何がコアドメインになるかは、その事業の内容による。 コアドメインに注力して取り組むべし。
 
 ### Creating a Ubiquitous Language
 
 - Ubiquitous Language
-  - プロジェクトの設計、ソースコードで共通して利用する言葉 
-  - どの境界づけられたコンテキストで使われるかによって意味合いが変わってくるはず
+    - プロジェクトの設計、ソースコードで共通して利用する言葉
+    - どの境界づけられたコンテキストで使われるかによって意味合いが変わってくるはず
 
 ### Summarizing the Concepts of Domain-Driven Design
 
@@ -120,12 +119,15 @@
 これよく分からない。データの中身はとりあえずまだいいよ、後で詳細詰めるからって話なのか？
 
 #### Events and Processes
+
 この本で出す具体例の話。
 
 #### Subdomains and Bounded Contexts
+
 この本で出す具体例の話。
 
 #### The Ubiquitous Language
+
 この本で出す具体例の話。
 
 #### What's Next
@@ -134,8 +136,7 @@
 
 ### Interview with a Domain Expert
 
-ドメインエキスパートとの会話の中で気づきをえる。
-会話の中で、自分の勘違いに気づけることがある。
+ドメインエキスパートとの会話の中で気づきをえる。 会話の中で、自分の勘違いに気づけることがある。
 
 #### Understanding the Non-functional Requirements
 
@@ -150,7 +151,6 @@
 確認書送付は副作用。
 
 OrderPlaced event をBillingコンテキストにnotifiy
-
 
 ### Fighting the Impulse to Do Database-Driven Design
 
@@ -207,7 +207,6 @@ C4アプローチの用語を使う。
 
 ### Communicating Between Bounded Contexts
 
-
 #### Transferring Data Between Bounded Context
 
 - Domain ObjectとDTOについて
@@ -215,10 +214,10 @@ C4アプローチの用語を使う。
 #### Trust Boundaries and Validation
 
 - workflowの最初と最後にゲートを用意
-  - 入力ゲートでやることはいわゆるバリデーション
-    - not nullとか何文字以下だとか
-  - 出力ゲートでやることは他のコンテキストに出していいか否かのチェック
-    - PANを削除するとか
+    - 入力ゲートでやることはいわゆるバリデーション
+        - not nullとか何文字以下だとか
+    - 出力ゲートでやることは他のコンテキストに出していいか否かのチェック
+        - PANを削除するとか
 
 ### Contracts Between Bounded Contexts
 
@@ -240,7 +239,7 @@ Shared Kernel関係とは、2つのコンテキストが何らかの共通のド
 #### Anti-Corruption Layers
 
 - 腐敗防止層の主な役目は2つのコンテキスト間の翻訳
-  - バリデーションなどは主な役目ではない(が、やるのは事実てことだよね？)
+    - バリデーションなどは主な役目ではない(が、やるのは事実てことだよね？)
 
 #### A Context Map with Relationship
 
@@ -270,20 +269,20 @@ https://www.thoughtworks.com/radar/techniques/inverse-conway-maneuver
 - order-takingとbillingには`customer/supplier`関係があるので、Billingが必要とする情報をworkflowで生み出す
 - Workflow は戻り値としてイベントを戻す
 - `OrderAcknowledgementSent`これは何者だ？
-  - メールを送ったことを認知するためのイベントかな
+    - メールを送ったことを認知するためのイベントかな
 
 #### Avoid Domain Events Within a Bounded Context
 
 - 隠れた依存関係
-  - 内部限定のイベントを持つのではなくて、外部に出してしまう
-  - globalでmutableな状態を持たない
-    - この辺りは2章3章でも扱う
+    - 内部限定のイベントを持つのではなくて、外部に出してしまう
+    - globalでmutableな状態を持たない
+        - この辺りは2章3章でも扱う
 
 ### Code Structure Within a Bounded Context
 
 - layered architectureの問題
-  - transaction script 
-  
+    - transaction script
+
 #### The Onion Architecture
 
 - 9章
@@ -294,7 +293,6 @@ https://www.thoughtworks.com/radar/techniques/inverse-conway-maneuver
 - database or file system に対する処理が副作用
 - I/Oをオニオンの外側に追い込む
 - 12章
-
 
 ### Wrapping Up
 
@@ -330,11 +328,10 @@ https://www.thoughtworks.com/radar/techniques/inverse-conway-maneuver
 
 #### Type Signatures
 
-F#では返却する型を明示しなくても良い。
-関数の中にサブ関数を置くこともできる。
+F#では返却する型を明示しなくても良い。 関数の中にサブ関数を置くこともできる。
 
 #### Functions with Generic Types
- 
+
 #### Types and Functions
 
 `type`はオブジェクト指向言語で言うところの`class`とは別物。
@@ -346,10 +343,10 @@ F#では返却する型を明示しなくても良い。
 valuesとobjectsの違いは？
 
 - valueはtypeのうちの1メンバー
-  - 関数がvalueでもあり得る
-  - immutable
+    - 関数がvalueでもあり得る
+    - immutable
 - objectはデータ構造をカプセル化したもの
-  - 状態を持つことを期待されている
+    - 状態を持つことを期待されている
 
 ### Composition of Types
 
@@ -363,7 +360,7 @@ valuesとobjectsの違いは？
 
 直積が `product types` で、直和が `sum types` か？
 
-### Simple Types 
+### Simple Types
 
 ### Algebraic Type Systems
 
@@ -380,8 +377,7 @@ valuesとobjectsの違いは？
 
 #### Modeling Optional Values
 
-基本、F#は必須属性。
-null許容するときはoptionをつける
+基本、F#は必須属性。 null許容するときはoptionをつける
 
 #### Modeling Errors
 
@@ -390,12 +386,11 @@ null許容するときはoptionをつける
 
 #### Modeling No Value at All
 
-基本的にはF#でvoidすることはできない。
-が、unitと書くことで、何も返さないことはできる。
+基本的にはF#でvoidすることはできない。 が、unitと書くことで、何も返さないことはできる。
 
 unitがあるということは、どこかで副作用が起きているということ
 
-#### Modeling Lists and Collections 
+#### Modeling Lists and Collections
 
 F#でのリストの持ち方。
 
@@ -403,7 +398,7 @@ F#でのリストの持ち方。
 
 どうやって型をファイルごとに分割するか、依存順とかどうかくかについて述べている。
 
-### Wrapping Up 
+### Wrapping Up
 
 ```
 この章では、型の概念と関数型プログラミングとの関係を説明し、F#の代数的な型システムを使って、小さな型からより大きな型を作るために型の合成をどのように利用するかを説明しました。
@@ -413,7 +408,7 @@ F#でのリストの持ち方。
 型がどのように機能するかを理解したので、要件を再検討して要件を再検討し、学んだことを使って文書化してみましょう。
 ```
 
-## Chapter 5 Domain Modeling with Types   
+## Chapter 5 Domain Modeling with Types
 
 ### Reviewing the Domain Model
 
@@ -447,9 +442,9 @@ simple valuesの制限については次の章で扱う。
 #### Avoiding Performance Issues with Simple Types
 
 - 高いパフォーマンスが求められる領域で、シンプルな値をラッピングすることについて
-  - F#の例で説明してるからそんな意味かも。。
-  - structなるものを使う
-  - 配列の話はそのままプリミティブバリューを持っていいよってこと？？
+    - F#の例で説明してるからそんな意味かも。。
+    - structなるものを使う
+    - 配列の話はそのままプリミティブバリューを持っていいよってこと？？
 
 ### Modeling Complex Data
 
@@ -460,12 +455,12 @@ simple valuesの制限については次の章で扱う。
 #### Modeling Unknown Types
 
 - まだ型が決まっていないところのために、Undefinedエイリアスを用意する。
-  - 設計過程で一旦こうしとくみたいな感じ
-  
+    - 設計過程で一旦こうしとくみたいな感じ
+
 #### Modeling with Choice Types
 
 - 決まった個数の中から選べる型
-  - *Javaだとenumかsealedクラス使うところかな*
+    - *Javaだとenumかsealedクラス使うところかな*
 
 ### Modeling Workflows with Functions
 
@@ -491,8 +486,7 @@ DIの絡みは9章ぽい
 effects
 https://levelup.gitconnected.com/what-is-effect-or-effectful-mean-in-functional-programming-7fc7323b52b4
 
-monadを使って表現するものがeffects？
-monadは下記参照。
+monadを使って表現するものがeffects？ monadは下記参照。
 https://qiita.com/koher/items/6f4a8d8b3ad3142bf645#%E3%83%A2%E3%83%8A%E3%83%89%E3%81%A8%E3%81%97%E3%81%A6%E3%81%AEoptional
 
 ### A Question of Identity: Value Objects
@@ -516,8 +510,7 @@ Entityを識別する値を割り振る必要がある。
 
 #### Adding Identifiers to Data Definitions
 
-識別子を型の外側におくか、内側におくか？
-パターンマッチングの時に、IDも含めて取れるので、内側に置くことが多い。
+識別子を型の外側におくか、内側におくか？ パターンマッチングの時に、IDも含めて取れるので、内側に置くことが多い。
 
 #### Implementing Equality for Entities
 
@@ -565,9 +558,13 @@ domain modelにおけるaggregatesが持つ重要な役割は以下。
 
 DDDの用語について
 
-- Value ObjectはIDを持たないドメインオブジェクトである。同じデータを含む2つのValue Objectは同一とみなされます。Value Object は不変でなければならず、一部でも変更されると別の Value Object になる。バリューオブジェクトの例としては、名前、住所、場所、お金、日付などがあります。
-- エンティティは、ドメインオブジェクトであり、プロパティが変更されても持続する本質的な同一性を持っています。エンティティオブジェクトは一般的にIDまたはキーフィールドを持ち、同じID/キーを持つ2つのエンティティは同じオブジェクトとみなされます。エンティティは通常、寿命があり、変更の履歴があるドメインオブジェクトを表します（ドキュメントなど）。エンティティーの例としては、顧客、注文、製品、請求書などがある。
-- 集約は、関連するオブジェクトの集まりで、ドメイン内の一貫性を確保し、データトランザクションで原子単位として使用するために、単一のコンポーネントとして扱われるものである。他のエンティティは、集約をその識別子によってのみ参照すべきである。これは、"ルート "として知られる集約の "トップレベル "メンバのIDである。
+- Value ObjectはIDを持たないドメインオブジェクトである。同じデータを含む2つのValue Objectは同一とみなされます。Value Object は不変でなければならず、一部でも変更されると別の Value Object
+  になる。バリューオブジェクトの例としては、名前、住所、場所、お金、日付などがあります。
+-
+エンティティは、ドメインオブジェクトであり、プロパティが変更されても持続する本質的な同一性を持っています。エンティティオブジェクトは一般的にIDまたはキーフィールドを持ち、同じID/キーを持つ2つのエンティティは同じオブジェクトとみなされます。エンティティは通常、寿命があり、変更の履歴があるドメインオブジェクトを表します（ドキュメントなど）。エンティティーの例としては、顧客、注文、製品、請求書などがある。
+-
+集約は、関連するオブジェクトの集まりで、ドメイン内の一貫性を確保し、データトランザクションで原子単位として使用するために、単一のコンポーネントとして扱われるものである。他のエンティティは、集約をその識別子によってのみ参照すべきである。これは、"
+ルート "として知られる集約の "トップレベル "メンバのIDである。
 
 ### Putting It All Together
 
@@ -634,8 +631,8 @@ F#はC#やJavaより読みやすかろうと述べておる。
 immutableな値であることが保証されているならば、生成時のチェックだけで、他の使用箇所においては防御的なコーディングをする必要がない。
 これは結構immutableを推す上で大事なことかもしれない。mutableなものだと、途中で変えられることがあるし。(my opinion)
 
-constructorをprivateにしちゃう。
-これ、インスタンス生成の中で値のチェックを必ずさせることが目的としてあるはずだが、それのみならコンストラクタでもできるくない？
+constructorをprivateにしちゃう。 これ、インスタンス生成の中で値のチェックを必ずさせることが目的としてあるはずだが、それのみならコンストラクタでもできるくない？
+
 - コンストラクタは受け取った値をはめ込むだけ、という暗黙の了解がある？
 - F#だとロジックを書けない？
 
@@ -657,9 +654,43 @@ https://www.baeldung.com/javax-measure
 リストが空でないということも、`NonEmptyList`なる型を使える。(F#の言語そのものにはないが、3rdパーティライブラリとして提供されてるっぽい)
 Javaだと良さげなライブラリはなさそう。
 
+### Capturing Business Rules in the Type System
 
+お客さんのメールアドレスに対して、認証済みのものであるか、未認証のものであるかを見分けるにあたっても、
 
-### Wrapping Up 
+- 認証済みのメールアドレス
+- 未認証のメールアドレス
+
+で型を作成するべき。
+
+---
+email, 郵便番号のいずれかは必要となる、というような場合においては、
+
+```f#
+type Contact = {
+   Name: Name
+   Email: EmailContactInfo option
+   Address: PostalContactInfo option
+}
+```
+
+とすると、両方がない場合を型以外の部分で制御しないといけないので、
+
+```f#
+type ContactInfo = 
+    | EmailOnly of EmailContactInfo
+    | AddrOnly of PostalContactInfo 
+    | EmailAndAddr of BothContactMethods
+```
+
+みたいに型で分ける。
+
+これ、類似のもので数が増えた場合結構大変そう。。
+とはいえ、上記のようにすると、ContactInfoが3つ以外の状態ではありえないことはすぐにわかる。
+
+#### Making Illegal States Unrepresentable in Our Domain
+
+### Wrapping Up
 
 ```
 この章では、ドメイン内のデータが信頼できることを保証する方法を学びました。
