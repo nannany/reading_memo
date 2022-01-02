@@ -727,6 +727,16 @@ aggregateを永続化する場合には、1つのトランザクションで行�
 
 #### Consistency Between Different Contexts 
 
+別のコンテキストと関わる一貫性を維持するためにどうするか？
+
+[スターバックスの話](https://code.google.com/archive/p/gregors-ramblings-ja/wikis/18_starbucks.wiki) を引き合いに出していた。
+
+結果整合性
+即時に一貫した状態になる必要がないのであれば、イベントを発行して、リスナーがそれを処理する形に持っていけば良い。
+
+#### Consistency Between Aggregates in the Same Context
+
+
 ### Wrapping Up
 
 ```
