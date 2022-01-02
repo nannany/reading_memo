@@ -736,6 +736,10 @@ aggregateを永続化する場合には、1つのトランザクションで行�
 
 #### Consistency Between Aggregates in the Same Context
 
+同じ境界づけられたコンテキスト内で上記と同様の状況が起きたらどうするか？
+-> 場合によるが、原則1つのアグリゲートを1つのトランザクションで行うべき。
+
+
 
 ### Wrapping Up
 
