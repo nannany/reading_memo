@@ -601,7 +601,7 @@ F#はC#やJavaより読みやすかろうと述べておる。
 秩序の異なる状態をどのようにモデル化するのか？これらのトピックは次の章で取り上げます。
 ```
 
-## Chapter6 Integrity and Consistency in the Domain
+## Chapter 6 Integrity and Consistency in the Domain
 
 境界づけられたコンテキスト内の、信頼できるドメインについて、`integrity`と`consistency`という側面から見ていく章。
 `integrity`は完全性と訳されるらしい。
