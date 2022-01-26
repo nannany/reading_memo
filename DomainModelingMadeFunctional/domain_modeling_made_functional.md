@@ -769,6 +769,22 @@ aggregateを永続化する場合には、1つのトランザクションで行�
 
 ## Chapter 7 Modeling Workflows as Pipelines
 
+### The Workflow Input
+
+#### Commands as Input
+
+#### Sharing Common Structures Using Generics
+
+同様の構造を共有したい場合、ooでは基底クラスを作ったりする。
+functionalの世界では、それをgenericsで実行する。
+
+#### Combining Multiple Commands in One Type
+
+受け取るコマンドが複数ある場合の話？ -> 選択型を使って云々やっている。
+あんまり腹落ちはしていない
+
+### Modeling an Order as a Set of States
+
 ### Wrapping Up
 
 ```
