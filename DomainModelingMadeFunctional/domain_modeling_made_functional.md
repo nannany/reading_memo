@@ -834,6 +834,33 @@ state machineを利用することによって得られる利点。
 
 ### Modeling Each Step in the Workflow with Types
 
+state machineの各ステップをみていく
+
+#### The Validation Step
+
+validateOrderというステップにおいては、ProductCode、住所のチェックに依存している。
+これをどう表現するか？
+
+ここでいう依存とはなんだろう?
+
+dependencyとなる引数を先に持ってきているが、これはアプリケーションの分割？を容易にすることにつながるらしい。
+
+#### The Pricing Step
+
+#### The Acknowledge Order Step
+
+PricedOrderを受け取って、メールを送信する感じ
+
+#### Creating the Events to Return
+
+配送のために`OrderPlaced`,課金のために`BillableOrderPlaced`も`OrderAckowledgementSent`に加えてアウトプットとして必要。
+
+これら3つを内包した型を定義するよりは、これら3つの選択型である`PlaceOrderEvent`のリストを返却するのが良い。
+
+### Documenting Effects
+
+
+
 ### Wrapping Up
 
 ```
