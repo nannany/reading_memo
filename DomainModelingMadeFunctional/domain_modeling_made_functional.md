@@ -859,6 +859,21 @@ PricedOrderを受け取って、メールを送信する感じ
 
 ### Documenting Effects
 
+#### Effects in the Validation Step
+
+effectsは言葉通り、物理世界に影響を与えるものと捉えるのが良かろう。
+http://like-a-boss.net/2014/12/31/effects-versus-side-effects.html
+
+ここだと、バリデーションで外部に問い合わせる必要があって、それをAsync,Resultで囲んでいる。
+
+#### Effects in the Pricing Step
+
+金額がマイナスだったり、めちゃデカかったりする時はエラーになるので、それを考慮してResultにした感じ。
+
+#### Effects in the Acknowledge Step
+
+### Composing the Workflow from the Steps 
+
 
 
 ### Wrapping Up
