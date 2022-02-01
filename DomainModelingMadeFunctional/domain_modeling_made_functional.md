@@ -874,7 +874,19 @@ http://like-a-boss.net/2014/12/31/effects-versus-side-effects.html
 
 ### Composing the Workflow from the Steps 
 
+AsyncResultとかにくるまっているから、functionをそのまま繋げるといったsimpleなことはできない。
+ここの解決は実装の章で見ていく
 
+### Are Dependencies Part of the Design?
+
+workflowの依存関係を引数に入れるべきかはガイドラインがある。
+
+- publicなAPIの場合は隠す。
+  - 呼ぶ人はそんなもの知ったこっちゃないので
+- 内部で使われるものに関しては引数でとる。
+  - 何に依存しているか明らかになるので良い。
+
+モノリスなアプリにおけるドメインわけの話に見える。普通ならドメインごとにapiで連携するはずなので。
 
 ### Wrapping Up
 
