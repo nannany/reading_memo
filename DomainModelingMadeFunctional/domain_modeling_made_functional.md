@@ -942,6 +942,41 @@ http://vasters.com/archive/Sagas.html
 
 ## Chapter 8 Understanding Functions
 
+関数型言語のいいところをみていく
+
+### Functions, Functions, Everywhere
+
+オブジェクト指向言語と関数型言語は色々な面で考え方が違う。
+
+### Functions Are Things 
+
+Inputとparameterの違いって何だっけ？
+
+#### Treating Functions as Things in F#
+
+#### Functions as Input
+
+関数をInputととしてとる例をみていく
+
+#### Functions as Output
+
+関数をOutputとしている例を見ていく
+
+#### Currying
+
+複数のパラメータをもつ関数を、1つのパラメータを持つ関数に変換することをカリー化という。
+
+F#では明示的にカリー化をせずとも、すでにカリー化された関数になっている？
+
+#### Partial Application
+
+パラメータを織り込んでしまう技法をpartial applicationと呼ぶらしい。日本語訳は？
+
+### Total Functions
+
+全てのインプットには紐づくアウトプットがあるという考え方のこと？
+
+### Composition
 
 ### Wrapping Up 
 
