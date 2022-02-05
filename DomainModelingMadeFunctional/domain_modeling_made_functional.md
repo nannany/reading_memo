@@ -737,10 +737,15 @@ aggregateを永続化する場合には、1つのトランザクションで行�
 結果整合性
 即時に一貫した状態になる必要がないのであれば、イベントを発行して、リスナーがそれを処理する形に持っていけば良い。
 
+補正トランザクションパターン
+https://docs.microsoft.com/ja-jp/azure/architecture/patterns/compensating-transaction
+
 #### Consistency Between Aggregates in the Same Context
 
 同じ境界づけられたコンテキスト内で上記と同様の状況が起きたらどうするか？
 -> 場合によるが、原則1つのアグリゲートを1つのトランザクションで行うべき。
+
+集約をどうにか使い回すよりは、新しい集約の単位を作るべき。
 
 #### Multiple Aggregates Acting on the Same Data
 
