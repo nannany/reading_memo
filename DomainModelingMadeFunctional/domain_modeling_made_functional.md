@@ -744,7 +744,6 @@ https://docs.microsoft.com/ja-jp/azure/architecture/patterns/compensating-transa
 
 同じ境界づけられたコンテキスト内で上記と同様の状況が起きたらどうするか？
 -> 場合によるが、原則1つのアグリゲートを1つのトランザクションで行うべき。
-
 集約をどうにか使い回すよりは、新しい集約の単位を作るべき。
 
 #### Multiple Aggregates Acting on the Same Data
@@ -981,7 +980,28 @@ F#では明示的にカリー化をせずとも、すでにカリー化された
 
 全てのインプットには紐づくアウトプットがあるという考え方のこと？
 
+https://softwareengineering.stackexchange.com/questions/334874/in-the-context-of-functional-programming-what-are-total-functions-and-partia
+
+どうやら、インプットとして考えうる値を全て定義した関数という意味合いっぽい
+
 ### Composition
+
+関数の合成の話っぽい
+
+#### Composition of Functions in F#
+
+ある関数のアウトプットと、ある関数のインプットが同じ場合に、`piping`という手段で合成を行うことが多い。
+linuxのパイプと同じ
+
+#### Building an Entire Application from Functions
+
+小さなfunctionを繋げていって、繋げていって、アプリケーションを作る
+
+#### Challenges in Composing Functions
+
+アウトプットとインプットの型が合わない時はどうやって合成する？
+->
+何らかの関数をかます。例えば、intからOption<int>に変換するのなら、Someをかます。
 
 ### Wrapping Up 
 
