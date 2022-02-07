@@ -1019,6 +1019,12 @@ linuxのパイプと同じ
 
 ### Working with Simple Types
 
+createというファクトリメソッド
+値を容易に取り出すためにvalueメソッドを用意
+
+### Using Function Types to Guide the Implementation
+
+
 
 ### Wrapping Up
 
