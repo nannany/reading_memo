@@ -1024,6 +1024,21 @@ createというファクトリメソッド
 
 ### Using Function Types to Guide the Implementation
 
+function型を使う利点について述べているが全く分からない。
+F#に限定された話か？
+
+### Implementing the Validation Step
+
+`toCustomerInfo`や`toAddress`は変換ヘルパーメソッド
+
+#### Creating a Valid, Checked Address
+
+addressをチェックするところの実装
+
+F#の実装方法でつまづくようになってきたな。。
+
+#### Creating the Order Lines
+
 
 
 ### Wrapping Up
