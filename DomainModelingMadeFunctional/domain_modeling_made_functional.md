@@ -1039,7 +1039,24 @@ F#の実装方法でつまづくようになってきたな。。
 
 #### Creating the Order Lines
 
+letで出てくる()ってなんだっけ?
+->
+https://docs.microsoft.com/ja-jp/dotnet/fsharp/language-reference/functions/let-bindings#type-annotations
 
+`to~~`みたいなファクトリメソッドの紹介
+
+#### Creating Function Adapters
+
+汎用的に利用できるadapterのようなものを作成
+function transformer
+
+### Implementing the Rest of the Steps
+
+#### Implementing the Acknowledgment Step
+
+`sendAcknowledgment`の実装詳細はまだ明らかにしなくとも良い
+
+#### Creating the Events
 
 ### Wrapping Up
 
