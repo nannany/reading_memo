@@ -1058,6 +1058,22 @@ function transformer
 
 #### Creating the Events
 
+`createBillingEvent`で`BillableOrderPlaced`イベントを作成する
+
+最小公倍数の手法(lowest common multiple approach)ってなんだっけ？
+-> 多分そのまま最小公倍数の意味
+
+`listOfOption`でoption をlistにする。
+
+yieldとはなんだっけ？
+https://docs.microsoft.com/ja-jp/dotnet/fsharp/language-reference/sequences#the-yield-keyword
+yieldを使えば、シーケンスの要素を返すことができる。
+yield []の形にすれば、listの中の要素をバラしてシーケンスの要素とすることができる。
+
+互換性のないものを共有型にするテクニックを使っているらしい。
+上記でいくとどこだ？
+PlaceOrderEventで選択型を作っているところか？
+
 ### Wrapping Up
 
 ```
