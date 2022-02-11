@@ -1074,6 +1074,33 @@ yield []の形にすれば、listの中の要素をバラしてシーケンス�
 上記でいくとどこだ？
 PlaceOrderEventで選択型を作っているところか？
 
+### Composing the Pipeline Steps Together
+
+```F#
+let placeOrder: PlaceOrderWorkflow = 
+  fun unvalidateOrder -> 
+    unvalidatedOrder
+    |> validateOrder
+    |> priceOrder
+    |> acknowledgeOrder
+    |> createEvents
+```
+
+形の異なる関数を合成することが関数型プログラミングの課題。
+解決のほとんどはモナドだが、ここでは部分適用(partial application)を適用してみる
+
+下記みたいに１つのパラメータを持つ関数に変形する。
+
+```F#
+let validateOrder' = validateOrder checkProductCodeExists checkAddressExists
+```
+
+次に依存性の注入方法を見ていく
+
+### Injection Dependencies
+
+
+
 ### Wrapping Up
 
 ```
