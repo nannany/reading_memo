@@ -908,7 +908,13 @@ workflowの依存関係を引数に入れるべきかはガイドラインがあ
 
 ### The Complete Pipeline
 
+ここまでのおさらい。
+
+`DomainApi.fs`に外部公開する、つまり、入出力の型の定義をかく。
+
 #### The Internal Steps
+
+`PlaceOrderWorkflow.fs`に内部で使う型の定義を書く。
 
 ### Long-Running Workflows
 
