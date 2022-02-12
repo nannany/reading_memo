@@ -1119,6 +1119,20 @@ let validateOrder' = validateOrder checkProductCodeExists checkAddressExists
 
 ### Injection Dependencies
 
+オブジェクト指向プログラミングなら、依存関係の解決にはIoCコンテナを使うことが多い。
+一方、関数型プログラミングの場合は依存関係が暗黙の了解になることを嫌う。
+依存性を明示的なパラメータとして渡す。
+"reader monad", "free monad"みたいな手法があるらしい。
+
+コンポジションルートにて、依存関係の具体を注入する。
+Suave frameworkの例が一番わかりやすいかも。
+
+#### Too Many Dependencies?
+
+全ての依存関係をコンポジションルートに持たせるようなことはしない。
+あらかじめ埋め込む(prebuild)ようなヘルパー関数を作成して、外から渡す依存の数を減らす。
+
+### Testing Dependencies
 
 
 ### Wrapping Up
