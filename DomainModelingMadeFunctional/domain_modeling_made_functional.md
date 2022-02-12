@@ -820,6 +820,8 @@ stateの遷移の例としては、
 - 配送において、荷物の、配送中、配送済み、配達されていない
 みたいな感じ
   
+- [StatePattern](https://ja.wikipedia.org/wiki/State_%E3%83%91%E3%82%BF%E3%83%BC%E3%83%B3)との絡みとかある？
+  
 #### Why Use State Machines?
 
 state machineを利用することによって得られる利点。
@@ -834,11 +836,20 @@ state machineを利用することによって得られる利点。
     - 空のショッピングカートから商品を削除しようとするとどうなりますか？
     - すでに「配達済み」になっている荷物を配達しようとするとどうなるのでしょうか？
 
+オートマトンとかとの絡み。
+どういう関係なんだろう。
+-> 
+有限オートマトンという概念が、有限個の状態と遷移と動作の組み合わせからなる振る舞いのモデルをさす。
+それを具体的に表現する手段の1つがステートマシン。
+https://ja.wikipedia.org/wiki/%E6%9C%89%E9%99%90%E3%82%AA%E3%83%BC%E3%83%88%E3%83%9E%E3%83%88%E3%83%B3
+
 #### How to Implement Simple State Machines in F#
 
 ### Modeling Each Step in the Workflow with Types
 
 state machineの各ステップをみていく
+
+各ステップとは,validate, pricing, acknowledgement
 
 #### The Validation Step
 
@@ -848,10 +859,13 @@ validateOrderというステップにおいては、ProductCode、住所のチ�
 ここでいう依存とはなんだろう?
 
 dependencyとなる引数を先に持ってきているが、これはアプリケーションの分割？を容易にすることにつながるらしい。
+-> partial application
 
 #### The Pricing Step
 
 #### The Acknowledge Order Step
+
+受注確認の文言を作って、メールをお客さんに送る。
 
 PricedOrderを受け取って、メールを送信する感じ
 
