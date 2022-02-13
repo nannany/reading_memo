@@ -1142,6 +1142,25 @@ let validateOrder' = validateOrder checkProductCodeExists checkAddressExists
 
 ## Chapter 10 Implementation: Working with Errors 
 
+Errorについてみていく
+
+### Using the Result Type to Make Errors Explicit
+
+total functionを作りたい。起きうる結果全てを型によって表現したい、という意味合い。
+Resultを利用する。
+
+下記みたいにすれば、どんなエラーが起きているか明示的に表現できる。
+
+
+
+```
+type CheckAddressExists = 
+  UnvalidatedAddress -> Result<CheckAddress, AddressValidationError>
+and AddressValidationError =
+  | InvalidFormat of string
+  | AddressNotFound of string
+```
+
 ### Wrapping Up 
 
 ```
