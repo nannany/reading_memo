@@ -1180,6 +1180,54 @@ and AddressValidationError =
 #### Modeling Domain Errors in Types 
 
 受注生産のワークフローにおけるエラーについて考えている。
+エラーの型を選択型にする。
+型に応じて処理を変えたりする。
+
+選択型を利用してエラーを表現することのメリットは下記。
+
+```
+このように選択タイプを使用することの良い点は、うまくいかない可能性のあるすべての事柄について、コードの中で明示的なドキュメントとして機能することです。
+また、エラーに関連する追加情報も明示的に表示されます。
+さらに、要件の変化に応じて選択タイプを簡単に拡張(または縮小)できるだけでなく、安全性も確保されています。
+というのも、コンパイラは、このリストに対してパターンマッチを行うコードが、ケースを見逃した場合に警告を発することを保証するからです。
+```
+
+#### Error Handling Makes Your Code Ugly
+
+各ステップでエラー処理をすると、コードがエラー処理ばかりになってしまう。
+
+### Chaining Result-Generating Functions
+
+図をいっぱい使って説明している。
+成功のルートと失敗のルートで大別して、失敗に関しては2つの入り口があるということで、アダプターが必要という話をしている。
+
+#### Implementing the Adapter Block
+
+変換のアダプターは簡単に作ることができる。
+
+- 入力は「switch」関数です。出力は新しい2トラックのみの関数で、2トラックの入力と2トラックの出力を持つラムダとして表されます。
+- ツートラックの入力が成功した場合、その入力をswitch関数に渡します。switch関数の出力はtwo-trackの値なので、これ以上何もする必要はありません。
+- ツートラック入力が故障の場合は、スイッチ機能をバイパスして故障を返します。
+
+
+下記のbind、mapを用いる。
+```
+let bind switchFn =
+  fun twoTrackInput ->.
+    match twoTrackInput with
+  | Ok success -> switchFn success 
+  | Error failure -> Error failure 
+```
+
+```
+let map f aResult = 
+  match aResult with
+    | Ok success -> Ok (f success) 
+    | Error failure -> Error failure 
+```
+
+#### Organizing the Result Functions
+
 
 
 ### Wrapping Up 
