@@ -1247,6 +1247,7 @@ and AddressValidationError =
 - ツートラックの入力が成功した場合、その入力をswitch関数に渡します。switch関数の出力はtwo-trackの値なので、これ以上何もする必要はありません。
 - ツートラック入力が故障の場合は、スイッチ機能をバイパスして故障を返します。
 
+ツートラックインプットは、いわゆるResult型であるっぽい。
 
 下記のbind、mapを用いる。
 ```
@@ -1266,6 +1267,69 @@ let map f aResult =
 
 #### Organizing the Result Functions
 
+Result関数をどのようにコードに入れていくか？
+
+下記がコード実装例。
+https://github.com/swlaschin/DomainModelingMadeFunctional/blob/master/src/OrderTaking/Result.fs
+
+型名と同じmoduleの中にコードを入れていくのが一般的。
+
+#### Composition and Type Checking
+
+下記みたいな感じで構成していく。
+
+```F#
+type FunctionA = Apple -> Result<Bananas, ...>
+type FunctionB = Bananas -> Result<Cherries, ...>
+type FunctionA = Cherries -> Result<Lemon, ...>
+
+let functionA: FunctionA = ...
+let functionB: FunctionB = ...
+let functionC: FunctionC = ...
+
+let functionABC input = 
+  input 
+  |> functionA
+  |> Result.bind functionB
+  |> Result.bind functionC
+```
+
+#### Converting to a Common Error Type
+
+パイプラインの全ての関数は同じエラータイプを持つ必要がある。
+そのための変換を行う必要がある。
+
+こんな関数を用意する。
+```F#
+let mapError f aResult = 
+  match aResult with
+  | Ok success -> Ok success
+  | Error failure -> Error (f failure)
+```
+
+下記のような感じで使う。
+
+```F#
+let functionA: FunctionA = ...
+let functionB: FunctionB = ...
+
+let functionAWithFruitError input = 
+  input |> functionA |> Result.mapError AppleErrorCase
+
+let functionBWithFruitError input = 
+  input |> functionB |> Result.mapError BananaErrorCase
+  
+
+let functionAB input = 
+  input 
+  |> functionAWithFruitError
+  |> Result.bind functionBWithFruitError
+```
+
+AppleErrorCaseとBananaErrorCaseはFruitErrorの選択型。
+FruitErrorが共通のエラー。
+
+### Using bind and map in Our Pipeline
 
 
 ### Wrapping Up 
