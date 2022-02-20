@@ -1331,6 +1331,23 @@ FruitErrorが共通のエラー。
 
 ### Using bind and map in Our Pipeline
 
+エラーの部分を具体例でやってみる。
+
+```F#
+let placeOrder unvalidatedOrder =
+  unvalidatedOrder
+  |> validateOrderAdapted
+  |> Result.bind priceOrderAdapted
+  |> Result.map acknowledgeOrder
+  |> Result.map createEvents
+```
+
+上記でもまだコンパイルはできない。
+acknowledgeOrderの出力はcreateEventsの入力にはならない。
+
+### Adapting Other Kinds of Functions to th Two-Track Model
+
+
 
 ### Wrapping Up 
 
