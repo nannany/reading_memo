@@ -1347,7 +1347,61 @@ acknowledgeOrderの出力はcreateEventsの入力にはならない。
 
 ### Adapting Other Kinds of Functions to th Two-Track Model
 
+- 例外を発生させる関数
+- 何も返さない関数
 
+について、ここではみていく。
+
+#### Handling Exception
+
+これまでで、多くの例外はドメイン設計の一部ではなく、トップレベル以外では補足する必要がないとしてきた。
+しかし、ドメインの一部として扱いたい場合はどうするか？
+
+リモートサービスからの応答がタイムアウトした時のことを考える。
+
+まず、エラーの原因となったサービスに関する型を定義する。
+
+```F#
+type ServiceInfo = {
+  Name: string
+  Endpoint: uri
+}
+```
+
+次に上記をベースとしたエラーの型を定義
+
+```F#
+type RemoteServiceError = {
+  Service: ServiceInfo
+  Exception: System.Exception
+}
+```
+
+こんな感じでエラーを出力するアダプターを作る
+
+```F#
+let serviceExceptionAdapter serviceInfo serviceFn x = 
+  try
+    Ok(serviceFn x)
+  with
+  | :? TimeoutException as ex -> 
+    Error {Service=serviceInfo; Exception=ex}
+  | :? AuthorizationException as ex -> 
+    Error {Service=serviceInfo; Exception=ex}
+```
+
+最終的にはこんな感じに
+
+```F#
+let checkAddressExistsR address = 
+  let adaptedService = serviceExceptionAdapter serviceInfo checkAddressExists
+  
+  address 
+  |> adaptedService
+  |> Result.mapError RemoteService
+```
+
+### Handling Dead-End Functions
 
 ### Wrapping Up 
 
