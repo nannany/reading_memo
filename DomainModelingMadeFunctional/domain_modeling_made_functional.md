@@ -1401,7 +1401,22 @@ let checkAddressExistsR address =
   |> Result.mapError RemoteService
 ```
 
-### Handling Dead-End Functions
+#### Handling Dead-End Functions
+
+入力を受け取って何も返さない関数について。
+
+例としては、ロギング、データベースへの書き込み、キューへのポストなど。
+
+ここでは、元となるinputをそのまま後続へ流すと同時に、dead-endな関数を実行するようにする。
+その際には、下記のようなtee関数を使う。
+
+```F#
+let tee f x = 
+  f x 
+  x
+```
+
+### Making Life Easier with Computation Expression
 
 ### Wrapping Up 
 
