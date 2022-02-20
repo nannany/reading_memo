@@ -1418,6 +1418,78 @@ let tee f x =
 
 ### Making Life Easier with Computation Expression
 
+F#には`computation expressions`なるものがある。
+
+```F#
+let placeOrder unvalidatedOrder
+  = unvalidatedOrder
+  |> validateOrderAdapted
+  |> Result.bind priceOrderAdapted 
+  |> Result.map acknowledgeOrder 
+  |> Result.map createEvents
+```
+
+上記コードが、`computation expressions`を使うと下記のようになる。
+
+```F#
+let placeOrder unvalidatedOrder 
+  = result {.
+    let! validatedOrder =
+      validateOrder unvalidatedOrder
+      |> Result.mapError PlaceOrderError.Validation
+    let! pricedOrder =
+      priceOrder validatedOrder
+      |> Result.mapError PlaceOrderError.Pricing
+    let acknowledgmentOption = 
+      acknowledgeOrder pricedOrder
+    let events =
+      createEvents pricedOrder acknowledgmentOption
+    return events
+  }
+```
+
+このコードがどう機能する？
+
+- 結果の計算式は、resultという単語で始まり、中括弧で囲まれたブロックを含みます。
+- 特殊なlet!キーワードはletのように見えますが、実際には結果を"unwrap"して内部の値を取得します。let! validatedOrder=...のvalidatedOrderは通常の値であり、直接priceOrder関数に渡すことができます。
+- エラーの種類はブロック全体で同じでなければならないため、先ほどと同様にResult.mapErrorを使用してエラーの種類を共通の種類に解除します。エラーは結果式では明示されていませんが、その型は一致している必要があります。
+- ブロックの最後の行では、ブロックの全体的な値を示すreturnキーワードを使用しています。
+
+[ computation expression ](https://docs.microsoft.com/ja-jp/dotnet/fsharp/language-reference/computation-expressions)
+
+async用のも用意されている。
+
+#### Validating an Order with Results
+
+ここまでの例に関して、`computation expression`を利用すると下記のようになる。
+
+```F#
+let validateOrder :ValidateOrder =
+  fun checkProductCodeExists checkAddressExists unvalidatedOrder
+    -> result {.
+      let! orderId =
+        unvalidatedOrder.OrderId
+        |> OrderId.create
+        |> Result.mapError ValidationError
+      let! customerInfo = 
+        unvalidatedOrder.CustomerInfo 
+        |> toCustomerInfo
+        let ! shippingAddress = ... 
+        let! billingAddress = ... 
+        let! lines = ...
+      let validatedOrder :ValidatedOrder = { 
+        OrderId = orderId
+        CustomerInfo = customerInfo OrderId=
+        shippingAddress BillingAddress = billingAddress 
+        billiAddres Lines = lines
+    }
+    return validatedOrder 
+  }
+```
+
+#### Working with List of Result
+
+
 ### Wrapping Up 
 
 ```
