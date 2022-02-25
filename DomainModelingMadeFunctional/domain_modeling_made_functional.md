@@ -1020,6 +1020,8 @@ linuxのパイプと同じ
 
 小さなfunctionを繋げていって、繋げていって、アプリケーションを作る
 
+serviceとかworkflowって明確な区分あったっけ？
+
 #### Challenges in Composing Functions
 
 アウトプットとインプットの型が合わない時はどうやって合成する？
