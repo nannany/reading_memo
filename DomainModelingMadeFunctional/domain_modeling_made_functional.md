@@ -998,11 +998,14 @@ F#では明示的にカリー化をせずとも、すでにカリー化された
 
 ### Total Functions
 
+全域関数。
+
+値の閾値が一部外れるような関数のことを[ 部分関数 ](https://scrapbox.io/mrsekut-p/%E9%83%A8%E5%88%86%E9%96%A2%E6%95%B0)というらしい。
+
 全てのインプットには紐づくアウトプットがあるという考え方のこと？
+全域関数は[写像](https://scrapbox.io/mrsekut-p/%E5%86%99%E5%83%8F)のことらしい
 
 https://softwareengineering.stackexchange.com/questions/334874/in-the-context-of-functional-programming-what-are-total-functions-and-partia
-
-どうやら、インプットとして考えうる値を全て定義した関数という意味合いっぽい
 
 ### Composition
 
