@@ -1596,6 +1596,23 @@ ValidatedOrderの中身もAsyncResultにしなきゃいけないのか？
 
 ## Chapter 11 Serialization 
 
+外部インフラと連携する上で、シリアライズは避けられない。
+ここではドメインオブジェクトの変換についてみていく。
+
+### Persistence vs. Serialization
+
+ここでの永続性の定義は、「状態が、それを作成したプロセスよりも長く続くこと」
+シリアル化は、「ドメイン固有の表現からバイナリ、json、xmlなどの永続化が容易な表現に変換するプロセス」
+
+この章ではシリアル化に焦点をあて、次の章で永続化についてみていく。
+
+### Designing for Serialization
+
+シリアライズ、デシリアライズはDTOで行う。
+なので、ドメイン->DTOへの変換やDTO->ドメインへの変換が必要で、ドメイン固有のvalidationは変換時に実施する。
+
+### Connecting the Serialization Code to the Workflow
+
 ### Wrapping Up
 
 ```
