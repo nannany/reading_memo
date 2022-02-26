@@ -1,3 +1,5 @@
+https://github.com/swlaschin/DomainModelingMadeFunctional
+
 # Part 1 Understanding the Domain
 
 ## Chapter 1 Introducing Domain-Driven Design
@@ -1528,7 +1530,9 @@ applicativesなるものについて。
 
 ここでは詳細は説明できないが、validation errorのような、最初の１つだけを取り上げるというよりは、起きたエラー全てを持っておきたい、みたいな場合に使う何からしい。
 
-### Adding the Async Effects
+### Adding the Async Effect
+
+
 
 ### Wrapping Up 
 
