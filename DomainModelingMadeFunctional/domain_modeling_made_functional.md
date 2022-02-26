@@ -1613,6 +1613,8 @@ ValidatedOrderの中身もAsyncResultにしなきゃいけないのか？
 
 ### Connecting the Serialization Code to the Workflow
 
+json,dto,domainへの変換をへてworkflowに繋げられるよね、という説明。
+
 ### Wrapping Up
 
 ```
