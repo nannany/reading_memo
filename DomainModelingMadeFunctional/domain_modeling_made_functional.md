@@ -1524,6 +1524,12 @@ monadicな関数とは？
 
 #### Composing in Parallel with Applicatives
 
+applicativesなるものについて。
+
+ここでは詳細は説明できないが、validation errorのような、最初の１つだけを取り上げるというよりは、起きたエラー全てを持っておきたい、みたいな場合に使う何からしい。
+
+### Adding the Async Effects
+
 ### Wrapping Up 
 
 ```
