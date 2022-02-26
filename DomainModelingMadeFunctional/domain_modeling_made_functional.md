@@ -1532,7 +1532,56 @@ applicativesなるものについて。
 
 ### Adding the Async Effect
 
+asyncの部分を入れ込むと下記のようになる
 
+```F#
+let validateOrder : ValidateOrder =
+    fun checkProductCodeExists checkAddressExists unvalidatedOrder ->
+        asyncResult {
+            let! orderId =
+                unvalidatedOrder.OrderId
+                |> toOrderId
+                |> AsyncResult.ofResult
+            let! customerInfo =
+                unvalidatedOrder.CustomerInfo
+                |> toCustomerInfo
+                |> AsyncResult.ofResult
+            let! checkedShippingAddress =
+                unvalidatedOrder.ShippingAddress
+                |> toCheckedAddress checkAddressExists
+            let! shippingAddress =
+                checkedShippingAddress
+                |> toAddress
+                |> AsyncResult.ofResult
+            let! checkedBillingAddress =
+                unvalidatedOrder.BillingAddress
+                |> toCheckedAddress checkAddressExists
+            let! billingAddress  =
+                checkedBillingAddress
+                |> toAddress
+                |> AsyncResult.ofResult
+            let! lines =
+                unvalidatedOrder.Lines
+                |> List.map (toValidatedOrderLine checkProductCodeExists)
+                |> Result.sequence // convert list of Results to a single Result
+                |> AsyncResult.ofResult
+            let pricingMethod =
+                unvalidatedOrder.PromotionCode
+                |> PricingModule.createPricingMethod
+
+            let validatedOrder : ValidatedOrder = {
+                OrderId  = orderId
+                CustomerInfo = customerInfo
+                ShippingAddress = shippingAddress
+                BillingAddress = billingAddress
+                Lines = lines
+                PricingMethod = pricingMethod
+            }
+            return validatedOrder
+        }
+```
+
+ValidatedOrderの中身もAsyncResultにしなきゃいけないのか？
 
 ### Wrapping Up 
 
