@@ -1464,6 +1464,10 @@ let placeOrder unvalidatedOrder
 
 async用のも用意されている。
 
+#### Composing Computation Expression
+
+resultを使うことによって、部品と部品を組み合わせることが容易になる。
+
 #### Validating an Order with Results
 
 ここまでの例に関して、`computation expression`を利用すると下記のようになる。
@@ -1493,6 +1497,10 @@ let validateOrder :ValidateOrder =
 ```
 
 #### Working with List of Result
+
+list of Result と Result of listの変換が必要。
+
+Result.sequenceなるものを実装して示している。
 
 
 ### Wrapping Up 
