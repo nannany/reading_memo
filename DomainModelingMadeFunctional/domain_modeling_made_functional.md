@@ -1647,6 +1647,8 @@ DTOのバージョンを複数保持しなければいけない場合が出て�
 
 [Versioning in an Event Sourced System](https://www.goodreads.com/book/show/34327067-versioning-in-an-event-sourced-system)が詳しい。
 
+### How to Translate Domain Types to DTOs
+
 ### Wrapping Up
 
 ```
