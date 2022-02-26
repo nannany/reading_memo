@@ -1615,6 +1615,38 @@ ValidatedOrderの中身もAsyncResultにしなきゃいけないのか？
 
 json,dto,domainへの変換をへてworkflowに繋げられるよね、という説明。
 
+#### DTOs as a Contract Between Bounded Contexts
+
+境界づけられたコンテキスト間での契約を変える際には、慎重に行う必要がある。
+
+### A Complete Serialization Example
+
+toDomain, fromDomainはDTOに持たせる。
+toDomainはドメインのチェックで失敗する可能性があるので、Result型で返す。
+
+#### Wrapping the JSON Serializer
+
+Newtonsoft.jsonなるライブラリでjsonへのシリアライズをしている。
+
+#### A Complete Serialization Pipeline
+
+シリアライズパイプラインは簡単だけど、デシリアライズはResultが変える場合があるからややこしい。
+Result.mapErrorでもってエラーを共通の型にするようにしている。
+
+デシリアライズ時のエラーを予期される状態として処理すべきか、パニックとして処理すべきかは呼び出し元の信頼度による。
+
+#### Working with Other Serializers
+
+シリアライズをjsonにしたり、xmlにしたりする場合には別途プロパティをDTOに足す必要がある。
+ここにドメインとDTOを分けた意味が出る。ドメインはこのようなインフラ側の都合に汚染されない。
+
+#### Working with Multiple Versions of a Serialized Type
+
+DTOのバージョンを複数保持しなければいけない場合が出てくるかもしれない。
+これについては本書では解説しない。
+
+[Versioning in an Event Sourced System](https://www.goodreads.com/book/show/34327067-versioning-in-an-event-sourced-system)が詳しい。
+
 ### Wrapping Up
 
 ```
