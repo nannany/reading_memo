@@ -1649,6 +1649,162 @@ DTOのバージョンを複数保持しなければいけない場合が出て�
 
 ### How to Translate Domain Types to DTOs
 
+ドメインをDTOにどのように変換していくかをみていく。
+
+#### Single-Case Union
+
+これまでsimple typeと呼んできたもの。
+
+```F#
+type ProductCode = ProductCode of string 
+```
+
+上記の例だったら、stringがDTOでの型になる。
+
+#### Options
+
+optionの場合、Noneならnullに置き換える。
+intとか、プリミティブなものに関しては、Nullable<int>のようなものを使用する必要がある。
+https://docs.microsoft.com/ja-jp/dotnet/fsharp/language-reference/nullable-value-types
+
+#### Records
+
+各フィールドがDTOと同等のものに変換できるのであれば、DTOでもレコードとして利用できる。
+本文の例をみるのが一番良い。
+
+#### Collections
+
+コレクションを扱う場合は、シリアル化のフォーマットによってどう変換するか異なる。
+
+#### Discriminated Unions Used as Enumerations
+
+ENUMをシリアライズ、デシリアライズする時の対応。
+
+#### Tuples
+
+tupleについて、これは対応したシリアライズ形式はないので、特別にDTOを定義する必要がある。
+
+#### Choice Types
+
+選択型の場合どうするか？
+
+各選択型についてフィールドを持たせ、タグでそれを判別するような形。
+
+下記のようなドメインがある場合を考える。
+
+```
+type Name = {
+ First : String50
+ Last : String50
+}
+
+type Example =
+ | A
+ | B of int
+ | C of string list
+ | D of Name
+```
+
+この場合、DTOは以下の感じ。
+
+```
+type NameDto = {
+ First : string
+ Last : string
+}
+
+type ExampleDto = {
+ Tag : string // "A", "B", "C", "D "のいずれか。
+ // Aの場合、データはありません。
+ BData : Nullable<int> // Bケースのデータ
+ CData : string[] // Cケースのデータ 
+ DData : NameDto // Dの場合のデータ
+}
+```
+
+シリアル化は下記の感じになる。
+
+```
+let nameDtoFromDomain (name:Name) :NameDto 
+ let first = name.First |>String50.value
+ let last = name.Last |> String50.value
+ {First=First; Last=Last}
+
+let fromDomain (domainObj:Example) :ExampleDto = 
+ let nullBData = Nullable()
+ let nullCData = null
+ let nullDData = Unchecked.defaultof<NameDto>
+ match domainObj with
+ | A ->
+  {Tag="A"; BData=nullBData; CData=nullCData; DData=nullDData}
+ | B i ->
+  let bdata = Nullable i
+  {Tag="B"; BData=bdata; CData=nullCData; DData=nullDData}
+ | C strList ->
+  let cdata = strList |> List.toArray
+  {Tag="C"; BData=nullBData; CData=cdata; DData=nullDData}
+ | D name ->
+  let ddata = name |> nameDtoFromDomain
+  {Tag="D"; BData=nullBData; CData=nullCData; DData=ddata}
+```
+
+デシリアライズの時は以下の感じ。タグでswitchする。
+
+```
+let nameDtoToDomain (nameDto:NameDto) :Result<Name,string> =
+ result {
+  let! first = nameDto.First |> String50.create 
+  let! last = nameDto.Last |> String50.create 
+  return {First=first; Last=last}
+}
+
+let toDomain dto :Result<Example,string> = 
+ match dto.Tag with
+  | "A" -> OK A
+  | "B" ->
+   if dto.BData.HasValue then
+    dto.BData.Value|> B|> Ok
+   else
+    Error "B data not expected to be null"
+  | "C" ->
+   match dto.CData with
+   | null ->
+    Error "C data not expected to be null" 
+   | _ ->
+    dto.CData|> Array.toList|> C|> Ok
+  | "D" ->
+   match box dto.DData with
+   | null ->
+    Error "D data not expected to be null" 
+   | _ ->
+    dto.DData
+    |> nameDtoToDomain // 結果を返す...
+    |> Result.map D // ...だから "map "を使わなければならない。
+    | _ ->
+     // その他のケース
+     let msg = sprintf "Tag '%s' not recognized" dto.Tag 
+     Error msg
+```
+
+#### Serializing Records and Choice Types Using Maps
+
+互いのIFをあまり決めずに、とりあえずMapで値を保持するパターン。
+キーバリューマップには何でも含められる一方、契約が全くないので期待値のミスマッチがあっても気づくことができない。
+
+#### Generics
+
+本書にも書いてあるが、シリアル化が必要なジェネリック型はほとんどないはず。
+
+やるとしたらこんな感じっぽい。
+```
+type PlaceOrderResultDto =
+ { 
+  IsError : bool
+  OkData :PlaceOrderEventDto[] 
+  ErrorData :PlaceOrderErrorDto
+ }
+```
+
 ### Wrapping Up
 
 ```
