@@ -1840,7 +1840,7 @@ I/Oとロジックが何層にも重なる場合には、[Long-Running Workflows
 
 #### Where's the Repository Pattern?
 
-Resositoryパターンは関数型言語にはそぐわない。
+Repositoryパターンは関数型言語にはそぐわない。
 
 #### Command-Query Separation
 
