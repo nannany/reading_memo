@@ -1826,6 +1826,23 @@ NoSQLとトラディショナルなSQLでの永続化についてみていく。
 - コマンド(アップデート)とクエリ(リード)を分ける。
 - バウンデッドコンテクストは、独自のデータストアを所有する
 
+### Pushing Persistence to the Edges
+
+ロジックの部分はドメインに固めて、I/Oを行う部分はworkflowの端に追いやり、読み込み、保存のみを行うようにする。
+
+I/Oを行う部品はparameterとして受け取り、外部からstubを入れられるようにする。
+
+#### Making Decisions Based on Queries 
+
+pureなコードの中間でDBからの読み込みに基づいて判断を下したい場合はどうする？
+-> 
+I/Oとロジックが何層にも重なる場合には、[Long-Running Workflows](#Long-Running Workflows)を利用する。
+
+#### Where's the Repository Pattern?
+
+Resositoryパターンは関数型言語にはそぐわない。
+
+#### Command-Query Separation
 
 
 ### Wrapping Up
