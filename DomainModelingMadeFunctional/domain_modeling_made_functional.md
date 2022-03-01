@@ -1842,8 +1842,48 @@ I/Oとロジックが何層にも重なる場合には、[Long-Running Workflows
 
 Repositoryパターンは関数型言語にはそぐわない。
 
-#### Command-Query Separation
+### Command-Query Separation
 
+- insert,update, deleteはDBの状態を変更し、データを得ることが主目的ではない
+- readはDBの状態を変更せず、有益なデータを得る
+
+上記の２種で明確に分けて考える。
+
+こんな型になりそうだ。
+```
+type DbError = ...   
+type DbResult<'a> = AsyncResult<'a,DbError>     
+
+type InsertData = Data -> DbResult<Unit>   
+type ReadData = Query -> DbResult<Data>   
+type UpdateData = Data -> DbResult<Unit>   
+type DeleteData = Key -> DbResult<Unit>
+```
+
+#### Command-Query Responsibility Segregation
+
+command, queryで同じ部品を使うのは良くない。
+
+- クエリで得られるデータとデータ作成で必要なものは異なることが多い
+- クエリとコマンドは独立して進化することが多い
+- 複数のエンティティを一度にかえすクエリもある
+
+書き込みと読み込みを分けると下記の感じに。
+
+```
+type SaveCustomer = WriteModel.Customer -> DbResult<Unit>
+type LoadCustomer = CustomerId -> DbResult<ReadModel.Customer>
+```
+
+#### CQRS and Database Segregation
+
+データベースを論理的に２つに分け、片方はクエリ専用、片方はコマンド専用としてしまう。
+
+#### Event Sourcing
+
+状態に変化があるたびに、その変化を表すオブジェクトが永続される
+
+### Bounded Contexts Must Own Their Data Storage
 
 ### Wrapping Up
 
