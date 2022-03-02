@@ -1906,6 +1906,18 @@ BIツールで複数のコンテキストのデータを集める方法として
 
 をあげている。
 
+### Working with Document Databases
+
+document dbを使ってjson文字列を保存する例を出している。
+
+### Working with Relational Databases
+
+関数型言語の操作とデータベースの操作は似ている。
+myopinion: これは達人に学ぶSQL徹底指南でも言ってた。
+
+ただ、dbはプリミティブな値しか格納できないし、選択型にうまく対応しているわけではない。
+
+#### Mapping Choice Types to Tables
 
 
 
