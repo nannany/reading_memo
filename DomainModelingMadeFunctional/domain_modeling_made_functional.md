@@ -1893,6 +1893,20 @@ type LoadCustomer = CustomerId -> DbResult<ReadModel.Customer>
 
 #### Working with Data from Multiple Domains
 
+OLTPとOLAP?
+->
+https://www.gixo.jp/blog/2934/
+
+複数のコンテキストのデータが必要となる例として、BIツールをあげている。
+
+BIツールで複数のコンテキストのデータを集める方法として、
+- イベントのサブスクライブ
+- ETLを使ったデータのコピー
+- [キューブ](https://it-trend.jp/bi/article/cube)の開発
+
+をあげている。
+
+
 
 
 ### Wrapping Up
