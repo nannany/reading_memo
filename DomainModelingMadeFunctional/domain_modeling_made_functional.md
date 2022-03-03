@@ -1929,6 +1929,15 @@ myopinion: これは達人に学ぶSQL徹底指南でも言ってた。
 
 #### Mapping Nested Types to Tables
 
+型が他の型をネスとしているときは？
+->
+- インナータイプがDDDのEntityで、独自のアイデンティティを持つ場合は、別のテーブルに格納する必要があります。
+- インナータイプがDDDのバリューオブジェクトで、独自のアイデンティティを持たない場合は、親データと「インライン」で保存する必要があります。
+
+(具体例は本を参照)
+
+#### Reading from a Relational Database
+
 
 
 ### Wrapping Up
