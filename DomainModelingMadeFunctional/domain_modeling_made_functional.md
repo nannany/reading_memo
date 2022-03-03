@@ -1938,7 +1938,13 @@ myopinion: これは達人に学ぶSQL徹底指南でも言ってた。
 
 #### Reading from a Relational Database
 
+F#ではORM使わないことが多い。
 
+DBから取得して、ドメインに変換するところまでを具体例として書いている。
+
+見つからなかった時はErrorを返すのはちょっと意外な感じ。
+
+#### Reading Choice Types from a Relational Database
 
 ### Wrapping Up
 
