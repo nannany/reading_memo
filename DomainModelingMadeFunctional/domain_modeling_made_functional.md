@@ -1919,6 +1919,16 @@ myopinion: これは達人に学ぶSQL徹底指南でも言ってた。
 
 #### Mapping Choice Types to Tables
 
+選択型をDBに入れる際にどうすればいいか？
+-> 
+- 全て１つのテーブルに入れる
+- 各々のケースで1つのテーブルにする
+
+共通部分が多い場合は前者で、少ない場合は後者にすることが多い
+(具体例は本を参照)
+
+#### Mapping Nested Types to Tables
+
 
 
 ### Wrapping Up
