@@ -1064,6 +1064,8 @@ addressをチェックするところの実装
 
 F#の実装方法でつまづくようになってきたな。。
 
+partial applicationについておさらい
+
 #### Creating the Order Lines
 
 letで出てくる()ってなんだっけ?
