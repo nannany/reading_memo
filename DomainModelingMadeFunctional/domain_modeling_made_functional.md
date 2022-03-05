@@ -1952,6 +1952,13 @@ DBから取得して、ドメインに変換するところまでを具体例と
 
 ドメインの型とテーブルの作りが大分似通ったものになる前提がある気がするがそういうもん？
 
+#### Writing to a Relational Database
+
+テーブルへの登録の具体例をあげている。
+
+`<-`は変数への値の代入。
+https://docs.microsoft.com/ja-jp/dotnet/fsharp/language-reference/symbol-and-operator-reference/#symbols-used-in-imperative-expressions
+
 ### Wrapping Up
 
 ```
