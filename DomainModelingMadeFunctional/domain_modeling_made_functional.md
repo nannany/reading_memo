@@ -1959,6 +1959,13 @@ DBから取得して、ドメインに変換するところまでを具体例と
 `<-`は変数への値の代入。
 https://docs.microsoft.com/ja-jp/dotnet/fsharp/language-reference/symbol-and-operator-reference/#symbols-used-in-imperative-expressions
 
+### Transactions
+
+トランザクション単位での登録について具体例をあげている。
+
+また、複数のデータソースに対して同一トランザクションでやろうということに対しては、スターバックスは２相コミットをしない話を例にあげて、厳密な一貫性を求めるよりは補償トランザクションを考えるべきと述べている。
+https://docs.microsoft.com/ja-jp/azure/architecture/patterns/compensating-transaction
+
 ### Wrapping Up
 
 ```
