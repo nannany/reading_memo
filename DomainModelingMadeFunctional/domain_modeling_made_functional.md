@@ -1115,14 +1115,21 @@ let placeOrder: PlaceOrderWorkflow =
     |> createEvents
 ```
 
-形の異なる関数を合成することが関数型プログラミングの課題。
-解決のほとんどはモナドだが、ここでは部分適用(partial application)を適用してみる
+シンプルにやりたいことを示したコードは上記のようになるが、パイプライン間でのinput, outputの齟齬がある。
+validateOrderの周りを見てみると、
+- validateOrderのinputには依存関係の2つのインプットが追加で必要
+- validateOrderのoutputを利用するpriceOrderは、そのoutputの他に1つの依存関係が別途必要
+
+従前の章でも述べたように、この齟齬をなくすのが関数型プログラミングにおける困難な部分の1つ。
+解決方法としては、ここではpartial applicationを使う。
 
 下記みたいに１つのパラメータを持つ関数に変形する。
 
 ```F#
 let validateOrder' = validateOrder checkProductCodeExists checkAddressExists
 ```
+
+この章では注入するcheckProductCodeExists や checkAddressExists の詳細については述べていない。
 
 次に依存性の注入方法を見ていく
 
@@ -1134,20 +1141,29 @@ let validateOrder' = validateOrder checkProductCodeExists checkAddressExists
 "reader monad", "free monad"みたいな手法があるらしい。
 
 コンポジションルートにて、依存関係の具体を注入する。
+コンポジションルートはアプリケーションのエントリポイントのある位置というイメージ。
+
 Suave frameworkの例が一番わかりやすいかも。
+ここでメインで言いたいことは、DIについてはコンポジションルート内で具体を入れてやり、それを各下位の関数に渡してやるということ。
 
 #### Too Many Dependencies?
 
-全ての依存関係をコンポジションルートに持たせるようなことはしない。
+依存関係を整理する工夫をしましょうねという話。
+
+全ての依存関係を全部同じようにバケツリレーさせるようなことはしない。
+`checkAddressExists`に関して、endpoint, credential, unvalidatedAddressの3つを渡すものであったなら、
+endpointとcredentialの2つはコンポジションルートで具体化してしまって、partial application化してしまう。
+
 あらかじめ埋め込む(prebuild)ようなヘルパー関数を作成して、外から渡す依存の数を減らす。
 
 ### Testing Dependencies
 
 テストコードの名前はダブルクオートで囲うことが多い。
 
+関数型プログラミングで記述することによって得られるメリット
 ```
 これはごく小さな例ですが、関数型プログラミングの原理をテストに用いることで、実用的なメリットが得られることがすでにわかっています。
-• validateOrder関数はステートレスです。 何も変異させず、同じ入力で呼 び出しても同じ出力を得ることができます。このため、この関数のテストは簡単です。
+• validateOrder関数はステートレスです。 何も変異させず、同じ入力で呼び出しても同じ出力を得ることができます。このため、この関数のテストは簡単です。
 • すべての依存関係が明示的に渡されているので、どのように動作するか理解しやすいです。
 • すべての副作用は、関数自体に直接ではなく、パラメータにカプセル化されています。これにより、関数のテストが容易になり、副作用の制御も容易になりました。
 ```
@@ -1166,7 +1182,7 @@ https://blogs.oracle.com/otnjp/post/know-for-sure-with-property-based-testing-ja
 
 ### The Assembled Pipeline
 
-
+これまで作成してきた部品が具体的にどうファイルに記述されるかを伝えている。
 
 ### Wrapping Up
 
