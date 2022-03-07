@@ -1997,6 +1997,34 @@ https://docs.microsoft.com/ja-jp/azure/architecture/patterns/compensating-transa
 
 ## Chapter 13 Evolving a Design and Keeping It Clean
 
+コードの変更がどのようにして行われるかをみていく。
+ここでは4種類の変化を見ていく。
+
+- ワークフローに新しいステップを追加する
+- ワークフローへの入力変更
+- 重要なドメインタイプ(注文)の定義を変更し、それがシステムにどのように影響するかを見る
+- ワークフロー全体をビジネスルールに合わせて変換する
+
+### Change 1: Adding Shipping Charges 
+
+送料の計算方法を追加してみる。
+
+```
+地方の州への配送は一律の価格(例えば 5ドル)、遠隔地への発送は別料金(例えば10ドル)、他国への発送はさらに 別料金(20ドル)となります。
+```
+
+#### Using Active Patterns to Simplify Business Logic
+
+アクティブパターンを利用して簡素化する。
+https://docs.microsoft.com/ja-jp/dotnet/fsharp/language-reference/active-patterns
+結構理解するのが難しい。
+値に一時的な区分を与えるみたいな感じ？
+
+カテゴライズとロジックを分離している。
+
+#### Creating a New Stage in the Workflow
+
+
 ### Wrapping Up 
 
 ```
