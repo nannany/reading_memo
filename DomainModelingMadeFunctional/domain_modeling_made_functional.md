@@ -2024,6 +2024,28 @@ https://docs.microsoft.com/ja-jp/dotnet/fsharp/language-reference/active-pattern
 
 #### Creating a New Stage in the Workflow
 
+動作しているコードに手を入れると複雑化するので、shippingInfoを計算するステップを加える。
+
+PricedOrderにShippingInfoフィールドを追加する形にするか？それとも新しい型を作るか？
+新しい型を作る利点。
+
+- AcknowledgeOrderステップがPricedOrderWithShippingInfoを入力として期待するように修正された場合、ステージの順序を間違えることはありません。
+- PricedOrderのフィールドとしてShippingInfoを追加した場合、送料の計算が行われる前に何に初期化すべきでしょうか?単にデフォルト値に初期化するだけでは、バグが発生する可能性があります。
+
+ShippingInfoをどのように含めるべきかも議論されている。
+
+あとは実装で示している。
+
+#### Other Reasons to Add Stages to the Pipeline
+
+要件の変更に応じてパイプラインにステージを追加するようにしている。
+この方法でできることの例が下記。
+
+- 運用の透明性を高めるためのステージを追加することで、パイプライン内で何が起こっているのかを簡単に確認することができます。ロギング、パフォーマンスメトリクス、監査などを簡単に追加することができます。
+- 認証をチェックするステージを追加し、それが失敗した場合には、パイプラインの残りの部分をスキップして、失敗パスに送り込むことができます。
+- 入力からの設定やコンテキストに基づいて、コンポジションのルートにステージを動的に追加・削除することもできます
+
+### Change 2: Adding Support for VIP Customers
 
 ### Wrapping Up 
 
