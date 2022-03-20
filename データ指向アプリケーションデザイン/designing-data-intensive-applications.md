@@ -524,4 +524,26 @@ lww(last writes wins)
 
 # 10章 バッチ処理
 
+システムのタイプ
+- オンライン
+- バッチ
+- ストリーム
+
+MapReduceなるアルゴリズムは2004年に発表されたもの。  
+https://storage.googleapis.com/pub-tools-public-publication-data/pdf/16cb30b4b92fd4989b8619a61752a2387c6dd474.pdf
+これが原典のよう。
+ただ、現在は発表元であるGoogleでも使われてなさそう。  
+https://www.datacenterknowledge.com/archives/2014/06/25/google-dumps-mapreduce-favor-new-hyper-scale-analytics-system
+
+今ではMapReduceの重要性は低くなってきているが、バッチ処理が何故どのように有益なのかを描いているために理解する価値は依然としてある。
+
+MapReduceは1940~1950年代に広く使われたIBMのカード分類機ににている。
+
+
+## 10.1 Unixのツールによるバッチ処理
+
+https://scrapbox.io/ymym1990ymym-66656033/%5B%E3%83%87%E3%83%BC%E3%82%BF%E6%8C%87%E5%90%91%E3%82%A2%E3%83%97%E3%83%AA%5D10.1_Unix%E3%81%AE%E3%83%84%E3%83%BC%E3%83%AB%E3%81%AB%E3%82%88%E3%82%8B%E3%83%90%E3%83%83%E3%83%81%E5%87%A6%E7%90%86
+
+## 10.2 MapReduceと分散ファイルシステム
+
 
