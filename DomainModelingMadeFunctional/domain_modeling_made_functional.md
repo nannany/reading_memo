@@ -1530,6 +1530,24 @@ let validateOrder :ValidateOrder =
   }
 ```
 
+validateOrderにおいては、ValidationErrorにエラーを統一する。
+OrderId.create においてはエラー時にstringが返ってくるのでl、mapErrorしてValidationErrorにしてやる必要がある。
+
+```F#
+module OrderId =
+
+    /// Return the string value inside an OrderId
+    let value (OrderId str) = str
+
+    /// Create an OrderId from a string
+    /// Return Error if input is null, empty, or length > 50
+    let create fieldName str =
+        ConstrainedType.createString fieldName OrderId 50 str
+```
+
+https://github.com/swlaschin/DomainModelingMadeFunctional/blob/master/src/OrderTakingEvolved/Common.SimpleTypes.fs#L224-L232
+https://github.com/swlaschin/DomainModelingMadeFunctional/blob/master/src/OrderTakingEvolved/Common.SimpleTypes.fs#L83-L91
+
 #### Working with List of Result
 
 list of Result と Result of listの変換が必要。
