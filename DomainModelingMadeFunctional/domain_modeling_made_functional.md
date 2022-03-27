@@ -1550,9 +1550,16 @@ https://github.com/swlaschin/DomainModelingMadeFunctional/blob/master/src/OrderT
 
 #### Working with List of Result
 
-list of Result と Result of listの変換が必要。
+`toValidatedOrderLine`ってなんだっけ？
+-> 1つのUnvalidatedOrderを受け取って、検証する関数。これが今回Resultで戻ってくることになった。
 
-Result.sequenceなるものを実装して示している。
+今回欲しいのはResultのlistではなくて、listのResult。
+
+sequenceなる関数を作って list of Result を Result of list にする。
+
+List.foldbackは下記の感じ。
+https://fsharp.github.io/fsharp-core-docs/reference/fsharp-collections-listmodule.html#foldBack
+listの1つの要素とstate valueを変換する関数と、list、初期値を引数に与えている感じ。
 
 ### Monads and More
 
