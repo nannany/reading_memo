@@ -2086,6 +2086,27 @@ ShippingInfoをどのように含めるべきかも議論されている。
 
 ### Change 2: Adding Support for VIP Customers
 
+VIPカスタマーを加えるような改修をする場合を考える。
+
+CustomerInfoに情報を持たせるようにする。
+https://github.com/swlaschin/DomainModelingMadeFunctional/blob/70f7a53254382883bc04cd3cd739820663fdab3a/src/OrderTakingEvolved/Common.CompoundTypes.fs#L25-L29
+
+#### Adding a New Input to the Workflow
+
+下記の変更だけ入れて、typeだけ更新するとコンパイルエラーが生じる。
+https://github.com/swlaschin/DomainModelingMadeFunctional/blob/70f7a53254382883bc04cd3cd739820663fdab3a/src/OrderTakingEvolved/Common.CompoundTypes.fs#L25-L29
+
+情報の入り口であるDTOと、Domainそのものと、変換処理であるvalidateCustomerInfoを修正する。
+
+#### Adding the Free Shipping Rule to the Workflow
+
+VIPなら配送料を無料にするためのコードをワークフローのどこかに入れる必要がある。
+この時、既存のコードをいじるのではなく、新たにセグメントを入れ込むのがよかろう。
+https://github.com/swlaschin/DomainModelingMadeFunctional/blob/70f7a53254382883bc04cd3cd739820663fdab3a/src/OrderTakingEvolved/PlaceOrder.Implementation.fs#L321-L333
+https://github.com/swlaschin/DomainModelingMadeFunctional/blob/70f7a53254382883bc04cd3cd739820663fdab3a/src/OrderTakingEvolved/PlaceOrder.Implementation.fs#L457
+
+
+
 ### Wrapping Up 
 
 ```
