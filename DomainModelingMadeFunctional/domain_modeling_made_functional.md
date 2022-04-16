@@ -2105,6 +2105,72 @@ VIPなら配送料を無料にするためのコードをワークフローの�
 https://github.com/swlaschin/DomainModelingMadeFunctional/blob/70f7a53254382883bc04cd3cd739820663fdab3a/src/OrderTakingEvolved/PlaceOrder.Implementation.fs#L321-L333
 https://github.com/swlaschin/DomainModelingMadeFunctional/blob/70f7a53254382883bc04cd3cd739820663fdab3a/src/OrderTakingEvolved/PlaceOrder.Implementation.fs#L457
 
+### Change 3: Adding Support for Promotion Codes
+
+プロモーションコードで割引する仕組みを入れたい。
+
+具体的にはこんな感じの要件
+- ご注文の際に、お客様が任意でプロモーションコードを入力することができます。
+- このコードがある場合、特定の商品には異なる（低い）価格が与えられます。
+- 注文書には、プロモーション割引が適用されたことが表示されるはずです。
+
+最後のやつは全体に結構な影響がある。
+
+#### Adding a Promotion Code to the Domain Model
+
+ドメインモデルにPromotionCodeを加える。
+
+加えて、OrderDto、UnvalidatedOrderにPromotionCodeを加える。
+
+#### Changing the Pricing Logic
+
+promotion codeがあったらそれ用の価格計算をして、なかったら別の価格計算をする。
+これをどうやって設計するか？
+
+元々は商品価格取得には下記のような型を用意していた。
+```F#
+type GetProductPrice = ProductCode -> Price
+```
+
+しかし、現在はpromotion codeに基づいて、別のGetProductPriceをしたい。
+ロジック的には
+- プロモーションコードが存在する場合、そのプロモーションコードに関連する価格を返す GetProductPrice 関数を提供する。
+- プロモーションコードが存在しない場合、元のGetProductPrice関数を提供する。
+
+
+下記を用意して、
+```F#
+type PricingMethod = 
+  | Standard
+  | Promotion of PromotionCode
+```
+
+ValidatedOrderにPricingMethodを加える。
+https://github.com/swlaschin/DomainModelingMadeFunctional/blob/70f7a53254382883bc04cd3cd739820663fdab3a/src/OrderTakingEvolved/PlaceOrder.InternalTypes.fs#L49
+
+PricingMethodを元に計算する関数を返す。
+```F#
+type = GetPricingFunction = PricingMethod -> GetProductPrice
+```
+
+#### Implementing the GetPricingFunction
+
+具体的な実装は下記のような感じ。
+https://github.com/swlaschin/DomainModelingMadeFunctional/blob/70f7a53254382883bc04cd3cd739820663fdab3a/src/OrderTakingEvolved/PlaceOrder.Pricing.fs#L23-L55
+
+#### Documenting the Discount in an Order Line
+
+該当の商品に対して割引が適用されたかどうかを記す必要がある。
+
+そのためにPricedOrderLineにCommentを加える。
+
+priceOrder関数でやることは下記
+- まず、GetPricingFunction "factory "から価格関数を取得します。
+- 次に、各行について、その価格設定関数を用いて価格を設定する。
+- 最後に、プロモーションコードが使用された場合、行のリストに特別なコメント行を追加します。
+
+#### More Complicated Pricing Schemes
+
 
 
 ### Wrapping Up 
