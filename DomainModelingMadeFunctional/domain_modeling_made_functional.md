@@ -2040,26 +2040,49 @@ ContactInfo ||--o| ContactPhone : contains
 
 #### Mapping Nested Types to Tables
 
-型が他の型をネスとしているときは？
+型が他の型をネストしているときは？
 ->
 - インナータイプがDDDのEntityで、独自のアイデンティティを持つ場合は、別のテーブルに格納する必要があります。
 - インナータイプがDDDのバリューオブジェクトで、独自のアイデンティティを持たない場合は、親データと「インライン」で保存する必要があります。
 
 (具体例は本を参照)
 
+entityは別テーブルにして、valueオブジェクトは同じテーブルに含める。
+
+```mermaid
+erDiagram
+
+Order {
+  int OrderId 
+  varchar ShippingAddress1
+  varchar ShippingAddress2
+  varchar ShippingAddressCity
+  varchar BillingAddress1
+  varchar BillingAddress2
+  varchar BillingAddressCity
+}
+OrderLine {
+  int OrderLineId
+  int OrderId 
+  int ProductId
+  int Quantity
+}
+Order ||--|{ OrderLine : contains
+```
+
 #### Reading from a Relational Database
 
 F#ではORM使わないことが多い。
 
-DBから取得して、ドメインに変換するところまでを具体例として書いている。
+[ type provider ](https://zenn.dev/flipflap/articles/fsharp-typeprovider) なるものを利用すると、コンパイル時に不備に気づける。
+コンパイル時にsqlの不備に気づける、みたいなのはよくわからなかった。
+それはつまり、本物のdbと常にコネクションを持っておかねばならないということ？
 
-見つからなかった時はErrorを返すのはちょっと意外な感じ。
+DBから取得して、ドメインに変換するところまでを具体例として書いている。
 
 #### Reading Choice Types from a Relational Database
 
 選択型について、１つのテーブルで表現した場合のDBからドメインに変換する例をあげている。
-
-ドメインの型とテーブルの作りが大分似通ったものになる前提がある気がするがそういうもん？
 
 #### Writing to a Relational Database
 
