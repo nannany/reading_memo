@@ -1969,20 +1969,74 @@ document dbを使ってjson文字列を保存する例を出している。
 
 ### Working with Relational Databases
 
+RDBの考え方と関数型の考え方は割と近い、が、異なる部分もあるので注意。
+
+ソースコードにおけるオブジェクトとデータベースのカラムとの間で起こる齟齬をインピーダンスミスマッチと呼んでいる。
+昔からそこの整合性を合わせるのに苦労してきた。
+インピーダンスミスマッチの話はこの辺りがわかりやすかった。
+https://ja.wikipedia.org/wiki/%E3%82%A4%E3%83%B3%E3%83%94%E3%83%BC%E3%83%80%E3%83%B3%E3%82%B9%E3%83%9F%E3%82%B9%E3%83%9E%E3%83%83%E3%83%81
+
 関数型言語の操作とデータベースの操作は似ている。
 myopinion: これは達人に学ぶSQL徹底指南でも言ってた。
+
+集合指向のオペレーション(SELECT, WHERE)はリスト指向のオペレーション(map, filter)と同様である。
+
+---
+集合指向についての言及は下記。
+https://mickindex.sakura.ne.jp/database/db_laws.html
+一方、リスト指向については特にネットから引っ張ってこれなかった。
+---
 
 ただ、dbはプリミティブな値しか格納できないし、選択型にうまく対応しているわけではない。
 
 #### Mapping Choice Types to Tables
 
-選択型をDBに入れる際にどうすればいいか？
--> 
+選択型をDBに入れる際にどうすればいいか？がテーマの節。
+
+要約すると、下記の2つが解答。 
 - 全て１つのテーブルに入れる
+  - フラグを表すカラムを用意する
+  - null許容なカラムができる
 - 各々のケースで1つのテーブルにする
+  - 親テーブルでフラグを持ち、子テーブルがケースの分だけある
+
+参考資料(o/r mappingに関する資料)
+http://www.agiledata.org/essays/mappingObjects.html
 
 共通部分が多い場合は前者で、少ない場合は後者にすることが多い
 (具体例は本を参照)
+
+```mermaid
+erDiagram
+
+ContactInfo {
+  int ContactId 
+  bit IsEmail
+  bit IsPhone
+  nvarchar EmailAddress
+  nvarchar PhoneNumber
+}
+```
+
+```mermaid
+erDiagram
+
+ContactInfo {
+  int ContactId 
+  bit IsEmail
+  bit IsPhone
+}
+ContactEmail {
+  int ContactId 
+  nvarchar EmailAddress
+}
+ContactPhone {
+  int ContactId 
+  nvarchar PhoneNumber
+}
+ContactInfo ||--o| ContactEmail : contains
+ContactInfo ||--o| ContactPhone : contains
+```
 
 #### Mapping Nested Types to Tables
 
