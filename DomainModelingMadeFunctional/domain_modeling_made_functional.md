@@ -152,7 +152,7 @@ https://github.com/swlaschin/DomainModelingMadeFunctional
 
 確認書送付は副作用。
 
-OrderPlaced event をBillingコンテキストにnotifiy
+OrderPlaced event をBillingコンテキストにnotify
 
 ### Fighting the Impulse to Do Database-Driven Design
 
