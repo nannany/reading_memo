@@ -66,7 +66,7 @@ https://github.com/swlaschin/DomainModelingMadeFunctional
 これらの要求をDDDの用語ではコマンドと呼びます（OOプログラミングで使われるコマンドパターンと混同しないでください）。コマンドは常に命令形で書かれます："Do this for me."
 ```
 
-### Partishoning the Doamin into SubDomain
+### Partitioning the Domain into SubDomain
 
 ドメインをサブドメインに区切っていく。
 
