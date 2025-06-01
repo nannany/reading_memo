@@ -503,5 +503,13 @@ cssとjsの同期ができない。
 
 ## 7.4 Method 2: CSS Modules
 
-- [ ] 7.4.1 How CSS Modules work
+- [x] 7.4.1 How CSS Modules work
 
+*.module.css というファイルをコンパイルして、各コンポーネントごとに固有のcssを作る感じ。
+
+- [x] 7.4.2 Setup for CSS Modules project
+
+viteであればdefaultで対応している。
+webpackであれば、css-loaderを使う。
+
+- [ ] 7.4.3 Source code with CSS Modules
