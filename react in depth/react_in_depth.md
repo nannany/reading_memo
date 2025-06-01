@@ -463,3 +463,14 @@ react compilerでmemo系hookは不要になる可能性がある
 第7章では、**styled-components**というスタイリング手法が導入されています。これは、CSSファイルを不要にし、JavaScriptファイル内で直接CSSを使ってコンポーネントを定義できるようにするものです。基本的な考え方は、CSSファイルから直接HTML要素とクラスをコンポーネントとしてインポートするようなものです。styled-componentsは**タグ付きテンプレートリテラル**を使用します。styled-componentsは、キーフレームやメディアクエリのような高度なCSS機能、およびグローバルCSSルールを適用するための関数もサポートしています。
 
 章の最後では、インラインCSS、CSSファイル、CSS Modules、Styled-components、Tailwind CSSといった**さまざまなCSS手法**を、特異性、衝突、コンポジションといった属性に基づいて比較した表が提供されています。styled-componentsは衝突とコンポジションにおいて有利に評価されている一方、特異性については中立的/混在しているとされています。
+
+
+---
+
+## 7.1 Styling with concerns
+
+- [x] 7.1.1 CSS language features
+
+cssの特徴について述べてる。
+
+- [ ] 7.1.2 Developer experience
