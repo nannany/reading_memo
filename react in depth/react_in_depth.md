@@ -473,4 +473,31 @@ react compilerでmemo系hookは不要になる可能性がある
 
 cssの特徴について述べてる。
 
-- [ ] 7.1.2 Developer experience
+- [x] 7.1.2 Developer experience
+
+- [x] 7.1.3 Web application development
+
+- [x] 7.1.4 Why not inline styles?
+
+- [x] 7.1.5 What about existing UI libraries?
+
+## 7.2 The example button application
+
+## 7.3 Method 1: CSS files and class names
+
+cssを別ファイルに切り出す方法(cssをjsの中に入れない)についてのpros/consを論じる。
+
+- [x] 7.3.1 How class names work
+- [x] 7.3.2 Setup for class name project
+- [x] 7.3.3 Implementation with class names
+- [x] 7.3.4 Strengths of the class names approach
+
+- [x] 7.3.5 Weaknesses of the class names approach
+
+cssとjsの同期ができない。
+当てるべきスタイルの衝突が起きる。
+
+- [x] 7.3.6 When (not) to use CSS files and class names
+
+小規模で向いてるとのこと
+
