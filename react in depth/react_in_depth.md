@@ -512,4 +512,40 @@ cssとjsの同期ができない。
 viteであればdefaultで対応している。
 webpackであれば、css-loaderを使う。
 
-- [ ] 7.4.3 Source code with CSS Modules
+- [x] 7.4.3 Source code with CSS Modules
+
+- [x] 7.4.4 Strengths of CSS Modules
+
+importして使うので、cssとjsの同期が取れる。
+class名の衝突が起きない。
+
+- [x] 7.4.5 Weaknesses of CSS Modules
+
+ゆうてもcssとjsのファイルが別なので、行ったり来たりする必要がある。
+動的な値に対しては、inline styleを使う必要がある。
+最終的なoutputのspecificityの問題が依然としてある。
+
+- [x] 7.4.6 When (not) to use CSS Modules
+
+大規模なところでも使われていたりする。
+
+## 7.5 Method 3: Styled-components
+
+- [x] 7.5.1 How styled-components works
+
+jsの中に、バッククォートを駆使したタグ付きテンプレートリテラルを使って、cssを記述する
+
+- [x] 7.5.2 Setup for styled-components project
+
+styled-componentsは、npmでインストールできる。
+
+- [x] 7.5.3 Source code with styled-components
+
+jsxとcssが同じファイルに書ける。
+それゆえ、1つのファイルは長くなりがち。
+
+- [x] 7.5.4 Strengths of styled-components
+
+- [x] 7.5.5 Weaknesses of styled-components
+
+- [x] 7.5.6 When (not) to use styled-components
