@@ -622,3 +622,15 @@ jsxとcssが同じファイルに書ける。
 
 
 ---
+
+## 8.1 Creating a goal-tracking application
+
+100回やることを支援するアプリを作る。
+https://100.bingo これが完成系。
+
+
+## 8.2 Building the application architecture
+
+## 8.3 Managing data in pure React
+
+- [ ] 8.3.1 Context
