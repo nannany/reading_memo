@@ -633,4 +633,17 @@ https://100.bingo これが完成系。
 
 ## 8.3 Managing data in pure React
 
-- [ ] 8.3.1 Context
+- [x] 8.3.1 Context
+
+- [x] 8.3.2 Source code
+
+https://www.reactindepth.dev/browse/ch08/context/browse
+
+仕組みをちゃんと見れば理解はできるが、これを自分で書くのはちょっと訓練が入りそう。
+
+providerが中身にcontextを持っている形。
+
+
+## 8.4 Reducing data state
+
+
