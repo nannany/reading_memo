@@ -742,3 +742,13 @@ const [count, actions] = useReduction(0, {
 
 
 # 8.5 Scaling data management with Redux Toolkit
+
+- [x] 8.5.1 How does Redux work?
+
+redux は context + useReduction + useContextSelectorを同じ
+
+- [x] 8.5.2 Source code
+
+## 8.6 Simplifying data management with zustand
+  
+
