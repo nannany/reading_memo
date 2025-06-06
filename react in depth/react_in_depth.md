@@ -646,4 +646,99 @@ providerが中身にcontextを持っている形。
 
 ## 8.4 Reducing data state
 
+- [x] 8.4.1 Immer: Writing immutable code mutably
 
+immerを利用すればmutableにstateの更新を記述できる。
+これはreactの公式文章にも書いてある。
+
+- [ ] 8.4.2 Source code
+
+useReductionという謎ライブラリを使っている。
+下記のような違いで、useReducerを使って公式に従った方が良い。
+---
+
+### ざっくり結論
+
+|              | `useReduction`                                                  | React 組み込み `useReducer`                                    |
+| ------------ | --------------------------------------------------------------- | ---------------------------------------------------------- |
+| 呼び出し結果       | `[state, actions]`（**アクションクリエータの集合**）                           | `[state, dispatch]`（**dispatch 関数**）                       |
+| reducer の書き方 | `{ actionName: (state, {payload}) => newState }` という **オブジェクト** | `(state, action) => newState` という **関数**                   |
+| アクション送信      | `actions.increment(2)` のように **関数呼び出し**                          | `dispatch({type:'increment', payload:2})` と **オブジェクトを手書き** |
+| ボイラープレート     | 少ない（`switch` やアクション型定義不要）                                       | 自前で `switch` 文・アクションクリエータを用意しがち                            |
+| デバッグ支援       | 第3引数 `true` で **自動ログ出力**                                        | 標準では無し（自分で `console.log` を挟む）                              |
+| 依存関係         | 外部ライブラリ（Stars ≒ 40・最終コミット 2023-02）                              | React 本体のみ                                                 |
+| 実装概要         | 内部で `useReducer` を呼び出し、渡されたオブジェクトから action creator を自動生成        | 純粋に reducer 関数と dispatch を返すだけ                             |
+
+([github.com][1], [react.dev][2])
+
+---
+
+## コード比較で見る違い
+
+### `useReducer` 版（素の React）
+
+```tsx
+const reducer = (state: number, action: {type: 'inc'|'dec'; payload: number}) => {
+  switch (action.type) {
+    case 'inc': return state + action.payload;
+    case 'dec': return state - action.payload;
+    default:     return state;
+  }
+};
+
+const [count, dispatch] = React.useReducer(reducer, 0);
+
+<button onClick={() => dispatch({type: 'inc', payload: 2})}>+2</button>
+```
+
+* アクションオブジェクトを毎回手で書く
+* 型定義・`switch` がやや冗長
+
+---
+
+### `useReduction` 版
+
+```tsx
+import useReduction from 'use-reduction';
+
+const [count, actions] = useReduction(0, {
+  inc: (c, {payload}: {payload: number}) => c + payload,
+  dec: (c, {payload}: {payload: number}) => c - payload,
+});
+
+<button onClick={() => actions.inc(2)}>+2</button>
+```
+
+* reducer を “アクション名 ⇒ ハンドラ” の **マップ** で渡す
+* `actions.inc` が自動生成され、第一引数が `payload` になる
+* `useReduction(…, …, true)` にすると `console.log({type:'inc', payload:2})` を吐く
+
+---
+
+## どちらを選ぶ？
+
+| シチュエーション                          | 向いている選択肢                                       | 理由                                          |
+| --------------------------------- | ---------------------------------------------- | ------------------------------------------- |
+| **ローカルな UI 状態**を素早く書きたい           | `useReduction`                                 | action creator 自動生成で記述量が減る                  |
+| **公式 API だけで完結**させたい / 依存を増やしたくない | `useReducer`                                   | React だけで足りる                                |
+| 複数ファイルに **dispatch を伝搬**して使う      | `useReducer`                                   | dispatch は関数 1 つなので Context などに載せやすい        |
+| **型安全**に大量のアクションを扱う               | どちらも可だが `useReduction` は union 型を自分で組まなくて済むため楽 |                                             |
+| **長期保守** / ライブラリの活動状況が気になる        | `useReducer`                                   | `useReduction` は小規模 OSS（Star ≒ 40, コミット少なめ） |
+
+---
+
+## まとめ
+
+* **機能面では `useReduction` は単に “アクションクリエータ生成器付き `useReducer`”**。内部実装も `useReducer` を呼んでいるだけなのでパフォーマンスや React の仕組みは変わりません。
+* ボイラープレートが減る一方、**依存が増える・ドキュメントが少ない** というトレードオフがあります。
+* 小〜中規模の UI コンポーネントで「action オブジェクトを書くのが面倒」と感じたときに導入するイメージです。大規模な状態管理やチーム開発なら、公式のまま + 独自ヘルパー or Redux Toolkit の方が通りが良いことも多いでしょう。
+
+これで違いのイメージを掴んでいただければ幸いです！
+
+[1]: https://github.com/anater/useReduction "GitHub - anater/useReduction: useReducer without boilerplate"
+[2]: https://react.dev/reference/react/useReducer?utm_source=chatgpt.com "useReducer - React"
+
+----
+
+
+# 8.5 Scaling data management with Redux Toolkit
