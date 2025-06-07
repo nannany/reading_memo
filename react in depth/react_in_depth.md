@@ -751,4 +751,16 @@ redux は context + useReduction + useContextSelectorを同じ
 
 ## 8.6 Simplifying data management with zustand
   
+- [x] 8.6.1 Zustand
+
+
+- [x] 8.6.2 Source code
+
+zustandの create, persist を使う。
+
+contextを使う必要がない。
+
+## 8.7 Rethinking flow and data with XState
+
+- [ ] 8.7.1 A state machine for doing things
 
