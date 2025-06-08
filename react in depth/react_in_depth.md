@@ -762,5 +762,20 @@ contextを使う必要がない。
 
 ## 8.7 Rethinking flow and data with XState
 
-- [ ] 8.7.1 A state machine for doing things
+- [x] 8.7.1 A state machine for doing things
 
+- [x] 8.7.2 Source code
+  
+一旦、state machineを使って表現できる手法があるということで理解。
+ちゃんと書くとなったらまた見返す必要がある。
+
+ページごとにどうするか、（ページ単位でアクターを持つのか、グローバルにアクターを持つのか）といった説明はされていない。
+あくまでコンセプトの紹介という感じ。
+
+
+## 8.8 Data management recap
+
+感想として、ごちゃごちゃライブラリ入れて更新等運用のコスト払うくらいなら、pureなReactでやった方が良いのでは？と思った。
+今からの時代aiでコーディング、リーディングしていくのであれば、pureなReactのコードでもうまくaiが解釈してわかりやすい形で示してくれる。
+
+# 9
