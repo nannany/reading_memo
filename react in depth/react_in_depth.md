@@ -816,3 +816,26 @@ Reactの第9章「リモートデータとリアクティブキャッシュ」�
 この章は、Reactアプリケーションがリモートデータとどのように効果的に連携し、複雑なデータ管理やパフォーマンス最適化の課題に、TanStack Queryのようなライブラリがどのように役立つかを深く掘り下げています。
 
 ----
+
+- ## 9.1 Server complexity
+
+mock server workerを使ってバックエンドサーバーの動きを模擬している。
+
+- ## 9.2 Adding a remote server to do goal tracking
+
+- [x] 9.2.1 Adding signup and login
+
+- [x] 9.2.2 Designing an API
+
+- [x] 9.2.3 Rewriting the data layer
+
+- [x] 9.2.4 Adding a loading indicator
+
+- [x] 9.2.5 Putting everything together
+
+- [x] 9.2.6 Evaluating the solution
+
+ここまではfetchを使ってサーバーから情報を取得する例を実施してきた。
+
+## 9.3 Migrating to TanStack Query
+
