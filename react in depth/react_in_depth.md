@@ -839,3 +839,47 @@ mock server workerを使ってバックエンドサーバーの動きを模擬�
 
 ## 9.3 Migrating to TanStack Query
 
+- [x] 9.3.1 TanStack Query architecture
+- [x] 9.3.2 Queries and mutations
+- [x] 9.3.3 Implementation
+- [x] 9.3.4 Bonus side effects
+
+コネクションが再接続されたら自動的に再取得してくれる
+一定時間経ったらcache破棄して再取得するような設定にすることができる
+複数のコンポーネントからそれぞれ同じ通信をするようなコードになっていても、tanstack側で重複排除してくれる
+リトライをしてくれる
+
+## 9.4 Reactive caching with TanStack Query
+
+- [x] 9.4.1 Updating cache from a mutation
+
+元々mutationしたらserverにもう一度取得しに行っていたのが、cacheの更新だけにしてserver間の通信を減らしている。
+
+これ、他の端末から状態変更されていた場合は偽のcacheになるけどいいんか？まぁそういう考慮をすべき時は素直に取得せよということかな。
+
+
+- [x] 9.4.2 Updating the cache optimistically
+
+楽観的更新。これ、react19でそれ用のhookあったな。
+https://zenn.dev/uhyo/books/react-19-new/viewer/use-optimistic
+
+react19とtanstackの関わり
+https://zenn.dev/aishift/articles/051d5d3fd1f8a6#%E4%BB%A5%E5%89%8D%E3%81%BE%E3%81%A7%E3%81%AE%E6%A5%BD%E8%A6%B3%E7%9A%84%E6%9B%B4%E6%96%B0%E3%81%AE%E5%AE%9F%E8%A3%85
+
+useOptimisticの実装が気になる。
+
+- [x] 9.4.3 Using partial data where available
+
+cacheにあるデータを部分的に取得して、先行して描画し、detailはserver通信からの到着を待つ
+
+- [x] 9.4.4 Hiding the loader if some data is available
+
+useIsFetching
+tanstackではロードとフェッチの違いを判別できる。
+ロードは、描画すべき値がcache内にない状態でserverに通信が走ること。
+フェッチは、描画すべき値がcache内に古い状態で存在しているが、更新のためserverに通信が走ること。
+ロードの場合はクルクルを表示させたいが、フェッチでは不要。そんなときにuseIsFetchingを使う。
+
+- [x] 9.4.5 Putting it all together
+
+ここでは紙面の都合上js使ったけど、typescript使えよとのこと
