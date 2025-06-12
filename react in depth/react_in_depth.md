@@ -918,3 +918,6 @@ tanstackではロードとフェッチの違いを判別できる。
 
 ----
 
+## 10.1 Testing a static component
+
+- [ ] 10.1.1 Running tests
