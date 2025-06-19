@@ -933,7 +933,17 @@ testファイルの置き方には諸説ある。
 
 ## 10.2 Testing interactive components
 
-- [ ] 10.2.1 Testing a stateful component
+- [x] 10.2.1 Testing a stateful component
 
+- [x] 10.2.2 Testing callbacks
 
+callback functionをモックに差し替えてテストしてる
 
+- [x] 10.2.3 Testing a form
+
+- [x] 10.2.4 Testing a hook
+
+keyboardをpressしているか否かのhookをテストする例を示している。
+
+## 10.3 Testing components with dependencies
+    
