@@ -946,4 +946,19 @@ callback functionをモックに差し替えてテストしてる
 keyboardをpressしているか否かのhookをテストする例を示している。
 
 ## 10.3 Testing components with dependencies
-    
+
+fetchとかbrowser APIとか、外部依存関係を持つコンポーネントのテスト方法を紹介している。
+mockの話。
+
+- [x] 10.3.1 Mocking the browser API
+
+navigator.geolocationをmockしている。
+
+- [x] 10.3.2 Mocking a library
+
+axiosをmock化してテスト。
+ただ、実践としてはmock server workerの利用を勧められている。
+
+- [x] 10.3.3 Mocking a context
+
+テストの最初でcontextをsetupしてやる
