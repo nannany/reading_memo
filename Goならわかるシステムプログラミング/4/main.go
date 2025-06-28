@@ -1,7 +1,14 @@
 package main
 
-import "fmt"
+import (
+	"time"
+)
 
 func main() {
-    time.After(10 * time.Second)
+	println("start")
+	// 時刻を表示
+	timer := time.After(10 * time.Second)
+
+	<-timer
+	println("10s")
 }
