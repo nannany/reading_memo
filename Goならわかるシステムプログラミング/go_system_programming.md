@@ -47,5 +47,53 @@ forとくっつけて、channelを使うと、チャネルが閉じられるま�
 
 ## 6.5 Go言語でHTTPサーバを実装する
 
+## 6.6 速度改善(1): HTTP/1.1のKeep-Aliveに対応させる
 
+tcpの接続を閉じないようにすることで、同じ接続を使いまわすことができる。 
+
+Accept()メソッドは、3way handshakeが完了するまではブロックし、完了後は、接続を受け付ける。
+
+
+---
+
+3way handshakeについて、なぜ3wayなのか調べてみた。
+主な理由は
+
+https://www.ietf.org/rfc/rfc793.html
+
+```
+ The principle reason for the three-way handshake is to prevent old
+  duplicate connection initiations from causing confusion.k
+```
+
+つまり、古いtcp接続の再利用を防ぐため、ということらしい。
+
+## 6.7 速度改善(2): 圧縮
+
+Accept-Encodingヘッダは、クライアント->サーバのリクエストヘッダに付与し、対応している圧縮方式を指定する。
+
+Content-Encodingヘッダは、サーバ->クライアントのレスポンスヘッダに付与し、実際の圧縮方式を指定する。
+クライアント->サーバのリクエストにおいても圧縮をしている場合は、Content-Encodingヘッダにその圧縮方式を指定する。
+
+ヘッダの圧縮についてもあるようで、その際にはHPACKという方式を使う。
+
+https://datatracker.ietf.org/doc/html/rfc7541
+
+## 6.8 速度改善(3): チャンク形式のボディー送信
+
+transfer-encoding: chunked ヘッダを使うことで、ボディーをチャンク形式で送信することができる。
+
+最初にサイズがあり、その後にデータが続く。
+
+## 6.9 速度改善(4): パイプライニング
+
+# 7 UDPソケットを使ったマルチキャスト通信
+
+## 7.1 UDPとTCPの用途の違い
+
+UDPはDNSやNTP,WebRTCなどで使われている。
+
+### 7.1.1 UDPが使われる場面は今と昔で変わってきている
+
+[tcp輻輳制御のwiki](https://en.wikipedia.org/wiki/TCP_congestion_control).日本語版がない。。
 
