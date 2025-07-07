@@ -97,3 +97,10 @@ UDPはDNSやNTP,WebRTCなどで使われている。
 
 [tcp輻輳制御のwiki](https://en.wikipedia.org/wiki/TCP_congestion_control).日本語版がない。。
 
+[ネットゲームにおけるTCP/UDPの使い分け](https://www.slideshare.net/slideshow/tcpudp-81497235/81497235)
+
+
+## 7.2 UDPとTCPの処理の流れの違い
+
+## 7.3 UDPのマルチキャストの実装例
+
