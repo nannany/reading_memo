@@ -216,3 +216,10 @@ https://nodejs.org/api/fs.html#fsexistspath-callback
 直接openなりwriteなりをして、エラーが返ってきたら存在しないと判断するのが良い。
 
 ### 9.2.7 OS固有のファイル属性を取得する
+
+os.FileInfo.Sys()を使うことで、OS固有のファイル属性を取得することができる。
+
+linuxはcreate_atが取れない。それを下記で考察してるらしい。
+https://bugs.ruby-lang.org/issues/9647
+
+### 9.2.8 ファイルの同一性チェック
