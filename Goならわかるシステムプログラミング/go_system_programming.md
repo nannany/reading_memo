@@ -322,7 +322,31 @@ mmapの用途としては、コピーオンライト機能や確保したメモ�
 
 同期・非同期/ブロッキング・ノンブロッキングの組み合わせの4つの状態それぞれについての説明をしている。
 
+https://blog.matsumoto-r.jp/?p=2030
+https://keens.github.io/blog/2017/05/19/hidoukitononburokkingutoatonanika/
 
+むずくてよくわからん。
 
+## 10.5 select属のシステムコールによるI/Oの多重化
 
+select属とは、1つのスレッドで複数のI/O操作を同時に行うためのシステムコールのこと。
+select, poll, epoll, kqueueなどがある。macOSではkqueueが使われている。
+
+## 10.6 FUSEを使った自作ファイルシステムの実装
+
+FUSEを利用して、クラウド上のストレージを、あたかもローカルにあるかのように扱う方法を紹介している。
+
+これは面白そう。S3とmacOSの組み合わせで実装してみたい。
+
+https://github.com/awslabs/mountpoint-s3
+https://github.com/s3fs-fuse/s3fs-fuse
+この辺有名っぽい
+
+# 11 コマンドシェル101
+
+シェルをgoで実装していた。
+
+posix、sus、lsbといった規格の説明とか、何に準拠したらunixと名乗れるのかとか、その辺りの説明が面白かった。(斜め読み)
+
+# 12 プロセスの役割とGo言語による操作
 
