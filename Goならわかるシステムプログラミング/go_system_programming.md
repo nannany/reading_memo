@@ -477,4 +477,36 @@ YouTubeチャンネル「golang.tokyo」にアップロードされた動画の�
 
 ## 14.5 runtimeパッケージのgoroutine関連の機能
 
+### 14.5.1 runtime.LockOSThread()/runtime.UnlockOSThread()
+
+LockOSThread()を呼び出すことで、現在のgoroutineをOSスレッドに固定することができる。
+基本的には init 関数の中で呼び出すことが多い。
+
+### 14.5.2 runtime.Gosched()
+
+Gosched()を呼び出すことで、現在のgoroutineを一時的にスケジューラーに返すことができる。
+
+あんまり使わない関数の模様。ガベージコレクタで少し使ってるくらいらしい。
+
+### 14.5.3 runtime.GOMAXPROCS(n)/runtime.NumCPU()
+
+GOMAXPROCS(n)を呼び出すことで、Goランタイムが使用する最大のOSスレッド数を設定することができる。
+昔はデフォルトの値が1だったが、現在はNumCPU()の値がデフォルトになっている。
+
+NumCPU()を呼び出すことで、現在のマシンのCPUコア数を取得することができる。
+
+## 14.6 Race Detector
+
+go runやgo buildに `-race` オプションをつけることで、競合状態を検出することができる。
+
+## 14.7 syncパッケージ
+
+Goにおいて、goroutine間の同期はチャネルとselectで事足りるが、多言語からの移植を考慮して、syncパッケージが用意されている。
+
+pthreadなる仕組みがあるが、Goにおいてそれと同様のことをするためのライブラリがsyncパッケージである。
+
+https://ja.wikipedia.org/wiki/POSIX%E3%82%B9%E3%83%AC%E3%83%83%E3%83%89
+
+### 14.7.1 sync.Mutex/sync.RWMutex
+
 
