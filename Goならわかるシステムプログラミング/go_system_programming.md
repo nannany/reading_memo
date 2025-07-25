@@ -509,4 +509,26 @@ https://ja.wikipedia.org/wiki/POSIX%E3%82%B9%E3%83%AC%E3%83%83%E3%83%89
 
 ### 14.7.1 sync.Mutex/sync.RWMutex
 
+sync.Mutexはそのコードを通るgoroutineを1つに制限する事ができる。
+
+チャネルとの使い分けについては、sync.Mutexは状態管理やキャッシュ管理に使う。
+
+sync.RWMutexは、読み取り専用のgoroutineを複数許可することができる。
+
+状態管理についてはsync.Mutexを使い、キャッシュ管理についてはsync.RWMutexを使うのが良い。
+
+TryLock()を使うことで、ロックがかかっていないことを確認してからロックを取得することができる。
+
+### 14.7.2 sync.WaitGroup
+
+sync.WaitGroupは、goroutineの終了を待つためのもの。
+
+### 14.7.3 sync.Once
+
+sync.Onceは、1度だけ実行される処理を定義するためのもの。
+基本的に初期化処理のために使われる。
+普通はinitで初期化処理をするが、初期化処理が必要な時まで遅延させたい時にsync.Onceを使う。
+
+### 14.7.4 sync.Cond
+
 
