@@ -724,4 +724,16 @@ https://github.com/golang/go/blob/master/src/runtime/slice.go#L296
 
 ### 16.3.4 sync.Poolによるアロケート回数の削減
 
+sync.Poolは、オブジェクトの再利用を行うための仕組み。
+GCが起きると削除されてしまうので、消えても困らないものを配置する。
+
+具体的には、bufferなどのインスタンスを作っておくのが良さげ。
+
+## 16.4 ガベージコレクタ
+
+とにかくめっちゃ進化してるらしい。
+
+詳しくは下記。
+https://deeeet.com/writing/2016/05/08/gogc-2016/
+
 
