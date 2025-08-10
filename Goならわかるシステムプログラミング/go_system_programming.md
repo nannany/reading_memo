@@ -987,3 +987,22 @@ https://github.com/huku-/research/wiki/Intel-CPU-security-features
 rand.Read()で乱数を取得する。
 
 ### A.1.4 擬似乱数生成器の使い方
+
+math/randの方が様々な型に対応した乱数を生成することができる。
+
+----
+
+擬似乱数生成器は共有ロックを取るので、複数のgoroutineから同時に呼び出すとパフォーマンスが悪くなる。
+そのため、各goroutineごとに疑似乱数生成器のインスタンスを持つのが良い。
+
+今は状況変わってそう
+https://chatgpt.com/share/68982c01-65e8-8009-8313-5d788bf8d311
+
+----
+
+## A.2 TLS(Transport Layer Security)
+
+
+
+
+
