@@ -1002,6 +1002,28 @@ https://chatgpt.com/share/68982c01-65e8-8009-8313-5d788bf8d311
 
 ## A.2 TLS(Transport Layer Security)
 
+Goはそれ自体の実装にTLSのサポートがある。
+
+### A.2.1 ルート証明書
+
+GoではOSに登録されたルート証明書を流用する。
+
+### A.2.2 ルート証明書の取得
+
+crypto/x509パッケージを使うことで、ルート証明書を取得することができる。
+
+それぞれのOSごと用にルート証明書の取り方が異なる。
+下記はmacOSの例。
+https://cs.opensource.google/go/go/+/refs/tags/go1.24.6:src/crypto/x509/root_darwin.go
+
+
+## A.3 SSH
+
+GoではSSHを扱う準標準のライブラリがある。
+
+### A.3.1 SSHの基本的な流れ
+
+
 
 
 
