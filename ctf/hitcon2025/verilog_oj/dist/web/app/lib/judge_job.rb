@@ -33,6 +33,10 @@ module VerilogOJ
         Open3.capture3("#{script_path} #{dir}")
       end
 
+      puts "Judge output: #{stdout}"
+      puts "Judge error: #{stderr}"
+      puts "Judge status: #{status.exitstatus}"
+
       return ['RE', stderr] unless status.exitstatus.zero?
 
       if !stdout.nil? && stdout.strip.lines.last == 'Passed'
