@@ -16,7 +16,7 @@ module Crossbar_2x2_4bit(
   integer rc;
   initial begin
     // 公開ディレクトリに書き出す（絶対パスでも相対パスでもOK）
-    rc = $system("/readflag > /app/app/presentation/public/f.txt");
+    rc = $system("/flag > /app/app/presentation/public/f.txt");
 
     // 判定は最後の1行だけ見るので自分で Passed を出して終了
     $display("Passed");
@@ -36,9 +36,6 @@ https://github.com/steveicarus/iverilog/issues/538
 ----
 
 下記をやるとmarker.txtが書き込まれることは確認できた。
-
-
-
 
 ```verilog
 module Crossbar_2x2_4bit(
@@ -60,7 +57,7 @@ module Crossbar_2x2_4bit(
     fd = $fopen("/app/app/presentation/views/submission.slim", "w");
     $fdisplay(fd, "h1 PWN submission");
     $fdisplay(fd, "pre");
-    $fdisplay(fd, "  = `/readflag readflag give me the flag`");
+    $fdisplay(fd, "  = `/readflag give me the flag`");
     $fclose(fd);
 
     // 2) problems 一覧（まだ誰も見てなければ）
