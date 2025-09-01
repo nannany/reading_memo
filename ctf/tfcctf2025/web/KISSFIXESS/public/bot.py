@@ -36,6 +36,7 @@ def visit_url(name: str, timeout: int = 30):
     })
     
     encoded_name = quote(name)
+    print(f"Visiting with name: {name} (encoded: {encoded_name})")
     driver.get(f"{URL_BASE}/?name_input={encoded_name}")
     # allow some time for JS to execute
     time.sleep(200)
