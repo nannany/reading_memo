@@ -38,8 +38,44 @@
 
 ## 1.3 Overview of this book
 
+この本は2つのパートに分かれる。1つ目はsystem design interviewで議論されるトピックについてのテキストブック的解説。
+2つ目はサンプルインタビューを通じて、1つ目で学んだことを実際にどう使うかを示す。
 
-1.4 Prelude—A brief discussion of scaling the various services of a system
+## 1.4 Prelude—A brief discussion of scaling the various services of a system
+
+### 1.4.1 The beginning: A small initial deployment of our app
+
+
+:::note
+Brotliという圧縮アルゴリズムを使うと、gzipよりも圧縮率が高いらしい。
+:::
+
+### 1.4.2 Scaling with GeoDNS
+
+:::note
+GeoDNSは、ユーザーを地理的に最も近いデータセンターに誘導することで、レイテンシを最小化する。
+:::
+
+### 1.4.3 Adding a caching service
+
+
+### 1.4.4 Content distribution network
+
+### 1.4.5 A brief discussion of horizontal scalability and cluster management, continuous integration, and continuous deployment
+
+### 1.4.6 Functional partitioning and centralization of cross-cutting concerns
+
+- ログとかの機能横断的機能
+- 外部からの通信に関しては、api gatewayの利用
+- CQRS
+
+### 1.4.7 Batch and streaming extract, transform, and load (ETL)
+
+### 1.4.8 Other common services
+
+### 1.4.9 Cloud vs. bare metal
+
+
 2 A typical system design interview flow
 2.5 Logging, monitoring, and alerting
 2.6 Search bar
