@@ -75,8 +75,31 @@ GeoDNSは、ユーザーを地理的に最も近いデータセンターに誘�
 
 ### 1.4.9 Cloud vs. bare metal
 
+cloudの利点を論じてる。
+- エンジニアのコスト削減
+- セットアップの容易さ
+- 初期費用が安い
+- 多くの人から使われるという観点から、cloudの方が使いやすい
+- upgradeがしやすい
 
-2 A typical system design interview flow
+デメリットはベンダーロックインしてしまうこと。
+
+### 1.4.10 Serverless (Function as a Service)
+
+:::note
+OpenFaaSというオープンソースのFaaSプラットフォームもある。
+:::
+
+:::note
+sprint cloud functionsはビジネスロジックと、ベンダー固有のglueコードを別の層に分離し、プログラマーにはビジネスロジックのみを意識させるようになってるみたい
+:::
+
+### 1.4.11 Conclusion: Scaling backend services
+
+# 2 A typical system design interview flow
+
+
+
 2.5 Logging, monitoring, and alerting
 2.6 Search bar
 2.7 Other discussions
