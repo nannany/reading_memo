@@ -1,0 +1,35 @@
+services:
+  db:
+    image: mariadb:latest
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: ctf
+      MYSQL_USER: ctfuser
+      MYSQL_PASSWORD: ctfpass
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "ctfuser", "-pctfpass"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: ./app
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    ports:
+      - "5015:80"
+    environment:
+      DB_HOST: db
+      DB_NAME: ctf
+      DB_USER: ctfuser
+      DB_PASS: ctfpass
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: changeme_admin
+      ADMIN_NOTE: "ENO{FAKEFLAG}"
+      HASH_ALGO: bcrypt           
+      BCRYPT_COST: "4"             
+    volumes:
+      - ./app:/var/www/html:ro
