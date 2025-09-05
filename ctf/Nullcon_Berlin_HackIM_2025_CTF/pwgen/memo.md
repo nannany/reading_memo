@@ -1,5 +1,9 @@
 https://chatgpt.com/c/68ba420e-128c-8333-95e8-a4ba2ca8b4af
 
+下記のような実装で、nthpwで指定した数だけflagをシャッフルした文字列を返すサイト。
+
+
+
 ```php
 <?php
 ini_set("error_reporting", 0);
