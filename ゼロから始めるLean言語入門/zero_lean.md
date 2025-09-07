@@ -41,3 +41,5 @@ https://lean-lang.org/doc/reference/latest/
 オンラインで試せる環境もあるが、ここではローカルに環境を作る。なぜならweb版だと使えない機能もあるから。
 https://live.lean-lang.org/
 
+### 2.1.1 VSCodeでLeanの環境構築をする
+
