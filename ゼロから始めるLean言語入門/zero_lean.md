@@ -46,3 +46,10 @@ https://live.lean-lang.org/
 
 ### 2.1.2 Leanプロジェクトの構成
 
+### 2.1.3 VSCodeでのUnicode文字の入力
+
+show unicode input abbreviationで、見れる。
+
+## 2.2 自然数を定義して1+1=2を証明する
+
+### 2.2.1 ペアノの公理
