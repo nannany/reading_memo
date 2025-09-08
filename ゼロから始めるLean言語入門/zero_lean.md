@@ -43,3 +43,6 @@ https://live.lean-lang.org/
 
 ### 2.1.1 VSCodeでLeanの環境構築をする
 
+
+### 2.1.2 Leanプロジェクトの構成
+
