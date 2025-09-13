@@ -42,18 +42,20 @@ example (P Q : Prop) (hq : Q) : (Q → P) ↔ P := by
       exact hq
 
 
-  example (P Q : Prop) : ¬ (P ∨ Q) → (¬ P ∧ ¬ Q) := by
-    intro h
-    constructor
-
-    case left =>
-      intro hp
-      apply h
-      left
-      exact hp
-
-    case right =>
-      intro hq
-      apply h
-      right
-      exact hq
+  example (P Q : Prop) : ¬ (P ∨ Q) ↔ ¬ P ∧ ¬ Q := by
+    constructor <;> intro h1
+    · constructor <;> intro h2 --# ¬ P ∧ ¬ Q のゴールを分割
+      · apply h1 -- ここでは h1 : ¬ (P ∨ Q) で、 h2: Pになってる
+        left --
+        assumption
+      · apply h1
+        right
+        assumption
+    · intro hpq
+      cases hpq with
+      | inl hp =>
+        apply h1.left
+        assumption
+      | inr hq =>
+        apply h1.right
+        assumption
