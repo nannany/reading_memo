@@ -59,3 +59,12 @@ example (P Q : Prop) (hq : Q) : (Q → P) ↔ P := by
       | inr hq =>
         apply h1.right
         assumption
+
+example (P : Prop) : ¬¬¬ P → ¬ P := by
+  intro h3np hp
+
+  have : ¬¬ P := by
+    intro hnp
+    contradiction
+
+  contradiction
