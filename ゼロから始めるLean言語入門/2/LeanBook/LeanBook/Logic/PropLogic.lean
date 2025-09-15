@@ -68,3 +68,16 @@ example (P : Prop) : ¬¬¬ P → ¬ P := by
     contradiction
 
   contradiction
+
+example (P : Prop) : ¬ (P ↔ ¬P) := by
+  intro h
+  exfalso
+
+  have nP: ¬ P := by
+    intro p
+    exact (h.mp p) p
+
+  have p' : P := by
+    exact h.mpr nP
+
+  contradiction

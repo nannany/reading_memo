@@ -140,4 +140,26 @@ intro が何を仮定してくれるのかを見出すのがむずい。
 
 ### 3.2.3 exact?タクティクでライブラリを検索する
 
+### 3.2.4 show from 構文で一時的な補題を示す
+
+### 3.2.5 練習問題
+
+```
+example (P : Prop) : ¬ (P ↔ ¬P) := by
+  constructor
+  · intro p
+    contradiction
+  · intro np
+    contradiction
+```
+
+
+だとダメだった。わからん。
+
+まず、notを解釈すると (P <-> not P) -> Falseとなるはずで、そうなると左側の P -> not P と not P -> P が矛盾することをそれぞれ示せば良いのではないのか？
+
+
+## 3.3 述語論理
+
+
 
